@@ -68,3 +68,15 @@ staticPodPath: #K8S_PATH#/manifests
 streamingConnectionIdleTimeout: 4h0m0s
 syncFrequency: 1m0s
 volumeStatsAggPeriod: 1m0s
+rotateServerCertificates: true
+allowedUnsafeSysctls:
+ - "net.core*"
+ - "net.ipv4.*"
+#kubeReserved:
+  #cpu: "1"
+  #memory: 1Gi
+  #ephemeral-storage: 10Gi
+#systemReserved:
+  #cpu: "1"
+  #memory: 1Gi
+  #ephemeral-storage: 10Gi

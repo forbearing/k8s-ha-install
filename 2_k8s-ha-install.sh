@@ -374,7 +374,7 @@ function 4_generate_kubernetes_certs() {
         --kubeconfig=/etc/kubernetes/admin.kubeconfig
 
 
-    # TLS Bootstrap 用于自动给 kubelet 颁发证书，因为 master 节点变化不大，但是 worker 节点变化很大
+    # TLS Bootstrap 用于自动给 kubelet 颁发证书，生成 /etc/kubelet.kubeconfig 文件
     # token-id 和 token-secret 在 bootstrap/bootstrap.secret.yaml 中
     MSG2 "TLS Bootstrapping"
     kubectl config set-cluster kubernetes \
@@ -785,22 +785,22 @@ function deploy_dashboard {
 }
 
 
-0_prepare
-1_copy_ssh_key
-2_copy_binary_package
-3_generate_etcd_certs
-4_generate_kubernetes_certs
-5_setup_etcd
-6_setup_keepalived
-7_setup_haproxy
-8_setup_apiserver
-9_setup_controller_manager
-10_setup_scheduler
-11_setup_k8s_admin
+#0_prepare
+#1_copy_ssh_key
+#2_copy_binary_package
+#3_generate_etcd_certs
+#4_generate_kubernetes_certs
+#5_setup_etcd
+#6_setup_keepalived
+#7_setup_haproxy
+#8_setup_apiserver
+#9_setup_controller_manager
+#10_setup_scheduler
+#11_setup_k8s_admin
 12_setup_kubelet
-13_setup_kube_proxy
-14_deploy_calico
-15_deploy_coredns
-16_deploy_metrics_server
+#13_setup_kube_proxy
+#14_deploy_calico
+#15_deploy_coredns
+#16_deploy_metrics_server
 
-[ ${INSTALL_DASHBOARD} ] && deploy_dashboard
+#[ ${INSTALL_DASHBOARD} ] && deploy_dashboard
