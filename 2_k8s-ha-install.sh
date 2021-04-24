@@ -785,22 +785,22 @@ function deploy_dashboard {
 }
 
 
-0_prepare
-1_copy_ssh_key
-2_copy_binary_package
-3_generate_etcd_certs
-4_generate_kubernetes_certs
-5_setup_etcd
-6_setup_keepalived
-7_setup_haproxy
-8_setup_apiserver
+#0_prepare
+#1_copy_ssh_key
+#2_copy_binary_package
+#3_generate_etcd_certs
+#4_generate_kubernetes_certs
+#5_setup_etcd
+#6_setup_keepalived
+#7_setup_haproxy
+#8_setup_apiserver
 9_setup_controller_manager
-10_setup_scheduler
-11_setup_k8s_admin
-12_setup_kubelet
-13_setup_kube_proxy
-14_deploy_calico
-15_deploy_coredns
-16_deploy_metrics_server
+#10_setup_scheduler
+#11_setup_k8s_admin
+#12_setup_kubelet
+#13_setup_kube_proxy
+#14_deploy_calico
+#15_deploy_coredns
+#16_deploy_metrics_server
 
 [ ${INSTALL_DASHBOARD} ] && deploy_dashboard
