@@ -1,1 +1,1 @@
-deploy kubernetes cluster from binaries
+Deploy kubernetes cluster from binaries

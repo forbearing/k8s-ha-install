@@ -1,19 +1,28 @@
 #!/usr/bin/env bash
+
+# 描述: 一共分为 5 个阶段
+#   Stage Prepare: 准备阶段，用来配置 ssh 免密码登录
+#   Stage 1: Linux 系统准备
+#   Stage 2: 为部署 Kubernetes 做好环境准备
+#   Stage 3: 安装 Docker
+#   Stage 4: 部署 Kubernetes Cluster
+
 # 注意事项：
-#   1. etcd 证书不能重复生成，其他的 k8s 组件，比如 kube-apiserver, kube-controller-mananger 等等可以重复生成
+#   - 支持的系统: CentOS 7, Ubuntu 18, Ubuntu 20, Debian9, Debian 10
+#   - 运行此命令的必须是 master 节点，任何一台 master 节点都行
+#   - Stage Prepare、Stage 1、Stage 2、Stage 3 可以重复运行；Stage 4 不可以重复允许
+#     所以可以在 Stage Prepare、Stage 1 2 3 中断重复运行
+#   - 只需要提前配置好静态IP地址，只需等待一键安装(不需要提前配置好主机名，不需要提前配置好 SSH 免密码登录)
 
 # to-do-list
 #   1、扩展节点问题？ certSANs
-#   2、local 变量设置 HOSTNAME
-#   3、取消一些变量
-#   4、获取远程服务器的网卡接口名字
+#   2、获取远程服务器的网卡接口名字
 
 EXIT_SUCCESS=0
 EXIT_FAILURE=1
 ERR(){ echo -e "\033[31m\033[01m$1\033[0m"; }
-WARN(){ echo -e "\033[33m\033[01m$1\033[0m"; }
-MSG1(){ echo -e "\033[32m\033[01m$1\033[0m"; }
-MSG2(){ echo -e "\033[34m\033[01m$1\033[0m"; }
+MSG1(){ echo -e "\n\n\033[32m\033[01m$1\033[0m\n"; }
+MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 
 MASTER_HOST=(master1
              master2
@@ -37,7 +46,9 @@ SRV_NETWORK_IP="172.18.0.1"
 SRV_NETWORK_DNS_IP="172.18.0.10"
 CONTROL_PLANE_ENDPOINT="10.230.11.10:8443"
 
-MASTER_ROOT_PASS="toor"             # Change your own root passwd here
+ROOT_PASS="toor"                                        # Change your own root passwd here
+OS=""
+
 K8S_PATH="/etc/kubernetes"
 KUBE_CERT_PATH="/etc/kubernetes/pki"
 ETCD_CERT_PATH="/etc/etcd/ssl"
@@ -47,23 +58,39 @@ INSTALL_DASHBOARD="0"
 
 
 
-# 检测1：是否为 root、不是 root 退出脚本
-# 检测2：是否是支持的 Linux 版本，否则退出脚本
-# 检测3：是否已经安装了必须软件
-function 0_prepare() {
+function 0_check_root_and_os() {
+    # 检测是否为 root 用户，否则推出脚本
+    # 检测是否为支持的 Linux 版本，否则退出脚本
     [[ $(id -u) != "0" ]] && ERR "not root !" && exit $EXIT_FAILURE
     [[ "$(uname)" != "Linux" ]] && ERR "not support !" && exit $EXIT_FAILURE
     source /etc/os-release
+    OS=${ID}
     if [[ "$ID" == "centos" || "$ID" == "rhel" ]]; then
         INSTALL="yum"
-    elif [[ "$ID" == "debian" || "$ID" == "ubuntu" || "$ID" == "Ubuntu" ]]; then
+    elif [[ "$ID" == "debian" || "$ID" == "ubuntu" ]]; then
         INSTALL="apt-get"
     else
         ERR "not support !"
         EXIT $EXIT_FAILURE
     fi
+}
 
 
+
+function stage_prepare {
+    # 生成 /etc/hosts 文件
+    for (( i=0; i<${#MASTER[@]}; i++ )); do
+        sed -r -i "/${MASTER_IP[$i]}(.*)${MASTER_HOST[$i]}/d" /etc/hosts
+        echo "${MASTER_IP[$i]} ${MASTER_HOST[$i]}" >> /etc/hosts
+    done
+    for (( i=0; i<${#WORKER[@]}; i++ )); do
+        sed -r -i "/${WORKER_IP[$i]}(.*)${WORKER_HOST[$i]}/d" /etc/hosts
+        echo "${WORKER_IP[$i]} ${WORKER_HOST[$i]}" >> /etc/hosts
+    done
+
+
+    # 安装 sshpass ssh-keyscan
+    # 生成 ssh 密钥对
     command -v sshpass &> /dev/null
     if [ $? != 0 ]; then $INSTALL install -y sshpass; fi
     command -v ssh-keyscan &> /dev/null
@@ -71,39 +98,122 @@ function 0_prepare() {
     [ ! -d "${K8S_PATH}" ] && rm -rf "${K8S_PATH}"; mkdir -p "${K8S_PATH}"
     [ ! -d "${KUBE_CERT_PATH}" ] && rm -rf "${KUBE_CERT_PATH}"; mkdir -p "${KUBE_CERT_PATH}"
     [ ! -d "${ETCD_CERT_PATH}" ] && rm -rf "${ETCD_CERT_PATH}"; mkdir -p "${ETCD_CERT_PATH}"
-}
-
-
-
-# 1、创建 ssh 密钥对
-# 2、收集 master 节点和 worker 节点的主机指纹
-# 3、将本机的私钥拷贝到所有的 master 节点上和 worker 节点上
-function 1_copy_ssh_key() {
-    MSG1 "1. Setup SSH Public Key Authentication"
-
-    # 1、创建 ssh 密钥对
-    MSG1 "Generate SSH Key"
     if [[ ! -d "/root/.ssh" ]]; then rm -rf /root/.ssh; mkdir /root/.ssh; chmod 0700 /root/.ssh; fi
-    if [[ ! -s "/root/.ssh/id_rsa" ]]; then ssh-keygen -t rsa -N '' -f /root/.ssh/id_rsa; fi
+    if [[ ! -s "/root/.ssh/id_rsa" ]]; then ssh-keygen -t rsa -N '' -f /root/.ssh/id_rsa; fi 
     if [[ ! -s "/root/.ssh/id_ecdsa" ]]; then ssh-keygen -t ecdsa -N '' -f /root/.ssh/id_ecdsa; fi
     if [[ ! -s "/root/.ssh/id_ed25519" ]]; then ssh-keygen -t ed25519 -N '' -f /root/.ssh/id_ed25519; fi
     #if [[ ! -s "/root/.ssh/id_xmss" ]]; then ssh-keyscan -t xmss -N '' -f /root/.ssh/id_xmss; fi
 
 
-    # 2、收集 master 节点和 worker 节点的主机指纹
-    MSG1 "Copy ssh public key to remote host"
-    for NODE in ${ALL_NODE[@]}; do 
+    # 收集 master 节点和 worker 节点的主机指纹
+    # 将本机的 SSH 公钥拷贝到所有的 K8S 节点上
+    for NODE in "${ALL_NODE[@]}"; do 
         ssh-keyscan "${NODE}" >> /root/.ssh/known_hosts 2> /dev/null
+    done
+    for NODE in "${ALL_NODE[@]}"; do
+        sshpass -p "${ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_rsa.pub root@"${NODE}"
+        sshpass -p "${ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ecdsa.pub root@"${NODE}"
+        sshpass -p "${ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ed25519.pub root@"${NODE}"
+        #sshpass -p "${ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_xmss.pub root@"${NODE}"
     done
 
 
-    # 3、将本机的私钥拷贝到所有的 master 节点上和 worker 节点上
-    for NODE in ${ALL_NODE[@]}; do
-        MSG2 "Copy to ${NODE}"
-        sshpass -p "${MASTER_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_rsa.pub root@"${NODE}"
-        sshpass -p "${MASTER_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ecdsa.pub root@"${NODE}"
-        sshpass -p "${MASTER_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ed25519.pub root@"${NODE}"
-        #sshpass -p "${MASTER_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_xmss.pub root@"${NODE}"
+    # 设置 hostname
+    # 将 /etc/hosts 文件复制到所有节点
+    for (( i=0; i<${#MASTER[@]}; i++ )); do
+        ssh ${MASTER[$i]} "hostnamectl set-hostname ${MASTER_HOST[$i]}"
+        scp /etc/hosts ${MASTER[$i]}:/etc/hosts
+    done
+    for (( i=0; i<${#WORKER[@]}; i++ )); do
+        ssh ${WORKER[$i]} "hostnamectl set-hostname ${WORKER_HOST[$i]}"
+        scp /etc/hosts ${WORKER[$i]}:/etc/hosts
+    done
+
+
+    # yum 源目录 yum.repos.d 复制到所有的节点上
+    for NODE in "${ALL_NODE[@]}"; do
+        scp -r yum.repos.d ${NODE}:/tmp/
+    done
+}
+
+
+
+function stage_one {
+    # Stage 1: 系统准备
+    #   1. 导入所需 yum 源
+    #   2. 安装必要软件
+    #   3. 升级系统
+    #   4. 关闭防火墙、SELinux
+    #   5. 设置时区、NTP 时间同步
+    #   6. 设置 sshd
+    #   7. ulimits 参数调整
+    local stage_one_script_path=""
+    case "${OS}" in
+        "centos")
+            stage_one_script_path="centos/1_prepare_for_server.sh" ;;
+        "rhel")
+            stage_one_script_path="centos/1_prepare_for_server.sh" ;;
+        "debian")
+            stage_one_script_path="debian/1_prepare_for_server.sh" ;;
+        "ubuntu" )
+            stage_one_script_path="ubuntu/1_prepare_for_server.sh" ;;
+        *)
+            ERR "not support" && exit $EXIT_FAILURE ;;
+    esac
+    for NODE in "${ALL_NODE[@]}"; do
+        ssh ${NODE} "bash -s" < "${stage_one_script_path}"
+    done
+}
+
+
+
+function stage_two {
+    # Stage 2: k8s 准备
+    #   1. 安装 k8s 所需软件
+    #   2. 关闭 swap 分区
+    #   4. 升级 Kernel
+    #   4. 加载 K8S 所需内核模块
+    #   5. 调整内核参数
+    local stage_two_script_path=""
+    case "${OS}" in
+        "centos")
+            stage_two_script_path="centos/2_prepare_for_k8s.sh" ;;
+        "rhel")
+            stage_two_script_path="centos/2_prepare_for_k8s.sh" ;;
+        "debian")
+            stage_two_script_path="debian/2_prepare_for_k8s.sh" ;;
+        "ubuntu" )
+            stage_two_script_path="ubuntu/2_prepare_for_k8s.sh" ;;
+        *)
+            ERR "not support" && exit $EXIT_FAILURE ;;
+    esac
+    for NODE in "${ALL_NODE[@]}"; do
+        ssh ${NODE} "bash -s" < "${stage_two_script_path}"
+    done
+}
+
+
+
+function stage_three {
+    # Stage 3: 安装 Docker
+    #   1. 安装 docker 所需软件
+    #   1. 安装 docker-ce
+    #   2. 调整 docker-ce 启动参数
+    local stage_three_script_path=""
+    case "${OS}" in
+        "centos")
+            stage_three_script_path="centos/3_install_docker.sh" ;;
+        "rhel")
+            stage_three_script_path="centos/3_install_docker.sh" ;;
+        "debian")
+            stage_three_script_path="debian/3_install_docker.sh" ;;
+        "ubuntu" )
+            stage_three_script_path="ubuntu/3_install_docker.sh" ;;
+        *)
+            ERR "not support" && exit $EXIT_FAILURE ;;
+    esac
+    for NODE in "${ALL_NODE[@]}"; do
+        ssh ${NODE} "bash -s" < "${stage_three_script_path}"
     done
 }
 
@@ -111,43 +221,32 @@ function 1_copy_ssh_key() {
 
 # 1、将 kubernetes 二进制软件包、etcd 二进制软件包、cfssl 工具包拷贝到所有的 master 节点上
 # 2、将 Kubernetes 二进制软件包拷贝到所有的 worker 节点上
-# 3、检测 master 节点是否安装了 keepalived, haproxy
-function 2_copy_binary_package {
-    MSG1 "2. Copy Binary Package and Create Dir"
+function 1_copy_binary_package_and_create_dir {
+    MSG2 "1. Copy Binary Package and Create Dir"
 
+    # 将二进制软件包拷贝到 k8s 节点上
     tar -xvf bin/kube-apiserver.tgz -C bin/
     tar -xvf bin/kube-controller-manager.tgz -C bin/
     tar -xvf bin/kube-scheduler.tgz -C bin/
     tar -xvf bin/kubelet.tgz -C bin/
     tar -xvf bin/kube-proxy.tgz -C bin/
     tar -xvf bin/kubectl.tgz -C bin/
-    MSG2 " Copy Binary Package to Master"
-    for NODE in ${MASTER[@]}; do
+    # 将二进制软件包拷贝到 master 节点
+    for NODE in "${MASTER[@]}"; do
         for PKG in etcd etcdctl kube-apiserver kube-controller-manager kube-scheduler kube-proxy kubelet kubectl cfssl cfssl-json cfssl-certinfo; do
             scp ${PKG_PATH}/${PKG} ${NODE}:/usr/local/bin/${PKG}
         done
     done
-
-
-    MSG2 "Copy Binary Package to Worker"
-    for NODE in ${WORKER[@]}; do
+    # 将二进制软件包拷贝到 worker 节点
+    for NODE in "${WORKER[@]}"; do
         for PKG in kube-proxy kubelet kubectl; do
             scp ${PKG_PATH}/${PKG} ${NODE}:/usr/local/bin/${PKG}
         done
     done
 
 
-    MSG2 "Installed Keepalived and Haproxy for Master Node"
-    for NODE in ${MASTER[@]}; do
-        ssh ${NODE} "rpm -qi keepalived" &> /dev/null
-        if [ $? != 0 ]; then ssh ${NODE} "yum install -y keepalived"; fi
-        ssh ${NODE} "rpm -qi haproxy" &> /dev/null
-        if [ $? != 0 ]; then ssh ${NODE} "yum install -y haproxy"; fi
-    done
-
-
-    MSG2 "Create dir for Kubernetes and etcd"
-    for NODE in ${ALL_NODE[@]}; do
+    # k8s 所有节点创建所需目录
+    for NODE in "${ALL_NODE[@]}"; do
         for DIR_PATH in \
             ${K8S_PATH} \
             ${KUBE_CERT_PATH} \
@@ -162,18 +261,33 @@ function 2_copy_binary_package {
             ssh ${NODE} "mkdir -p ${DIR_PATH}"
         done
     done
+
+
 }
 
 
 
-# 1、生成 etcd CA 证书、etcd 证书和私钥
-# 2、将 etcd CA 证书、etcd 证书和私钥拷贝到 etcd 节点上（三个 master 节点分别对应三个 etcd 节点）
+# 检测 master 节点是否安装了 keepalived, haproxy
+function 2_install_keepalived_and_haproxy {
+    MSG2 "2. Installed Keepalived and Haproxy for Master Node"
+    for NODE in "${MASTER[@]}"; do
+        ssh ${NODE} "rpm -qi keepalived" &> /dev/null
+        if [ $? != 0 ]; then ssh ${NODE} "yum install -y keepalived"; fi
+        ssh ${NODE} "rpm -qi haproxy" &> /dev/null
+        if [ $? != 0 ]; then ssh ${NODE} "yum install -y haproxy"; fi
+    done
+}
+
+
+
+# 1、生成 etcd 证书
+# 2、将 etcd 证书拷贝到其他节点上
 function 3_generate_etcd_certs {
-    MSG1 "3. Generate etcd certs"
+    MSG2 "3. Generate certs for etcd"
 
     # 如果配置过 etcd 就不要在重新生成 etcd 证书
     # 重复生成 K8S 组件证书没事，但是如果重新生成 etcd 证书会有问题，需要额外设置
-    for NODE in ${MASTER[@]}; do
+    for NODE in "${MASTER[@]}"; do
         ssh ${NODE} "systemctl status etcd" &> /dev/null
         if [ $? == "0" ]; then
             WARN "etcd is installed, skip"
@@ -182,12 +296,12 @@ function 3_generate_etcd_certs {
     done
 
 
-    # 在此可以为 etcd 多预留几个 hostname 或者 ip 地址，方便 etcd 扩容
+    # 在这里设置，可以为 etcd 多预留几个 hostname 或者 ip 地址，方便 etcd 扩容
     local HOSTNAME=""
-    for NODE in ${MASTER_HOST[@]}; do
+    for NODE in "${MASTER_HOST[@]}"; do
         HOSTNAME="${HOSTNAME}","${NODE}"
     done
-    for NODE in ${MASTER_IP[@]}; do
+    for NODE in "${MASTER_IP[@]}"; do
         HOSTNAME="${HOSTNAME}","${NODE}"
     done
     HOSTNAME=${HOSTNAME}",127.0.0.1"
@@ -196,7 +310,6 @@ function 3_generate_etcd_certs {
 
     # 生成 etcd ca 证书
     # 通过 etcd ca 证书来生成 etcd 客户端证书
-    MSG2 "Generate certs and key for etcd"
     cfssl gencert -initca pki/etcd-ca-csr.json | cfssl-json -bare "${ETCD_CERT_PATH}"/etcd-ca
     cfssl gencert \
         -ca="${ETCD_CERT_PATH}"/etcd-ca.pem \
@@ -208,15 +321,15 @@ function 3_generate_etcd_certs {
         | cfssl-json -bare "${ETCD_CERT_PATH}"/etcd
 
 
-    MSG2 "Copy etcd certs and key to Master Node"
-    for NODE in ${MASTER[@]}; do
+    # 将 etcd 证书拷贝到所有的 master 节点上
+    for NODE in "${MASTER[@]}"; do
         ssh ${NODE} "mkdir -p ${ETCD_CERT_PATH}"
         for FILE in etcd-ca-key.pem etcd-ca.pem etcd-key.pem etcd.pem; do
             scp ${ETCD_CERT_PATH}/${FILE} ${NODE}:${ETCD_CERT_PATH}/${FILE}
         done
     done
-    MSG2 "Copy etcd certs and key to Worker Node"
-    for NODE in ${WORKER[@]}; do
+    # 将 etcd 证书拷贝到所有的 worker 节点上
+    for NODE in "${WORKER[@]}"; do
         ssh ${NODE} mkdir -p ${ETCD_CERT_PATH}
         for FILE in etcd-ca.pem etcd.pem etcd-key.pem; do
             scp ${ETCD_CERT_PATH}/${FILE} ${NODE}:${ETCD_CERT_PATH}/${FILE}
@@ -231,7 +344,7 @@ function 3_generate_etcd_certs {
 # 3、将 kubernetes 相关的所有证书和 kubeconfig 文件拷贝到所有的 master 节点上
 # 4、创建 ServiceAccount Key
 function 4_generate_kubernetes_certs() {
-    MSG1 "4. Generate certs for Kubernetes"
+    MSG2 "4. Generate certs for Kubernetes"
 
     # 获取 control plane endpoint ip 地址
     local OLD_IFS=""
@@ -243,12 +356,12 @@ function 4_generate_kubernetes_certs() {
     CONTROL_PLANE_ENDPOINT_IP=${temp_arr[0]}
 
 
-    # 可以为 master 节点和 worker 节点多预留几个主机名和IP地址，方便集群扩展
+    # 在这里设置，可以为 master 节点和 worker 节点多预留几个主机名和IP地址，方便集群扩展
     local HOSTNAME=""
-    for NODE in ${MASTER_HOST[@]}; do
+    for NODE in "${MASTER_HOST[@]}"; do
         HOSTNAME="${HOSTNAME}","${NODE}"
     done
-    for NODE in ${MASTER_IP[@]}; do
+    for NODE in "${MASTER_IP[@]}"; do
         HOSTNAME="${HOSTNAME}","${NODE}"
     done
     HOSTNAME=${HOSTNAME}",127.0.0.1"
@@ -266,7 +379,6 @@ function 4_generate_kubernetes_certs() {
 
 
     # 生成 apiserver 证书
-    MSG2 "apiserver"
     cfssl gencert \
         -ca="${KUBE_CERT_PATH}"/ca.pem \
         -ca-key="${KUBE_CERT_PATH}"/ca-key.pem \
@@ -278,7 +390,6 @@ function 4_generate_kubernetes_certs() {
 
 
     # 生成 apiserver 的聚合证书
-    MSG2 "front-proxy"
     cfssl gencert \
         -ca="${KUBE_CERT_PATH}"/front-proxy-ca.pem \
         -ca-key="${KUBE_CERT_PATH}"/front-proxy-ca-key.pem \
@@ -289,7 +400,6 @@ function 4_generate_kubernetes_certs() {
 
 
     # 生成 controller-manager 证书
-    MSG2 "controller-manager"
     cfssl gencert \
         -ca="${KUBE_CERT_PATH}"/ca.pem \
         -ca-key="${KUBE_CERT_PATH}"/ca-key.pem \
@@ -320,7 +430,6 @@ function 4_generate_kubernetes_certs() {
 
 
     # 生成 scheduler 证书
-    MSG2 "scheduler"
     cfssl gencert \
         -ca="${KUBE_CERT_PATH}"/ca.pem \
         -ca-key="${KUBE_CERT_PATH}"/ca-key.pem \
@@ -348,7 +457,6 @@ function 4_generate_kubernetes_certs() {
 
 
     # 生成 kubernetes admin 证书，给 kubernetes 管理员使用
-    MSG2 "Kubernetes adminstrator"
     cfssl gencert \
         -ca="${KUBE_CERT_PATH}"/ca.pem \
         -ca-key="${KUBE_CERT_PATH}"/ca-key.pem \
@@ -379,7 +487,6 @@ function 4_generate_kubernetes_certs() {
     #   申请一个 /etc/kubelet.kubeconfig 文件，然后才启动 kubelet 进程
     #   最后 kubelet 用 /etc/kubelet.kubeconfig 文件和 kube-apiserver 进行通信
     # token-id 和 token-secret 在 bootstrap/bootstrap.secret.yaml 中
-    MSG2 "TLS Bootstrapping"
     kubectl config set-cluster kubernetes \
         --certificate-authority=${KUBE_CERT_PATH}/ca.pem \
         --embed-certs=true \
@@ -398,14 +505,12 @@ function 4_generate_kubernetes_certs() {
 
     # 创建一个 serviceAccount，默认会有一个 secret 绑定了这个 serviceAccount，
     # 这个 secret 会产生一个 token，token 的生成就是用这个证书生成的。
-    MSG2 "ServiceAccount Key"
     openssl genrsa -out "${KUBE_CERT_PATH}"/sa.key 2048
     openssl rsa -in "${KUBE_CERT_PATH}"/sa.key -pubout -out "${KUBE_CERT_PATH}"/sa.pub
 
 
-    # 将生成的 kubernetes 各个组件的证书和配置文件分别发送到 master 节点上和 worker 节点上。
-    MSG2 "Copy Kubernetes certs to Master Node"
-    for NODE in ${MASTER[@]}; do
+    # 将生成的 kubernetes 各个组件的证书和配置文件分别拷贝到 master 节点
+    for NODE in "${MASTER[@]}"; do
         ssh ${NODE} "mkdir -p ${KUBE_CERT_PATH}"
         for FILE in $(ls ${KUBE_CERT_PATH} | grep -v etcd); do
             scp ${KUBE_CERT_PATH}/${FILE} ${NODE}:${KUBE_CERT_PATH}/${FILE}
@@ -419,8 +524,8 @@ function 4_generate_kubernetes_certs() {
             scp ${K8S_PATH}/${FILE} ${NODE}:${K8S_PATH}/${FILE}
         done
     done
-    MSG2 "Copy Kubernetes certs to Worker Node"
-    for NODE in ${WORKER[@]}; do
+    # 将 所需证书和配置文件拷贝到 worker 节点
+    for NODE in "${WORKER[@]}"; do
         ssh ${NODE} "mkdir -p ${KUBE_CERT_PATH}"
         for FILE in ca.pem ca-key.pem front-proxy-ca.pem; do
             scp ${KUBE_CERT_PATH}/${FILE} ${NODE}:${KUBE_CERT_PATH}/${FILE}
@@ -438,10 +543,10 @@ function 4_generate_kubernetes_certs() {
 #     etcd.service 为 etcd 的自启动文件）
 # 3、所有 etcd 节点设置 etcd 服务自启动
 function 5_setup_etcd() {
-    MSG1 "5. Setup etcd"
+    MSG2 "5. Setup etcd"
 
     # 如果 etcd 在运行就不设置 etcd
-    for NODE in ${MASTER[@]}; do
+    for NODE in "${MASTER[@]}"; do
         ssh ${NODE} "systemctl status etcd" &> /dev/null
         if [ $? == "0" ]; then
             WARN "etcd is installed, skip"
@@ -450,13 +555,15 @@ function 5_setup_etcd() {
     done
 
 
-    for NODE in ${MASTER[@]}; do
+    for NODE in "${MASTER[@]}"; do
         ssh $NODE "mkdir ${KUBE_CERT_PATH}/etcd/"
         ssh $NODE "ln -sf ${ETCD_CERT_PATH}/* ${KUBE_CERT_PATH}/etcd/"
     done
 
 
-    # 分别为3个 etcd 节点生成 etcd.config.yaml 文件
+    # 生成配置文件
+    #   /lib/systemd/system/etcd.service
+    #   /etc/etcd/etcd.config.yaml
     for (( i=0; i<${#MASTER[@]}; i++ )); do
         cp conf/etcd.config.yaml /tmp/etcd.config.yaml-$i
         sed -i "s/#MASTER_HOSTNAME#/${MASTER_HOST[$i]}/" /tmp/etcd.config.yaml-$i
@@ -482,7 +589,7 @@ function 5_setup_etcd() {
 
 
 function 6_setup_keepalived {
-    MSG1 "6. Setup Keepalived"
+    MSG2 "6. Setup Keepalived"
 
     local OLD_IFS=""
     local CONTROL_PLANE_ENDPOINT_IP=""
@@ -499,7 +606,7 @@ function 6_setup_keepalived {
     VIRTUAL_IPADDRESS=${CONTROL_PLANE_ENDPOINT_IP}
 
 
-    # 分别为三个 master 节点生成 keepalived 配置文件
+    # 为 master 节点生成 keepalived 配置文件
     for (( i=0; i<${#MASTER[@]}; i++ )); do
         if [[ $i == "0" ]]; then
             STATE="MASTER"
@@ -517,7 +624,7 @@ function 6_setup_keepalived {
     done
     
 
-    # 将生成好的配置文件keepalived.cfg 复制到远程服务器上
+    # 将生成好的配置文件keepalived.cfg 复制到 master 节点
     for (( i=0; i<${#MASTER[@]}; i++ )); do
         scp /tmp/keepalived.conf-$i ${MASTER[$i]}:/etc/keepalived/keepalived.conf
         scp conf/check_apiserver.sh ${MASTER[$i]}:/etc/keepalived/check_apiserver.sh
@@ -529,7 +636,7 @@ function 6_setup_keepalived {
 
 
 function 7_setup_haproxy() {
-    MSG1 "7. Setup haproxy"
+    MSG2 "7. Setup haproxy"
 
     local OLD_IFS=""
     local CONTROL_PLANE_ENDPOINT_PORT=""
@@ -540,7 +647,7 @@ function 7_setup_haproxy() {
     CONTROL_PLANE_ENDPOINT_PORT=${temp_arr[1]}
 
 
-    # 分别为3个 master 节点生成 haproxy.cfg 配置文件
+    # 为 master 节点生成 haproxy.cfg 配置文件
     for (( i=0; i<${#MASTER[@]}; i++ )); do
         cp conf/haproxy.cfg /tmp/haproxy.cfg-$i
         sed -i "s/#PORT#/${CONTROL_PLANE_ENDPOINT_PORT}/" /tmp/haproxy.cfg-$i
@@ -551,7 +658,7 @@ function 7_setup_haproxy() {
     done
 
 
-    # 将生成好的配置文件 haproxy.cfg 复制到远程服务器上
+    # 将生成好的配置文件 haproxy.cfg 复制到所有 master 节点
     for (( i=0; i<${#MASTER[@]}; i++ )); do
         scp /tmp/haproxy.cfg-$i ${MASTER[$i]}:/etc/haproxy/haproxy.cfg
         ssh ${MASTER[$i]} "systemctl enable haproxy"
@@ -562,9 +669,9 @@ function 7_setup_haproxy() {
 
 
 function 8_setup_apiserver() {
-    MSG1 "8. Setup kube-apiserver"
+    MSG2 "8. Setup kube-apiserver"
 
-    # 分别为三个 master 节点生成 kube-apiserver.service 文件
+    # 为 master 节点生成 kube-apiserver.service 文件
     for (( i=0; i<${#MASTER[@]}; i++ )); do
         cp conf/kube-apiserver.service /tmp/kube-apiserver.service-$i
         sed -i "s%#SRV_NETWORK_CIDR#%${SRV_NETWORK_CIDR}%" /tmp/kube-apiserver.service-$i
@@ -577,7 +684,7 @@ function 8_setup_apiserver() {
     done
 
 
-    # 将生成好的配置文件 kube-apiserver.service 复制到远程服务器
+    # 将生成好的配置文件 kube-apiserver.service 复制到所有 master 节点
     for (( i=0; i<${#MASTER[@]}; i++ )); do
         scp /tmp/kube-apiserver.service-$i ${MASTER[$i]}:/lib/systemd/system/kube-apiserver.service
         ssh ${MASTER[$i]} "systemctl daemon-reload"
@@ -589,7 +696,7 @@ function 8_setup_apiserver() {
 
 
 function 9_setup_controller_manager {
-    MSG1 "9. Setup kube-controller-manager"
+    MSG2 "9. Setup kube-controller-manager"
 
     # 为 master 节点生成 kube-controller-manager.service 文件
     cp conf/kube-controller-manager.service /tmp/kube-controller-manager.service
@@ -598,7 +705,7 @@ function 9_setup_controller_manager {
     sed -i "s%#POD_NETWORK_CIDR#%${POD_NETWORK_CIDR}%" /tmp/kube-controller-manager.service
 
 
-    # 将生成的 kube-controller-manager.service 配置文件复制到远程服务器
+    # 将生成的配置文件 kube-controller-manager.service 复制到所有 master 节点
     for (( i=0; i<${#MASTER[@]}; i++ )); do
         scp /tmp/kube-controller-manager.service ${MASTER[$i]}:/lib/systemd/system/kube-controller-manager.service
         ssh ${MASTER[$i]} "systemctl daemon-reload"
@@ -610,14 +717,14 @@ function 9_setup_controller_manager {
 
 
 function 10_setup_scheduler {
-    MSG1 "10. Setup kube-scheduler"
+    MSG2 "10. Setup kube-scheduler"
 
     # 为 master 节点生成 kube-scheduler.service 文件
     cp conf/kube-scheduler.service /tmp/kube-scheduler.service
     sed -i "s%#K8S_PATH#%${K8S_PATH}%" /tmp/kube-scheduler.service
 
 
-    # 将生成的 kube-scheduler.service 配置文件到远程服务器
+    # 将生成的配置文件 kube-scheduler.service 复制到所有 master 节点
     for (( i=0; i<${#MASTER[@]}; i++ )); do
         scp /tmp/kube-scheduler.service ${MASTER[$i]}:/lib/systemd/system/kube-scheduler.service
         ssh ${MASTER[$i]} "systemctl daemon-reload"
@@ -629,10 +736,13 @@ function 10_setup_scheduler {
 
 
 function 11_setup_k8s_admin {
-    MSG1 "11. Setup K8S admin"
+    MSG2 "11. Setup K8S admin"
 
     [ ! -d /root/.kube ] && rm -rf /root/.kube && mkdir /root/.kube
     cp ${K8S_PATH}/admin.kubeconfig /root/.kube/config
+
+
+    # 应用 bootstrap/bootstrap.secret.yaml
     while true; do
         kubectl get cs &> /dev/null
         if [ $? == "0" ]; then
@@ -645,7 +755,7 @@ function 11_setup_k8s_admin {
 
 
 function 12_setup_kubelet {
-    MSG1 "12. Setup kubelet"
+    MSG2 "12. Setup kubelet"
 
     # 需要三个文件，两个需要生成
     #   /lib/systemd/system/kubelet.service
@@ -659,8 +769,8 @@ function 12_setup_kubelet {
     sed -i "s%#SRV_NETWORK_DNS_IP#%${SRV_NETWORK_DNS_IP}%" /tmp/kubelet-conf.yaml
 
 
-    # 将配置文件发送到 k8s 所有节点上
-    for NODE in ${ALL_NODE[@]}; do
+    # 将生成的配置文件发送到 k8s 所有节点上
+    for NODE in "${ALL_NODE[@]}"; do
         scp conf/kubelet.service ${NODE}:/lib/systemd/system/kubelet.service
         scp /tmp/10-kubelet.conf ${NODE}:/etc/systemd/system/kubelet.service.d/10-kubelet.conf
         scp /tmp/kubelet-conf.yaml ${NODE}:${K8S_PATH}/kubelet-conf.yaml
@@ -673,7 +783,7 @@ function 12_setup_kubelet {
 
 
 function 13_setup_kube_proxy {
-    MSG1 "13. Setup kube-proxy"
+    MSG2 "13. Setup kube-proxy"
 
     # 为 kube-proxy 创建 serviceaccount: kube-proxy
     # 为 kube-proxy 创建 clusterrolebinding system:kube-proxy
@@ -715,8 +825,8 @@ function 13_setup_kube_proxy {
     sed -i "s%#POD_NETWORK_CIDR#%${POD_NETWORK_CIDR}%" /tmp/kube-proxy.conf
 
 
-    # 将生成的 kube-proxy.kubeconfig kube-proxy.service kube-proxy.conf 复制到所有的节点上
-    for NODE in ${ALL_NODE[@]}; do
+    # 将生成的配置文件 kube-proxy.kubeconfig kube-proxy.service kube-proxy.conf 复制到所有的节点上
+    for NODE in "${ALL_NODE[@]}"; do
         scp ${K8S_PATH}/kube-proxy.kubeconfig ${NODE}:${K8S_PATH}/kube-proxy.kubeconfig
         scp /tmp/kube-proxy.service ${NODE}:/lib/systemd/system/kube-proxy.service
         scp /tmp/kube-proxy.conf ${NODE}:${K8S_PATH}/kube-proxy.conf
@@ -729,7 +839,7 @@ function 13_setup_kube_proxy {
 
 
 function 14_deploy_calico {
-    MSG1 "14. Deploy calico"
+    MSG2 "14. Deploy calico"
 
     local ETCD_ENDPOINTS=""
     local ETCD_CA=""
@@ -745,8 +855,8 @@ function 14_deploy_calico {
 
 
     #cp calico_3.15/calico-etcd.yaml /tmp/calico-etcd.yaml
-    cp calico_3.18/calico-etcd.yaml /tmp/calico-etcd.yaml
-    #curl https://docs.projectcalico.org/manifests/calico-etcd.yaml -o /tmp/calico-etcd.yaml
+    #cp calico_3.18/calico-etcd.yaml /tmp/calico-etcd.yaml
+    curl https://docs.projectcalico.org/manifests/calico-etcd.yaml -o /tmp/calico-etcd.yaml
     sed -r -i "s%(.*)http://<ETCD_IP>:<ETCD_PORT>(.*)%\1${ETCD_ENDPOINTS}\2%" /tmp/calico-etcd.yaml
     sed -i "s%# etcd-key: null%etcd-key: ${ETCD_KEY}%g" /tmp/calico-etcd.yaml
     sed -i "s%# etcd-cert: null%etcd-cert: ${ETCD_CERT}%g" /tmp/calico-etcd.yaml
@@ -763,7 +873,7 @@ function 14_deploy_calico {
 
 
 function 15_deploy_coredns {
-    MSG1 "15. Deploy coredns"
+    MSG2 "15. Deploy coredns"
 
     cp CoreDNS/coredns.yaml /tmp/coredns.yaml
     sed -i "s%192.168.0.10%${SRV_NETWORK_DNS_IP}%g" /tmp/coredns.yaml
@@ -773,7 +883,7 @@ function 15_deploy_coredns {
 
 
 function 16_deploy_metrics_server {
-    MSG1 "16. Deploy metrics server"
+    MSG2 "16. Deploy metrics server"
 
     kubectl apply -f  metrics-server-0.4.x/comp.yaml
 }
@@ -788,9 +898,29 @@ function deploy_dashboard {
 }
 
 
-0_prepare
-1_copy_ssh_key
-2_copy_binary_package
+
+0_check_root_and_os
+
+
+MSG1 "=============== Prepare: Setup SSH Public Key Authentication =================="
+stage_prepare
+
+
+MSG1 "=================== Stage 1: Prepare for Linux Server ========================="
+stage_one
+
+
+MSG1 "====================== Stage 2: Prepare for Kubernetes ========================"
+stage_two
+
+
+MSG1 "========================= Stage 3: Install Docker ============================="
+stage_three
+
+
+MSG1 "============ Stage 4: Deployment Kubernetes Cluster from Binary ==============="
+1_copy_binary_package_and_create_dir
+2_install_keepalived_and_haproxy
 3_generate_etcd_certs
 4_generate_kubernetes_certs
 5_setup_etcd
@@ -806,4 +936,4 @@ function deploy_dashboard {
 15_deploy_coredns
 16_deploy_metrics_server
 
-[ ${INSTALL_DASHBOARD} ] && deploy_dashboard
+#[ ${INSTALL_DASHBOARD} ] && deploy_dashboard
