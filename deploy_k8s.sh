@@ -981,6 +981,7 @@ MSG1 "============ Stage 4: Deployment Kubernetes Cluster from Binary ==========
 15_deploy_coredns
 16_deploy_metrics_server
 
+MSG1 "==================== Stage 5: Deployment Kubernetes Addon ======================"
 [ ${INSTALL_DASHBOARD} ] && deploy_dashboard
 [ ${INSTALL_KUBOARD} ] && deploy_kuboard
 [ ${INSTALL_INGRESS} ] && deploy_ingress
