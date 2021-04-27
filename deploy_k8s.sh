@@ -13,10 +13,15 @@
 #   - Stage Prepare、Stage 1、Stage 2、Stage 3 可以重复运行；Stage 4 不可以重复允许
 #     所以可以在 Stage Prepare、Stage 1 2 3 中断重复运行
 #   - 只需要提前配置好静态IP地址，只需等待一键安装(不需要提前配置好主机名，不需要提前配置好 SSH 免密码登录)
+#   - 必须要有网络
 
 # to-do-list
-#   1、扩展节点问题？ certSANs
-#   2、获取远程服务器的网卡接口名字
+#   - 扩展节点问题？ certSANs
+#   - 获取远程服务器的网卡接口名字
+#   - hosts 文件 设置 127.0.0.1
+#   - hold docker-ce
+#   - 写一下需要修改的地方
+#   - scp 的问题
 
 EXIT_SUCCESS=0
 EXIT_FAILURE=1
@@ -27,15 +32,23 @@ MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 MASTER_HOST=(master1
              master2
              master3)
-MASTER_IP=(10.230.11.11
-           10.230.11.12
-           10.230.11.13)
 WORKER_HOST=(worker1
              worker2
              worker3)
-WORKER_IP=(10.230.11.21
-           10.230.11.22
-           10.230.11.23)
+#MASTER_IP=(10.230.11.11
+           #10.230.11.12
+           #10.230.11.13)
+#WORKER_IP=(10.230.11.21
+           #10.230.11.22
+           #10.230.11.23)
+#CONTROL_PLANE_ENDPOINT="10.230.11.10:8443"
+MASTER_IP=(10.230.12.11
+           10.230.12.12
+           10.230.12.13)
+WORKER_IP=(10.230.12.21
+           10.230.12.22
+           10.230.12.23)
+CONTROL_PLANE_ENDPOINT="10.230.12.10:8443"
 MASTER=(${MASTER_HOST[@]})
 WORKER=(${WORKER_HOST[@]})
 ALL_NODE=(${MASTER[@]} ${WORKER[@]})
@@ -44,17 +57,19 @@ SRV_NETWORK_CIDR="172.18.0.0/16"
 POD_NETWORK_CIDR="192.168.0.0/16"
 SRV_NETWORK_IP="172.18.0.1"
 SRV_NETWORK_DNS_IP="172.18.0.10"
-CONTROL_PLANE_ENDPOINT="10.230.11.10:8443"
 
 ROOT_PASS="toor"                                        # Change your own root passwd here
 OS=""
+INSTALL_MANAGER=""
 
 K8S_PATH="/etc/kubernetes"
 KUBE_CERT_PATH="/etc/kubernetes/pki"
 ETCD_CERT_PATH="/etc/etcd/ssl"
 PKG_PATH="bin"
 
-INSTALL_DASHBOARD="0"
+INSTALL_DASHBOARD=""
+INSTALL_KUBOARD=1
+INSTALL_INGRESS=1
 
 
 
@@ -66,9 +81,9 @@ function 0_check_root_and_os() {
     source /etc/os-release
     OS=${ID}
     if [[ "$ID" == "centos" || "$ID" == "rhel" ]]; then
-        INSTALL="yum"
+        INSTALL_MANAGER="yum"
     elif [[ "$ID" == "debian" || "$ID" == "ubuntu" ]]; then
-        INSTALL="apt-get"
+        INSTALL_MANAGER="apt-get"
     else
         ERR "not support !"
         EXIT $EXIT_FAILURE
@@ -80,11 +95,11 @@ function 0_check_root_and_os() {
 function stage_prepare {
     # 生成 /etc/hosts 文件
     for (( i=0; i<${#MASTER[@]}; i++ )); do
-        sed -r -i "/${MASTER_IP[$i]}(.*)${MASTER_HOST[$i]}/d" /etc/hosts
+        sed -r -i "/(.*)${MASTER_HOST[$i]}(.*)/d" /etc/hosts
         echo "${MASTER_IP[$i]} ${MASTER_HOST[$i]}" >> /etc/hosts
     done
     for (( i=0; i<${#WORKER[@]}; i++ )); do
-        sed -r -i "/${WORKER_IP[$i]}(.*)${WORKER_HOST[$i]}/d" /etc/hosts
+        sed -r -i "/(.*)${WORKER_HOST[$i]}(.*)/d" /etc/hosts
         echo "${WORKER_IP[$i]} ${WORKER_HOST[$i]}" >> /etc/hosts
     done
 
@@ -92,9 +107,9 @@ function stage_prepare {
     # 安装 sshpass ssh-keyscan
     # 生成 ssh 密钥对
     command -v sshpass &> /dev/null
-    if [ $? != 0 ]; then $INSTALL install -y sshpass; fi
+    if [ $? != 0 ]; then ${INSTALL_MANAGER} install -y sshpass; fi
     command -v ssh-keyscan &> /dev/null
-    if [ $? != 0 ]; then $INSTALL install -y ssh-keyscan; fi
+    if [ $? != 0 ]; then ${INSTALL_MANAGER} install -y ssh-keyscan; fi
     [ ! -d "${K8S_PATH}" ] && rm -rf "${K8S_PATH}"; mkdir -p "${K8S_PATH}"
     [ ! -d "${KUBE_CERT_PATH}" ] && rm -rf "${KUBE_CERT_PATH}"; mkdir -p "${KUBE_CERT_PATH}"
     [ ! -d "${ETCD_CERT_PATH}" ] && rm -rf "${ETCD_CERT_PATH}"; mkdir -p "${ETCD_CERT_PATH}"
@@ -233,7 +248,12 @@ function 1_copy_binary_package_and_create_dir {
     tar -xvf bin/kubectl.tgz -C bin/
     # 将二进制软件包拷贝到 master 节点
     for NODE in "${MASTER[@]}"; do
-        for PKG in etcd etcdctl kube-apiserver kube-controller-manager kube-scheduler kube-proxy kubelet kubectl cfssl cfssl-json cfssl-certinfo; do
+        for PKG in etcd etcdctl \
+            kube-apiserver kube-controller-manager kube-scheduler \
+            kube-proxy kubelet kubectl \
+            cfssl cfssl-json cfssl-certinfo \
+            helm
+        do
             scp ${PKG_PATH}/${PKG} ${NODE}:/usr/local/bin/${PKG}
         done
     done
@@ -271,10 +291,14 @@ function 1_copy_binary_package_and_create_dir {
 function 2_install_keepalived_and_haproxy {
     MSG2 "2. Installed Keepalived and Haproxy for Master Node"
     for NODE in "${MASTER[@]}"; do
-        ssh ${NODE} "rpm -qi keepalived" &> /dev/null
-        if [ $? != 0 ]; then ssh ${NODE} "yum install -y keepalived"; fi
-        ssh ${NODE} "rpm -qi haproxy" &> /dev/null
-        if [ $? != 0 ]; then ssh ${NODE} "yum install -y haproxy"; fi
+        ssh ${NODE} "ls /usr/sbin/keepalived" &> /dev/null
+        if [[ "$?" != 0 ]]; then
+            ssh ${NODE} "${INSTALL_MANAGER} install -y keepalived"
+        fi
+        ssh ${NODE} "ls /usr/sbin/haproxy" &> /dev/null
+        if [[ "$?" != 0 ]]; then
+            ssh ${NODE} "${INSTALL_MANAGER} install -y haproxy"
+        fi
     done
 }
 
@@ -290,7 +314,7 @@ function 3_generate_etcd_certs {
     for NODE in "${MASTER[@]}"; do
         ssh ${NODE} "systemctl status etcd" &> /dev/null
         if [ $? == "0" ]; then
-            WARN "etcd is installed, skip"
+            MSG2 "etcd is installed, skip"
             return $EXIT_SUCCESS
         fi
     done
@@ -544,12 +568,11 @@ function 4_generate_kubernetes_certs() {
 # 3、所有 etcd 节点设置 etcd 服务自启动
 function 5_setup_etcd() {
     MSG2 "5. Setup etcd"
-
     # 如果 etcd 在运行就不设置 etcd
     for NODE in "${MASTER[@]}"; do
         ssh ${NODE} "systemctl status etcd" &> /dev/null
         if [ $? == "0" ]; then
-            WARN "etcd is installed, skip"
+            MSG2 "etcd is installed, skip"
             return $EXIT_SUCCESS
         fi
     done
@@ -579,7 +602,7 @@ function 5_setup_etcd() {
     # 将配置文件 etcd.config.yaml 和 etcd 服务自启动文件 etcd.service 复制到远程服务器上
     for (( i=0; i<${#MASTER[@]}; i++ )); do
         scp /tmp/etcd.config.yaml-$i ${MASTER[$i]}:/etc/etcd/etcd.config.yaml
-        scp conf/etcd.service ${MASTER[$i]}:/usr/lib/systemd/system/etcd.service
+        scp conf/etcd.service ${MASTER[$i]}:/lib/systemd/system/etcd.service
         ssh ${MASTER[$i]} "systemctl daemon-reload"
         ssh ${MASTER[$i]} "systemctl enable etcd"
         ssh ${MASTER[$i]} "systemctl restart etcd" &
@@ -602,7 +625,7 @@ function 6_setup_keepalived {
     temp_arr=(${CONTROL_PLANE_ENDPOINT})
     IFS=${OLD_IFS}
     CONTROL_PLANE_ENDPOINT_IP=${temp_arr[0]}
-    INTERFACE=$(ip route show | grep default | awk '{print $NF}')
+    INTERFACE=$(ip route show | grep default | awk '{print $5}')
     VIRTUAL_IPADDRESS=${CONTROL_PLANE_ENDPOINT_IP}
 
 
@@ -626,6 +649,7 @@ function 6_setup_keepalived {
 
     # 将生成好的配置文件keepalived.cfg 复制到 master 节点
     for (( i=0; i<${#MASTER[@]}; i++ )); do
+        #rsync -avzH /tmp/keepalived.conf-$i ${MASTER[$i]}:/etc/keepalived/keepalived.conf
         scp /tmp/keepalived.conf-$i ${MASTER[$i]}:/etc/keepalived/keepalived.conf
         scp conf/check_apiserver.sh ${MASTER[$i]}:/etc/keepalived/check_apiserver.sh
         ssh ${MASTER[$i]} "systemctl enable keepalived"
@@ -661,6 +685,7 @@ function 7_setup_haproxy() {
     # 将生成好的配置文件 haproxy.cfg 复制到所有 master 节点
     for (( i=0; i<${#MASTER[@]}; i++ )); do
         scp /tmp/haproxy.cfg-$i ${MASTER[$i]}:/etc/haproxy/haproxy.cfg
+        #rsync -avzH /tmp/haproxy.cfg-$i ${MASTER[$i]}:/etc/haproxy/haproxy.cfg
         ssh ${MASTER[$i]} "systemctl enable haproxy"
         ssh ${MASTER[$i]} "systemctl restart haproxy"
     done
@@ -761,12 +786,26 @@ function 12_setup_kubelet {
     #   /lib/systemd/system/kubelet.service
     #   /etc/systemd/system/kubelet.service.d/10-kubelet.conf
     #   /etc/kubernetes/kubelet-conf.yaml
+    # kubelet-conf.yaml 的配置注意事项
+    #   如果 k8s node 是 Ubuntu 的系统，需要将 kubelet-conf.yaml 的 resolvConf 
+    #   选项改成 resolvConf: /run/systemd/resolve/resolv.conf 
+    #   参考: https://github.com/coredns/coredns/issues/2790
     cp conf/10-kubelet.conf /tmp/10-kubelet.conf
     cp conf/kubelet-conf.yaml /tmp/kubelet-conf.yaml
     sed -i "s%#K8S_PATH#%${K8S_PATH}%g" /tmp/10-kubelet.conf
     sed -i "s%#K8S_PATH#%${K8S_PATH}%" /tmp/kubelet-conf.yaml
     sed -i "s%#KUBE_CERT_PATH#%${KUBE_CERT_PATH}%" /tmp/kubelet-conf.yaml
     sed -i "s%#SRV_NETWORK_DNS_IP#%${SRV_NETWORK_DNS_IP}%" /tmp/kubelet-conf.yaml
+    case "${OS}" in
+        "centos" )
+            sed -i "s%#resolvConf#%/etc/resolv.conf%g" /tmp/kubelet-conf.yaml;;
+          "rhel" )
+            sed -i "s%#resolvConf#%/etc/resolv.conf%g" /tmp/kubelet-conf.yaml ;;
+          "debian" )
+            sed -i "s%#resolvConf#%/etc/resolv.conf%g" /tmp/kubelet-conf.yaml ;;
+          "ubuntu" )
+            sed -i "s%#resolvConf#%/run/systemd/resolve/resolv.conf%g" /tmp/kubelet-conf.yaml ;;
+    esac
 
 
     # 将生成的配置文件发送到 k8s 所有节点上
@@ -855,8 +894,8 @@ function 14_deploy_calico {
 
 
     #cp calico_3.15/calico-etcd.yaml /tmp/calico-etcd.yaml
-    #cp calico_3.18/calico-etcd.yaml /tmp/calico-etcd.yaml
-    curl https://docs.projectcalico.org/manifests/calico-etcd.yaml -o /tmp/calico-etcd.yaml
+    cp calico_3.18/calico-etcd.yaml /tmp/calico-etcd.yaml
+    #curl https://docs.projectcalico.org/manifests/calico-etcd.yaml -o /tmp/calico-etcd.yaml
     sed -r -i "s%(.*)http://<ETCD_IP>:<ETCD_PORT>(.*)%\1${ETCD_ENDPOINTS}\2%" /tmp/calico-etcd.yaml
     sed -i "s%# etcd-key: null%etcd-key: ${ETCD_KEY}%g" /tmp/calico-etcd.yaml
     sed -i "s%# etcd-cert: null%etcd-cert: ${ETCD_CERT}%g" /tmp/calico-etcd.yaml
@@ -885,38 +924,44 @@ function 15_deploy_coredns {
 function 16_deploy_metrics_server {
     MSG2 "16. Deploy metrics server"
 
-    kubectl apply -f  metrics-server-0.4.x/comp.yaml
+    kubectl apply -f  metrics-server-0.4.x/metrics-server-0.4.1.yaml
 }
 
 
 
 function deploy_dashboard {
     MSG1 "Deploy kubernetes dashboard"
-
     kubectl apply -f dashboard/dashboard.yaml
     kubectl apply -f dashboard/dashboard-user.yaml
+}
+function deploy_kuboard {
+    MSG1 "Deploy Kuboard"
+    kubectl apply -f kuboard/kuboard.yaml
+}
+function deploy_ingress {
+    MSG1 "Deploy Ingress-nginx"
+    kubectl create namespace ingress-nginx
+    for (( i=0; i<3; i++ )); do
+        kubectl label node ${WORKER[$i]} ingress="true" --overwrite
+    done
+    helm install ingress-nginx helm/ingress-nginx/ -n ingress-nginx
 }
 
 
 
 0_check_root_and_os
 
-
 MSG1 "=============== Prepare: Setup SSH Public Key Authentication =================="
 stage_prepare
-
 
 MSG1 "=================== Stage 1: Prepare for Linux Server ========================="
 stage_one
 
-
 MSG1 "====================== Stage 2: Prepare for Kubernetes ========================"
 stage_two
 
-
 MSG1 "========================= Stage 3: Install Docker ============================="
 stage_three
-
 
 MSG1 "============ Stage 4: Deployment Kubernetes Cluster from Binary ==============="
 1_copy_binary_package_and_create_dir
@@ -936,4 +981,6 @@ MSG1 "============ Stage 4: Deployment Kubernetes Cluster from Binary ==========
 15_deploy_coredns
 16_deploy_metrics_server
 
-#[ ${INSTALL_DASHBOARD} ] && deploy_dashboard
+[ ${INSTALL_DASHBOARD} ] && deploy_dashboard
+[ ${INSTALL_KUBOARD} ] && deploy_kuboard
+[ ${INSTALL_INGRESS} ] && deploy_ingress

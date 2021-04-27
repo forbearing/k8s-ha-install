@@ -7,14 +7,14 @@ MSG1(){ echo -e "\n\n\033[32m\033[01m$1\033[0m\n"; }
 MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 
 
-function 1_install_necessary_package_for_docker {
-    MSG2 "1. Install package for docker"
+function 1_install_docker {
+    MSG2 "1. Install docker"
     yum install -y docker-ce-19.03.15-3.el7
     systemctl enable --now docker
 }
 
-function 2_install_docker {
-    MSG2 "2. Install docker"
+function 2_configure_docker {
+    MSG2 "2. Configure docker"
 cat > /etc/docker/daemon.json <<-EOF
 {
   "exec-opts": ["native.cgroupdriver=systemd"],
@@ -38,6 +38,7 @@ EOF
     systemctl restart docker
 }
 
-MSG1 "*** `hostname` *** ### Install Docker"
-1_install_necessary_package_for_docker
-2_install_docker
+
+MSG1 "*** `hostname` *** Install Docker"
+1_install_docker
+2_configure_docker

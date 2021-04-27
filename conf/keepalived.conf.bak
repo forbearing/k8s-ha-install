@@ -1,0 +1,28 @@
+global_defs {
+    router_id LVS_DEVEL
+}
+vrrp_script chk_apiserver {
+    script "/etc/keepalived/check_apiserver.sh"
+    interval 5 
+    weight -5
+    fall 2
+    rise 1
+}
+vrrp_instance VI_1 {
+    state #STATE#
+    interface #INTERFACE#
+    mcast_src_ip #MASTER_IP#
+    virtual_router_id 51
+    priority #PRIORITY#
+    nopreempt
+    advert_int 2
+    authentication {
+        auth_type PASS
+        auth_pass K8S_PASS
+    }
+    virtual_ipaddress {
+        #VIRTUAL_IPADDRESS#
+    }
+    track_script {
+        chk_apiserver
+} }

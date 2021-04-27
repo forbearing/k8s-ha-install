@@ -7,66 +7,50 @@ MSG1(){ echo -e "\n\n\033[32m\033[01m$1\033[0m\n"; }
 MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 
 
-function 1_install_necessary_package_for_k8s {
-    MSG2 "1. Install package for k8s"
-
-    yum install -y conntrack-tools ipvsadm ipset jq iptables iptables-services bridge-utils sysstat libseccomp gcc gcc-c++ make cmake autoconf automake libxml2-devel openssl-deve curl-devel libaio-devel ncurses-devel zlib-devel ceph-common
-}
-
-
-function 2_disable_swap {
-    MSG2 "2. Disable swap"
+function 1_disable_swap {
+    MSG2 "1. Disable swap"
 
     sed -i -r "/(.*)swap(.*)swap(.*)/d" /etc/fstab
     swapoff -a
 }
 
 
-function 3_upgrade_kernel {
-    MSG2 "3. Upgrade kernel"
-
-    yum install -y kernel-lt
-	grub2-set-default "$(cat /boot/grub2/grub.cfg  | grep '^menuentry' | sed -n '1,1p' | awk -F "'" '{print $2}')"
-}
-
-
-function 4_load_kernel_module {
-    MSG2 "4. Load kernel module"
+function 2_load_kernel_module {
+    MSG2 "2. Load kernel module"
 
     k8s_modules=(
-        "#!/usr/bin/env bash"
-        "modprobe -- ip_vs"
-        "modprobe -- ip_vs_rr"
-        "modprobe -- ip_vs_wrr"
-        "modprobe -- ip_vs_lc"
-        "modprobe -- ip_vs_wlc"
-        "modprobe -- ip_vs_lblc"
-        "modprobe -- ip_vs_lblcr"
-        "modprobe -- ip_vs_sh"
-        "modprobe -- ip_vs_dh"
-        "modprobe -- ip_vs_fo"
-        "modprobe -- ip_vs_nq"
-        "modprobe -- ip_vs_sed"
-        "modprobe -- ip_vs_ftp"
-        "modprobe -- br_netfilter"
-        "modprobe -- nf_conntrack"
-        "modprobe -- nf_conntrack_ipv4"
-        "modprobe -- nf_conntrack_ipv6"
-        "modprobe -- ip_tables"
-        "modprobe -- ip_set"
-        "modprobe -- xt_set"
-        "modprobe -- ipt_set"
-        "modprobe -- ipt_rpfilter"
-        "modprobe -- ipt_REJECT"
-        "modprobe -- ipip"
+        "ip_vs"
+        "ip_vs_rr"
+        "ip_vs_wrr"
+        "ip_vs_lc"
+        "ip_vs_wlc"
+        "ip_vs_lblc"
+        "ip_vs_lblcr"
+        "ip_vs_sh"
+        "ip_vs_dh"
+        "ip_vs_fo"
+        "ip_vs_nq"
+        "ip_vs_sed"
+        "ip_vs_ftp"
+        "br_netfilter"
+        "nf_conntrack"
+        "nf_conntrack_ipv4"
+        "nf_conntrack_ipv6"
+        "ip_tables"
+        "ip_set"
+        "xt_set"
+        "ipt_set"
+        "ipt_rpfilter"
+        "ipt_REJECT"
+        "ipip"
     )
-    printf '%s\n' "${k8s_modules[@]}" > /etc/sysconfig/modules/k8s.modules
-    chmod u+x /etc/sysconfig/modules/k8s.modules
+    printf '%s\n' "${k8s_modules[@]}" > /etc/modules-load.d/k8s.conf
+    systemctl enable --now systemd-modules-load.service
 }
 
 
-function 5_configure_kernel_parameter {
-    MSG2 "5. Configure kernel parameter"
+function 3_configure_kernel_parameter {
+    MSG2 "3. Configure kernel parameter"
 
     k8s_sysctl=(
         "net.ipv4.ip_forward = 1"
@@ -103,8 +87,6 @@ function 5_configure_kernel_parameter {
 
 
 MSG1 "*** `hostname` *** Prepare for Kubernetes"
-1_install_necessary_package_for_k8s
-2_disable_swap
-3_upgrade_kernel
-4_load_kernel_module
-5_configure_kernel_parameter
+1_disable_swap
+2_load_kernel_module
+3_configure_kernel_parameter

@@ -7,56 +7,48 @@ MSG1(){ echo -e "\n\n\033[32m\033[01m$1\033[0m\n"; }
 MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 
 
-function 1_import_repo {
-    MSG2 "1. Imort yum repo"
-    cp /tmp/yum.repos.d/elrepo.repo /etc/yum.repos.d/elrepo.repo
-    cp /tmp/yum.repos.d/ceph-nautilus.repo-tsinghua /etc/yum.repos.d/ceph.repo
-    cp /tmp/yum.repos.d/docker-ce.repo /etc/yum.repos.d/docker-ce.repo
-    #cp /tmp/yum.repos.d/CentOS-Base.repo-tsinghua /etc/yum.repos.d/CentOS-Base.repo
-    #cp /tmp/yum.repos.d/epel.repo-tsinghua /etc/yum.repos.d/epel.repo
-    yum makecache
+function 1_upgrade_system {
+    MSG2 "1. Upgrade system"
+
+    local DEBIAN_FRONTEND=noninteractive
+    apt-get update -y
+    apt-get -o Dpkg::Options::="--force-confold" upgrade -q -y
+    apt-get -o Dpkg::Options::="--force-confold" dist-upgrade -q -y
+    apt-get autoremove -y
+    apt-get autoclean -y
+
 }
 
 
 function 2_install_necessary_package {
     MSG2 "2. Install necessary package"
 
-    yum install -y epel-release
-    yum install -y bash-completion wget curl zip unzip bzip2 vim net-tools git zsh fish psmisc procps-ng bind-utils yum-utils device-mapper-persistent-data lvm2 ntp ntpdate jq sysstat nc tree lsof virt-what
+    add-apt-repository universe
+    apt-get install -y apt-file apt-transport-https iputils-ping bash-completion wget curl zip unzip bzip2 vim net-tools git zsh fish rsync psmisc procps dnsutils lvm2 ntp ntpdate jq sysstat tree lsof virt-what
     if [[ $(virt-what) == "vmware" ]]; then
-        yum install -y open-vm-tools
-        systemctl enable --now vmtoolsd
+        apt-get install -y open-vm-tools
+        systemctl enable --now open-vm-tools
     fi
 }
 
 
-function 3_upgrade_system {
-    MSG2 "3. Upgrade system"
+function 3_disable_firewald_and_selinux {
+    MSG2 "3. Disable firewalld and selinux"
 
-    yum update -y --exclude="docker-ce,kernel-lt"
+    ufw disable
 }
 
 
-function 4_disable_firewald_and_selinux {
-    MSG2 "4. Disable firewalld and selinux"
-
-    systemctl disable --now firewalld
-    setenforce 0
-    sed -i "/^SELINUX=/d" /etc/selinux/config
-    echo "SELINUX=disabled" >> /etc/selinux/config
-}
-
-
-function 5_set_timezone_and_ntp_client {
-    MSG2 "5. Set timezone and ntp"
+function 4_set_timezone_and_ntp_client {
+    MSG2 "4. Set timezone and ntp"
 
     timedatectl set-timezone Asia/Shanghai
     timedatectl set-ntp true
 }
 
 
-function 6_configure_sshd {
-    MSG2 "6. Configure ssh"
+function 5_configure_sshd {
+    MSG2 "5. Configure ssh"
     local SSH_CONF_PATH="/etc/ssh/sshd_config"
 
     sed -i "/^UseDNS/d" ${SSH_CONF_PATH}
@@ -85,8 +77,8 @@ function 6_configure_sshd {
 }
 
 
-function 7_configure_ulimit {
-    MSG2 "7. Configure ulimit"
+function 6_configure_ulimit {
+    MSG2 "6. Configure ulimit"
     local ULIMITS_CONF_PATH="/etc/security/limits.conf"
 
     sed -i -r "/^\*(.*)soft(.*)nofile(.*)/d" ${ULIMITS_CONF_PATH}
@@ -107,10 +99,9 @@ function 7_configure_ulimit {
 
 
 MSG1 "*** `hostname` *** Prepare for Linux Server"
-1_import_repo
+1_upgrade_system
 2_install_necessary_package
-3_upgrade_system
-4_disable_firewald_and_selinux
-5_set_timezone_and_ntp_client
-6_configure_sshd
-7_configure_ulimit
+3_disable_firewald_and_selinux
+4_set_timezone_and_ntp_client
+5_configure_sshd
+6_configure_ulimit
