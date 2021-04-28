@@ -1,0 +1,25 @@
+---
+# ceph osd pool create qxis-pool-2 256
+# rbd create rbd-2 -p qxis-pool-2 -s 10G
+# rbd feature disable qxis-pool-2/rbd-2 object-map fast-diff deep-flatten
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ceph-pv
+spec:
+  accessModes: ["ReadWriteOnce"]
+  persistentVolumeReclaimPolicy: Recycle
+  capacity:
+    storage: 10G
+  rbd:
+    monitors:
+      - 10.240.1.31:6789
+      #- 10.240.1.32:6789
+      #- 10.240.1.33:6789
+    pool: qxis-pool-2
+    image: rbd-2
+    user: admin
+    secretRef:
+      name: ceph-secret
+    fsType: xfs
+    readOnly: false

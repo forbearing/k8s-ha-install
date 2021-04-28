@@ -1,0 +1,24 @@
+# 1:clusterID 可以如下命令来获取
+#   ceph mon dump | grep fsid
+#   ceph -s | grep id
+# 2:替换此处的 clusterID 和 monitors
+# 3:namespace 根据你的生产环境
+
+---
+apiVersion: v1
+kind: ConfigMap
+data:
+  config.json: |-
+    [
+      {
+        "clusterID": "691cc213-0bdd-4c21-8863-cf47b88b58d1",
+        "monitors": [
+          "10.230.20.11:6789",
+          "10.230.20.12:6789",
+          "10.230.20.13:6789"
+        ]
+      }
+    ]
+metadata:
+  name: ceph-csi-config
+  namespace: ceph

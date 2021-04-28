@@ -29,6 +29,7 @@ ERR(){ echo -e "\033[31m\033[01m$1\033[0m"; }
 MSG1(){ echo -e "\n\n\033[32m\033[01m$1\033[0m\n"; }
 MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 
+# k8s node hostname and ip
 MASTER_HOST=(master1
              master2
              master3)
@@ -58,19 +59,34 @@ POD_NETWORK_CIDR="192.168.0.0/16"
 SRV_NETWORK_IP="172.18.0.1"
 SRV_NETWORK_DNS_IP="172.18.0.10"
 
-ROOT_PASS="toor"                                        # k8s node root passwd, set here
-OS=""                                                   # Linux Distribution, not set here
-INSTALL_MANAGER=""                                      # like apt-get, yum etc, not set here
+K8S_ROOT_PASS="toor"                                            # k8s node root passwd, set here
+K8S_NODE_OS=""                                                  # Linux Distribution, not set here
+INSTALL_MANAGER=""                                              # like apt-get, yum etc, not set here
 
+# k8s and etcd path
 K8S_PATH="/etc/kubernetes"
 KUBE_CERT_PATH="/etc/kubernetes/pki"
 ETCD_CERT_PATH="/etc/etcd/ssl"
 PKG_PATH="bin"
 
+# ceph
+CEPH_ROOT_PASS="toor"
+CEPH_MON_IP=(10.230.11.11
+             10.230.11.12
+             10.230.11.13)
+#CEPH_CLUSTER_ID=""                  # 可以获得
+CEPH_POOL_NAME="c7-k8s"
+CEPH_USER="c7-k8s"
+#CEPH_USER_KEY=""                    # 可以获得
+CEPH_NAMESPACE="ceph"
+CEPH_STORAGECLASS="ceph-rbd"
+
+# kubernetes addon
 INSTALL_DASHBOARD=""
 INSTALL_KUBOARD=1
 INSTALL_INGRESS=1
 INSTALL_CEPH_CSI=1
+INSTALL_HARBOR=""
 
 
 
@@ -80,7 +96,7 @@ function 0_check_root_and_os() {
     [[ $(id -u) != "0" ]] && ERR "not root !" && exit $EXIT_FAILURE
     [[ "$(uname)" != "Linux" ]] && ERR "not support !" && exit $EXIT_FAILURE
     source /etc/os-release
-    OS=${ID}
+    K8S_NODE_OS=${ID}
     if [[ "$ID" == "centos" || "$ID" == "rhel" ]]; then
         INSTALL_MANAGER="yum"
     elif [[ "$ID" == "debian" || "$ID" == "ubuntu" ]]; then
@@ -132,10 +148,10 @@ function stage_prepare {
         ssh-keyscan "${NODE}" >> /root/.ssh/known_hosts 2> /dev/null
     done
     for NODE in "${ALL_NODE[@]}"; do
-        sshpass -p "${ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_rsa.pub root@"${NODE}"
-        sshpass -p "${ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ecdsa.pub root@"${NODE}"
-        sshpass -p "${ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ed25519.pub root@"${NODE}"
-        #sshpass -p "${ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_xmss.pub root@"${NODE}"
+        sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_rsa.pub root@"${NODE}"
+        sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ecdsa.pub root@"${NODE}"
+        sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ed25519.pub root@"${NODE}"
+        #sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_xmss.pub root@"${NODE}"
     done
 
 
@@ -152,7 +168,7 @@ function stage_prepare {
 
 
     # yum 源目录 yum.repos.d 复制到所有的节点上
-    if [[ "${OS}" == "centos" || "${OS}" == "rhel" ]]; then
+    if [[ "${K8S_NODE_OS}" == "centos" || "${K8S_NODE_OS}" == "rhel" ]]; then
         for NODE in "${ALL_NODE[@]}"; do
             scp -r centos/yum.repos.d ${NODE}:/tmp/
         done
@@ -171,7 +187,7 @@ function stage_one {
     #   6. 设置 sshd
     #   7. ulimits 参数调整
     local stage_one_script_path=""
-    case "${OS}" in
+    case "${K8S_NODE_OS}" in
         "centos")
             stage_one_script_path="centos/1_prepare_for_server.sh" ;;
         "rhel")
@@ -198,7 +214,7 @@ function stage_two {
     #   4. 加载 K8S 所需内核模块
     #   5. 调整内核参数
     local stage_two_script_path=""
-    case "${OS}" in
+    case "${K8S_NODE_OS}" in
         "centos")
             stage_two_script_path="centos/2_prepare_for_k8s.sh" ;;
         "rhel")
@@ -223,7 +239,7 @@ function stage_three {
     #   1. 安装 docker-ce
     #   2. 调整 docker-ce 启动参数
     local stage_three_script_path=""
-    case "${OS}" in
+    case "${K8S_NODE_OS}" in
         "centos")
             stage_three_script_path="centos/3_install_docker.sh" ;;
         "rhel")
@@ -804,7 +820,7 @@ function 12_setup_kubelet {
     sed -i "s%#K8S_PATH#%${K8S_PATH}%" /tmp/kubelet-conf.yaml
     sed -i "s%#KUBE_CERT_PATH#%${KUBE_CERT_PATH}%" /tmp/kubelet-conf.yaml
     sed -i "s%#SRV_NETWORK_DNS_IP#%${SRV_NETWORK_DNS_IP}%" /tmp/kubelet-conf.yaml
-    case "${OS}" in
+    case "${K8S_NODE_OS}" in
         "centos" )
             sed -i "s%#resolvConf#%/etc/resolv.conf%g" /tmp/kubelet-conf.yaml;;
           "rhel" )
@@ -901,9 +917,9 @@ function 14_deploy_calico {
     ETCD_KEY=$(cat ${KUBE_CERT_PATH}/etcd/etcd-key.pem | base64 | tr -d '\n')
 
 
-    #cp calico_3.15/calico-etcd.yaml /tmp/calico-etcd.yaml
-    #cp calico_3.18/calico-etcd.yaml /tmp/calico-etcd.yaml
-    curl https://docs.projectcalico.org/manifests/calico-etcd.yaml -o /tmp/calico-etcd.yaml
+    #cp calico_3.15/calico-etcd.yaml /tmp/calico-etcd.yaml                                      # v3.15.3
+    #cp calico_3.18/calico-etcd.yaml /tmp/calico-etcd.yaml                                      # v3.18.1
+    curl https://docs.projectcalico.org/manifests/calico-etcd.yaml -o /tmp/calico-etcd.yaml     # latest version
     sed -r -i "s%(.*)http://<ETCD_IP>:<ETCD_PORT>(.*)%\1${ETCD_ENDPOINTS}\2%" /tmp/calico-etcd.yaml
     sed -i "s%# etcd-key: null%etcd-key: ${ETCD_KEY}%g" /tmp/calico-etcd.yaml
     sed -i "s%# etcd-cert: null%etcd-cert: ${ETCD_CERT}%g" /tmp/calico-etcd.yaml
@@ -954,6 +970,8 @@ function deploy_ingress {
     done
     helm install ingress-nginx helm/ingress-nginx/ -n ingress-nginx
 }
+function deploy_ceph_csi { :; }
+function deploy_harbor { :; }
 
 
 
@@ -993,3 +1011,5 @@ MSG1 "==================== Stage 5: Deployment Kubernetes Addon ================
 [ ${INSTALL_DASHBOARD} ] && deploy_dashboard
 [ ${INSTALL_KUBOARD} ] && deploy_kuboard
 [ ${INSTALL_INGRESS} ] && deploy_ingress
+[ ${INSTALL_CEPH_CSI} ] && deploy_ceph_csi
+[ ${INSTALL_HARBOR} ] && deploy_harbor

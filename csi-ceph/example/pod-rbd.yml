@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rbd-1
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    volumeMounts:
+    - name: nginx-data
+      mountPath: /usr/share/nginx/html/
+  volumes:
+  - name: nginx-data
+    rbd:
+      monitors:
+      - '10.240.1.31:6789'
+      #- '10.240.1.32:6789'      # 多个 monitor 节点
+      #- '10.240.1.33:6789'      # 多个 monitor 节点
+      pool: qxis-pool-2
+      image: rbd-test1
+      fsType: ext4
+      readOnly: false
+      user: admin
+      keyring: /etc/ceph/ceph.client.admin.keyring

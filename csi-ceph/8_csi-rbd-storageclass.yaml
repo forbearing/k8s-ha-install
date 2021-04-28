@@ -1,0 +1,29 @@
+# 1:此处需要修改 clusterID 为你自己 ceph 的 clusterID
+#   获取 clusterID 的两种方法
+#     ceph -s | grep id
+#     ceph mon dump | grep fsid
+# 2:pool 需要修改
+# 3:namespace: 可能不是 default
+# 4:allowVolumeExpansion 允许动态扩容
+# 5:imageFeatures: layering，创建的 rbd image 可以不设置 feature
+#   rbd feature disable ceph-demo/rbd-demo2.img object-map fast-diff deep-flatten
+
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ceph-rbd
+  namespace: ceph
+provisioner: rbd.csi.ceph.com
+parameters:
+  clusterID: 691cc213-0bdd-4c21-8863-cf47b88b58d1
+  pool: c7-k8s
+  csi.storage.k8s.io/provisioner-secret-name: csi-rbd-secret
+  csi.storage.k8s.io/provisioner-secret-namespace: ceph
+  csi.storage.k8s.io/node-stage-secret-name: csi-rbd-secret
+  csi.storage.k8s.io/node-stage-secret-namespace: ceph
+  #imageFeatures: "layering"
+reclaimPolicy: Delete
+mountOptions:
+   - discard
+allowVolumeExpansion: true

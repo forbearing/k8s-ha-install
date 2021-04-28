@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ceph-grafana
+  namespace: ceph
+  annotations:
+    nginx.ingress.kubernetes.io/permanent-redirect: http://10.240.1.31:3000
+spec:
+  rules:
+  - host: ceph-monitor.qxis-dev.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service: 
+            name: default
+            port:
+              number: 80
