@@ -37,12 +37,11 @@ data:
   typha_service_name: "none"
   # Configure the backend to use.
   calico_backend: "bird"
+
   # Configure the MTU to use for workload interfaces and tunnels.
-  # - If Wireguard is enabled, set to your network MTU - 60
-  # - Otherwise, if VXLAN or BPF mode is enabled, set to your network MTU - 50
-  # - Otherwise, if IPIP is enabled, set to your network MTU - 20
-  # - Otherwise, if not using any encapsulation, set to your network MTU.
-  veth_mtu: "1440"
+  # By default, MTU is auto-detected, and explicitly setting this field should not be required.
+  # You can override auto-detection by providing a non-zero value.
+  veth_mtu: "0"
 
   # The CNI network configuration to install on each node. The special
   # values in this config will be automatically populated.
@@ -54,6 +53,7 @@ data:
         {
           "type": "calico",
           "log_level": "info",
+          "log_file_path": "/var/log/calico/cni/cni.log",
           "etcd_endpoints": "__ETCD_ENDPOINTS__",
           "etcd_key_file": "__ETCD_KEY_FILE__",
           "etcd_cert_file": "__ETCD_CERT_FILE__",
@@ -224,8 +224,13 @@ spec:
         # This container installs the CNI binaries
         # and CNI network config file on each node.
         - name: install-cni
-          image: docker.io/calico/cni:v3.15.3
-          command: ["/install-cni.sh"]
+          image: registry.cn-beijing.aliyuncs.com/dotbalo/cni:v3.18.1
+          command: ["/opt/cni/bin/install"]
+          envFrom:
+          - configMapRef:
+              # Allow KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT to be overridden for eBPF mode.
+              name: kubernetes-services-endpoint
+              optional: true
           env:
             # Name of the CNI config file to create.
             - name: CNI_CONF_NAME
@@ -263,7 +268,7 @@ spec:
         # Adds a Flex Volume Driver that creates a per-pod Unix Domain Socket to allow Dikastes
         # to communicate with Felix over the Policy Sync API.
         - name: flexvol-driver
-          image: docker.io/calico/pod2daemon-flexvol:v3.15.3
+          image: registry.cn-beijing.aliyuncs.com/dotbalo/pod2daemon-flexvol:v3.18.1
           volumeMounts:
           - name: flexvol-driver-host
             mountPath: /host/driver
@@ -274,7 +279,12 @@ spec:
         # container programs network policy and routes on each
         # host.
         - name: calico-node
-          image: docker.io/calico/node:v3.15.3
+          image: registry.cn-beijing.aliyuncs.com/dotbalo/node:v3.18.1
+          envFrom:
+          - configMapRef:
+              # Allow KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT to be overridden for eBPF mode.
+              name: kubernetes-services-endpoint
+              optional: true
           env:
             # The location of the etcd cluster.
             - name: ETCD_ENDPOINTS
@@ -398,6 +408,16 @@ spec:
               name: etcd-certs
             - name: policysync
               mountPath: /var/run/nodeagent
+            # For eBPF mode, we need to be able to mount the BPF filesystem at /sys/fs/bpf so we mount in the
+            # parent directory.
+            - name: sysfs
+              mountPath: /sys/fs/
+              # Bidirectional means that, if we mount the BPF filesystem at /sys/fs/bpf it will propagate to the host.
+              # If the host is known to mount that filesystem already then Bidirectional can be omitted.
+              mountPropagation: Bidirectional
+            - name: cni-log-dir
+              mountPath: /var/log/calico/cni
+              readOnly: true
       volumes:
         # Used by calico-node.
         - name: lib-modules
@@ -413,6 +433,10 @@ spec:
           hostPath:
             path: /run/xtables.lock
             type: FileOrCreate
+        - name: sysfs
+          hostPath:
+            path: /sys/fs/
+            type: DirectoryOrCreate
         # Used to install CNI.
         - name: cni-bin-dir
           hostPath:
@@ -420,6 +444,10 @@ spec:
         - name: cni-net-dir
           hostPath:
             path: /etc/cni/net.d
+        # Used to access CNI logs.
+        - name: cni-log-dir
+          hostPath:
+            path: /var/log/calico/cni
         # Mount in the etcd TLS secrets with mode 400.
         # See https://kubernetes.io/docs/concepts/configuration/secret/
         - name: etcd-certs
@@ -484,7 +512,7 @@ spec:
       hostNetwork: true
       containers:
         - name: calico-kube-controllers
-          image: docker.io/calico/kube-controllers:v3.15.3
+          image: registry.cn-beijing.aliyuncs.com/dotbalo/kube-controllers:v3.18.1
           env:
             # The location of the etcd cluster.
             - name: ETCD_ENDPOINTS
@@ -537,6 +565,23 @@ kind: ServiceAccount
 metadata:
   name: calico-kube-controllers
   namespace: kube-system
+
+---
+
+# This manifest creates a Pod Disruption Budget for Controller to allow K8s Cluster Autoscaler to evict
+
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: calico-kube-controllers
+  namespace: kube-system
+  labels:
+    k8s-app: calico-kube-controllers
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      k8s-app: calico-kube-controllers
 
 ---
 # Source: calico/templates/calico-typha.yaml

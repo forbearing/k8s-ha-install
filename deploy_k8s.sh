@@ -902,8 +902,8 @@ function 14_deploy_calico {
 
 
     #cp calico_3.15/calico-etcd.yaml /tmp/calico-etcd.yaml
-    cp calico_3.18/calico-etcd.yaml /tmp/calico-etcd.yaml
-    #curl https://docs.projectcalico.org/manifests/calico-etcd.yaml -o /tmp/calico-etcd.yaml
+    #cp calico_3.18/calico-etcd.yaml /tmp/calico-etcd.yaml
+    curl https://docs.projectcalico.org/manifests/calico-etcd.yaml -o /tmp/calico-etcd.yaml
     sed -r -i "s%(.*)http://<ETCD_IP>:<ETCD_PORT>(.*)%\1${ETCD_ENDPOINTS}\2%" /tmp/calico-etcd.yaml
     sed -i "s%# etcd-key: null%etcd-key: ${ETCD_KEY}%g" /tmp/calico-etcd.yaml
     sed -i "s%# etcd-cert: null%etcd-cert: ${ETCD_CERT}%g" /tmp/calico-etcd.yaml
