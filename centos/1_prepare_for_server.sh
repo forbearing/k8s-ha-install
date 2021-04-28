@@ -22,7 +22,7 @@ function 2_install_necessary_package {
     MSG2 "2. Install necessary package"
 
     yum install -y epel-release
-    yum install -y bash-completion wget curl zip unzip bzip2 vim net-tools git zsh fish rsync psmisc procps-ng bind-utils yum-utils device-mapper-persistent-data lvm2 ntp ntpdate jq sysstat nc tree lsof virt-what
+    yum install -y coreutils bash-completion iputils wget curl zip unzip bzip2 vim net-tools git zsh fish rsync psmisc procps-ng bind-utils yum-utils device-mapper-persistent-data lvm2 ntp ntpdate jq sysstat nc tree lsof virt-what
     if [[ $(virt-what) == "vmware" ]]; then
         yum install -y open-vm-tools
         systemctl enable --now vmtoolsd

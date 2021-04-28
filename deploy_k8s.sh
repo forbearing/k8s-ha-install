@@ -35,20 +35,20 @@ MASTER_HOST=(master1
 WORKER_HOST=(worker1
              worker2
              worker3)
-#MASTER_IP=(10.230.11.11
-           #10.230.11.12
-           #10.230.11.13)
-#WORKER_IP=(10.230.11.21
-           #10.230.11.22
-           #10.230.11.23)
-#CONTROL_PLANE_ENDPOINT="10.230.11.10:8443"
-MASTER_IP=(10.230.12.11
-           10.230.12.12
-           10.230.12.13)
-WORKER_IP=(10.230.12.21
-           10.230.12.22
-           10.230.12.23)
-CONTROL_PLANE_ENDPOINT="10.230.12.10:8443"
+MASTER_IP=(10.230.11.11
+           10.230.11.12
+           10.230.11.13)
+WORKER_IP=(10.230.11.21
+           10.230.11.22
+           10.230.11.23)
+CONTROL_PLANE_ENDPOINT="10.230.11.10:8443"
+#MASTER_IP=(10.230.12.11
+           #10.230.12.12
+           #10.230.12.13)
+#WORKER_IP=(10.230.12.21
+           #10.230.12.22
+           #10.230.12.23)
+#CONTROL_PLANE_ENDPOINT="10.230.12.10:8443"
 MASTER=(${MASTER_HOST[@]})
 WORKER=(${WORKER_HOST[@]})
 ALL_NODE=(${MASTER[@]} ${WORKER[@]})
@@ -58,9 +58,9 @@ POD_NETWORK_CIDR="192.168.0.0/16"
 SRV_NETWORK_IP="172.18.0.1"
 SRV_NETWORK_DNS_IP="172.18.0.10"
 
-ROOT_PASS="toor"                                        # Change your own root passwd here
-OS=""
-INSTALL_MANAGER=""
+ROOT_PASS="toor"                                        # k8s node root passwd, set here
+OS=""                                                   # Linux Distribution, not set here
+INSTALL_MANAGER=""                                      # like apt-get, yum etc, not set here
 
 K8S_PATH="/etc/kubernetes"
 KUBE_CERT_PATH="/etc/kubernetes/pki"
@@ -70,6 +70,7 @@ PKG_PATH="bin"
 INSTALL_DASHBOARD=""
 INSTALL_KUBOARD=1
 INSTALL_INGRESS=1
+INSTALL_CEPH_CSI=1
 
 
 
@@ -88,6 +89,11 @@ function 0_check_root_and_os() {
         ERR "not support !"
         EXIT $EXIT_FAILURE
     fi
+
+
+    # 检查网络是否可用，否则退出脚本
+    timeout 2 ping -c 1 -i 1 8.8.8.8
+    if [ $? != 0 ]; then ERR "no network"; exit $EXIT_FAILURE; fi
 }
 
 
@@ -146,9 +152,11 @@ function stage_prepare {
 
 
     # yum 源目录 yum.repos.d 复制到所有的节点上
-    for NODE in "${ALL_NODE[@]}"; do
-        scp -r yum.repos.d ${NODE}:/tmp/
-    done
+    if [[ "${OS}" == "centos" || "${OS}" == "rhel" ]]; then
+        for NODE in "${ALL_NODE[@]}"; do
+            scp -r centos/yum.repos.d ${NODE}:/tmp/
+        done
+    fi
 }
 
 
