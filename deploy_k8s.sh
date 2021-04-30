@@ -71,13 +71,13 @@ PKG_PATH="bin"
 
 # ceph
 CEPH_ROOT_PASS="toor"
-CEPH_MON_IP=(10.230.11.11
-             10.230.11.12
-             10.230.11.13)
-#CEPH_CLUSTER_ID=""                  # 可以获得
-CEPH_POOL_NAME="c7-k8s"
+CEPH_MON_IP=(10.230.20.11
+             10.230.20.12
+             10.230.20.13)
+CEPH_CLUSTER_ID=""
+CEPH_POOL="c7-k8s"
 CEPH_USER="c7-k8s"
-#CEPH_USER_KEY=""                    # 可以获得
+CEPH_USER_KEY=""
 CEPH_NAMESPACE="ceph"
 CEPH_STORAGECLASS="ceph-rbd"
 
@@ -300,8 +300,7 @@ function 1_copy_binary_package_and_create_dir {
             "/etc/cni/bin" \
             "/var/lib/kubelet" \
             "/var/log/kubernetes" \
-            "/tmp/k8s-install-log"
-        do
+            "/tmp/k8s-install-log"; do
             ssh ${NODE} "mkdir -p ${DIR_PATH}"
         done
     done
@@ -954,23 +953,79 @@ function 16_deploy_metrics_server {
 
 
 function deploy_dashboard {
-    MSG1 "Deploy kubernetes dashboard"
+    MSG2 "Deploy kubernetes dashboard"
     kubectl apply -f dashboard/dashboard.yaml
     kubectl apply -f dashboard/dashboard-user.yaml
 }
+
 function deploy_kuboard {
-    MSG1 "Deploy Kuboard"
+    MSG2 "Deploy Kuboard"
     kubectl apply -f kuboard/kuboard.yaml
 }
+
 function deploy_ingress {
-    MSG1 "Deploy Ingress-nginx"
+    MSG2 "Deploy Ingress-nginx"
     kubectl create namespace ingress-nginx
     for (( i=0; i<3; i++ )); do
         kubectl label node ${WORKER[$i]} ingress="true" --overwrite
     done
     helm install ingress-nginx helm/ingress-nginx/ -n ingress-nginx
 }
-function deploy_ceph_csi { :; }
+function deploy_ceph_csi {
+    MSG2 "Deploy ceph csi"
+
+    # Setup SSH Public Key Authentication
+    for NODE in "${CEPH_MON_IP[@]}"; do 
+        ssh-keyscan "${NODE}" >> /root/.ssh/known_hosts 2> /dev/null
+    done
+    for NODE in "${CEPH_MON_IP[@]}"; do
+        sshpass -p "${CEPH_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_rsa.pub root@"${NODE}"
+        sshpass -p "${CEPH_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ecdsa.pub root@"${NODE}"
+        sshpass -p "${CEPH_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ed25519.pub root@"${NODE}"
+        #sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_xmss.pub root@"${NODE}"
+    done
+
+
+    # get ceph cluster id
+    CEPH_CLUSTER_ID=`ssh ${CEPH_MON_IP[0]} "ceph -s" | grep 'id:' | awk '{print $2}'`
+    # create ceph pool
+    ssh ${CEPH_MON_IP[0]} "ceph osd pool create ${CEPH_POOL} 64 64"
+    ssh ${CEPH_MON_IP[0]} "ceph osd pool application enable ${CEPH_POOL} rbd"
+    # create ceph user
+    ssh ${CEPH_MON_IP[0]} "ceph auth get-or-create client.${CEPH_USER} mon 'profile rbd' osd 'profile rbd pool=${CEPH_POOL}' mgr 'allow rw'"
+    CEPH_USER_KEY=`ssh ${CEPH_MON_IP[0]} "ceph auth print-key client.${CEPH_USER}"`
+    # create namesapce for ceph
+    kubectl create namespace ${CEPH_NAMESPACE}
+
+
+    rm -rf /tmp/csi-ceph && cp -r csi-ceph /tmp/csi-ceph
+    for FILE in \
+        /tmp/csi-ceph/1_cm_ceph-csi-config.yaml \
+        /tmp/csi-ceph/2_cm_ceph-csi-encryption-kms-config.yaml \
+        /tmp/csi-ceph/3_secret_csi-rbd-secret.yaml \
+        /tmp/csi-ceph/4_rbac_rbd-csi-provisioner.yaml \
+        /tmp/csi-ceph/5_rbac_rbd-csi-nodeplugin.yaml \
+        /tmp/csi-ceph/6_csi-rbdplugin-provisioner.yaml \
+        /tmp/csi-ceph/7_csi-rbdplugin.yaml \
+        /tmp/csi-ceph/8_csi-rbd-storageclass.yaml; do
+        sed -i "s%#CEPH_NAMESPACE#%${CEPH_NAMESPACE}%g" ${FILE}
+    done
+    for (( i=0; i<${#CEPH_MON_IP[@]}; i++ )); do
+        sed -i "s%#CEPH_MON_IP_$i#%${CEPH_MON_IP[$i]}%g" /tmp/csi-ceph/1_cm_ceph-csi-config.yaml
+    done
+    sed -i "s%#CEPH_CLUSTER_ID#%${CEPH_CLUSTER_ID}%g" /tmp/csi-ceph/1_cm_ceph-csi-config.yaml
+    sed -i "s%#CEPH_USER#%${CEPH_USER}%g" /tmp/csi-ceph/3_secret_csi-rbd-secret.yaml
+    sed -i "s%#CEPH_USER_KEY#%${CEPH_USER_KEY}%g" /tmp/csi-ceph/3_secret_csi-rbd-secret.yaml
+    sed -i "s%#CEPH_CLUSTER_ID#%${CEPH_CLUSTER_ID}%g" /tmp/csi-ceph/8_csi-rbd-storageclass.yaml
+    sed -i "s%#CEPH_POOL#%${CEPH_POOL}%g" /tmp/csi-ceph/8_csi-rbd-storageclass.yaml
+    sed -i "s%#CEPH_STORAGECLASS#%${CEPH_STORAGECLASS}%g" /tmp/csi-ceph/8_csi-rbd-storageclass.yaml
+
+
+    # deploy ceph csi for kubernetes
+    kubectl apply -f /tmp/csi-ceph/
+}
+
+
 function deploy_harbor { :; }
 
 

@@ -4,7 +4,7 @@ kind: ServiceAccount
 metadata:
   name: rbd-csi-nodeplugin
   # 此处更改为你实际生产环境名称空间
-  namespace: ceph
+  namespace: #CEPH_NAMESPACE#
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
@@ -30,7 +30,7 @@ subjects:
   - kind: ServiceAccount
     name: rbd-csi-nodeplugin
     # 此处更改为你实际生产环境名称空间
-    namespace: ceph
+    namespace: #CEPH_NAMESPACE#
 roleRef:
   kind: ClusterRole
   name: rbd-csi-nodeplugin

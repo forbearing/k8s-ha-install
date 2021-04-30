@@ -4,7 +4,7 @@ kind: ServiceAccount
 metadata:
   name: rbd-csi-provisioner
   # 此处替换成实际生产环境名称空间
-  namespace: ceph
+  namespace: #CEPH_NAMESPACE#
 
 ---
 kind: ClusterRole
@@ -66,7 +66,7 @@ subjects:
   - kind: ServiceAccount
     name: rbd-csi-provisioner
     # 此处替换成实际生产环境名称空间
-    namespace: ceph
+    namespace: #CEPH_NAMESPACE#
 roleRef:
   kind: ClusterRole
   name: rbd-external-provisioner-runner
@@ -77,7 +77,7 @@ kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   # 此处替换成实际生产环境名称空间
-  namespace: ceph
+  namespace: #CEPH_NAMESPACE#
   name: rbd-external-provisioner-cfg
 rules:
   - apiGroups: [""]
@@ -93,12 +93,12 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: rbd-csi-provisioner-role-cfg
   # 此处替换成实际生产环境名称空间
-  namespace: ceph
+  namespace: #CEPH_NAMESPACE#
 subjects:
   - kind: ServiceAccount
     name: rbd-csi-provisioner
     # 此处替换成实际生产环境名称空间
-    namespace: ceph
+    namespace: #CEPH_NAMESPACE#
 roleRef:
   kind: Role
   name: rbd-external-provisioner-cfg

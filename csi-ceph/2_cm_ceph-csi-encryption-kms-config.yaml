@@ -37,4 +37,4 @@ data:
     }
 metadata:
   name: ceph-csi-encryption-kms-config
-  namespace: ceph
+  namespace: #CEPH_NAMESPACE#

@@ -3,7 +3,7 @@ kind: Deployment
 apiVersion: apps/v1
 metadata:
   name: csi-rbdplugin-provisioner
-  namespace: ceph
+  namespace: #CEPH_NAMESPACE#
 spec:
   replicas: 3
   selector:
@@ -28,7 +28,7 @@ spec:
       priorityClassName: system-cluster-critical
       containers:
         - name: csi-provisioner
-          image: k8s.gcr.io/sig-storage/csi-provisioner:v2.0.4
+          image: registry.cn-hangzhou.aliyuncs.com/hybfkuf/csi-provisioner:v2.0.4
           args:
             - "--csi-address=$(ADDRESS)"
             - "--v=5"
@@ -48,7 +48,7 @@ spec:
             - name: socket-dir
               mountPath: /csi
         - name: csi-snapshotter
-          image: k8s.gcr.io/sig-storage/csi-snapshotter:v4.0.0
+          image: registry.cn-hangzhou.aliyuncs.com/hybfkuf/csi-snapshotter:v4.0.0
           args:
             - "--csi-address=$(ADDRESS)"
             - "--v=5"
@@ -64,7 +64,7 @@ spec:
             - name: socket-dir
               mountPath: /csi
         - name: csi-attacher
-          image: k8s.gcr.io/sig-storage/csi-attacher:v3.0.2
+          image: registry.cn-hangzhou.aliyuncs.com/hybfkuf/csi-attacher:v3.0.2
           args:
             - "--v=5"
             - "--csi-address=$(ADDRESS)"
@@ -78,7 +78,7 @@ spec:
             - name: socket-dir
               mountPath: /csi
         - name: csi-resizer
-          image: k8s.gcr.io/sig-storage/csi-resizer:v1.0.1
+          image: registry.cn-hangzhou.aliyuncs.com/hybfkuf/csi-resizer:v1.0.1
           args:
             - "--csi-address=$(ADDRESS)"
             - "--v=5"
@@ -99,7 +99,7 @@ spec:
             capabilities:
               add: ["SYS_ADMIN"]
           # for stable functionality replace canary with latest release version
-          image: quay.io/cephcsi/cephcsi:canary
+          image: registry.cn-hangzhou.aliyuncs.com/hybfkuf/cephcsi:canary
           args:
             - "--nodeid=$(NODE_ID)"
             - "--type=rbd"
@@ -150,7 +150,7 @@ spec:
             capabilities:
               add: ["SYS_ADMIN"]
           # for stable functionality replace canary with latest release version
-          image: quay.io/cephcsi/cephcsi:canary
+          image: registry.cn-hangzhou.aliyuncs.com/hybfkuf/cephcsi:canary
           args:
             - "--type=controller"
             - "--v=5"
@@ -168,7 +168,7 @@ spec:
             - name: keys-tmp-dir
               mountPath: /tmp/csi/keys
         - name: liveness-prometheus
-          image: quay.io/cephcsi/cephcsi:canary
+          image: registry.cn-hangzhou.aliyuncs.com/hybfkuf/cephcsi:canary
           args:
             - "--type=liveness"
             - "--endpoint=$(CSI_ENDPOINT)"
@@ -218,7 +218,7 @@ metadata:
   name: csi-rbdplugin-provisioner
   labels:
     app: csi-metrics
-  namespace: ceph
+  namespace: #CEPH_NAMESPACE#
 spec:
   selector:
     app: csi-rbdplugin-provisioner

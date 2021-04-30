@@ -12,16 +12,16 @@
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: ceph-rbd
-  namespace: ceph
+  name: #CEPH_STORAGECLASS#
+  namespace: #CEPH_NAMESPACE#
 provisioner: rbd.csi.ceph.com
 parameters:
-  clusterID: 691cc213-0bdd-4c21-8863-cf47b88b58d1
-  pool: c7-k8s
+  clusterID: #CEPH_CLUSTER_ID#
+  pool: #CEPH_POOL#
   csi.storage.k8s.io/provisioner-secret-name: csi-rbd-secret
-  csi.storage.k8s.io/provisioner-secret-namespace: ceph
+  csi.storage.k8s.io/provisioner-secret-namespace: #CEPH_NAMESPACE#
   csi.storage.k8s.io/node-stage-secret-name: csi-rbd-secret
-  csi.storage.k8s.io/node-stage-secret-namespace: ceph
+  csi.storage.k8s.io/node-stage-secret-namespace: #CEPH_NAMESPACE#
   #imageFeatures: "layering"
 reclaimPolicy: Delete
 mountOptions:

@@ -3,7 +3,7 @@ kind: DaemonSet
 apiVersion: apps/v1
 metadata:
   name: csi-rbdplugin
-  namespace: ceph
+  namespace: #CEPH_NAMESPACE#
 spec:
   selector:
     matchLabels:
@@ -27,7 +27,7 @@ spec:
           # created by privileged CSI driver container.
           securityContext:
             privileged: true
-          image: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.0.1
+          image: registry.cn-hangzhou.aliyuncs.com/hybfkuf/csi-node-driver-registrar:v2.0.1
           args:
             - "--v=5"
             - "--csi-address=/csi/csi.sock"
@@ -49,7 +49,7 @@ spec:
               add: ["SYS_ADMIN"]
             allowPrivilegeEscalation: true
           # for stable functionality replace canary with latest release version
-          image: quay.io/cephcsi/cephcsi:canary
+          image: registry.cn-hangzhou.aliyuncs.com/hybfkuf/cephcsi:canary
           args:
             - "--nodeid=$(NODE_ID)"
             - "--type=rbd"
@@ -107,7 +107,7 @@ spec:
         - name: liveness-prometheus
           securityContext:
             privileged: true
-          image: quay.io/cephcsi/cephcsi:canary
+          image: registry.cn-hangzhou.aliyuncs.com/hybfkuf/cephcsi:canary
           args:
             - "--type=liveness"
             - "--endpoint=$(CSI_ENDPOINT)"
@@ -173,7 +173,7 @@ metadata:
   name: csi-metrics-rbdplugin
   labels:
     app: csi-metrics
-  namespace: ceph
+  namespace: #CEPH_NAMESPACE#
 spec:
   ports:
     - name: http-metrics
