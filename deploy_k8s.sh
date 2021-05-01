@@ -36,13 +36,13 @@ MASTER_HOST=(master1
 WORKER_HOST=(worker1
              worker2
              worker3)
-MASTER_IP=(10.230.11.11
-           10.230.11.12
-           10.230.11.13)
-WORKER_IP=(10.230.11.21
-           10.230.11.22
-           10.230.11.23)
-CONTROL_PLANE_ENDPOINT="10.230.11.10:8443"
+#MASTER_IP=(10.230.11.11
+           #10.230.11.12
+           #10.230.11.13)
+#WORKER_IP=(10.230.11.21
+           #10.230.11.22
+           #10.230.11.23)
+#CONTROL_PLANE_ENDPOINT="10.230.11.10:8443"
 #MASTER_IP=(10.230.12.11
            #10.230.12.12
            #10.230.12.13)
@@ -50,6 +50,13 @@ CONTROL_PLANE_ENDPOINT="10.230.11.10:8443"
            #10.230.12.22
            #10.230.12.23)
 #CONTROL_PLANE_ENDPOINT="10.230.12.10:8443"
+MASTER_IP=(10.250.11.11
+           10.250.11.12
+           10.250.11.13)
+WORKER_IP=(10.250.11.21
+           10.250.11.22
+           10.250.11.23)
+CONTROL_PLANE_ENDPOINT="10.250.11.10:8443"
 MASTER=(${MASTER_HOST[@]})
 WORKER=(${WORKER_HOST[@]})
 ALL_NODE=(${MASTER[@]} ${WORKER[@]})
@@ -71,9 +78,12 @@ PKG_PATH="bin"
 
 # ceph
 CEPH_ROOT_PASS="toor"
-CEPH_MON_IP=(10.230.20.11
-             10.230.20.12
-             10.230.20.13)
+#CEPH_MON_IP=(10.230.20.11
+             #10.230.20.12
+             #10.230.20.13)
+CEPH_MON_IP=(10.250.20.11
+             10.250.20.12
+             10.250.20.13)
 CEPH_CLUSTER_ID=""
 CEPH_POOL="c7-k8s"
 CEPH_USER="c7-k8s"
