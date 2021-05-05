@@ -808,6 +808,15 @@ function 11_setup_k8s_admin {
             break
         fi
     done
+
+
+    # 为 master 打上污点
+    # 为 master 打上标签
+    for NODE in "${ALL_NODE[@]}"; do
+        kubectl taint nodes ${NODE} node-role.kubernetes.io/master=:PreferNoSchedule --overwrite
+        #kubectl taint nodes ${NODE} node-role.kubernetes.io/master=:NoSchedule --overwrite
+        kubectl label node ${NODE} node-role.kubernetes.io/master='master' --overwrite  
+    done
 }
 
 
