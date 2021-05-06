@@ -30,6 +30,7 @@ MSG1(){ echo -e "\n\n\033[32m\033[01m$1\033[0m\n"; }
 MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 
 # k8s node hostname and ip
+#========== Change k8s hostname and ip here ==========
 MASTER_HOST=(master1
              master2
              master3)
@@ -57,6 +58,7 @@ WORKER_IP=(10.250.11.21
            10.250.11.22
            10.250.11.23)
 CONTROL_PLANE_ENDPOINT="10.250.11.10:8443"
+#========== Change k8s hostname and ip here ==========
 MASTER=(${MASTER_HOST[@]})
 WORKER=(${WORKER_HOST[@]})
 ALL_NODE=(${MASTER[@]} ${WORKER[@]})
@@ -77,13 +79,15 @@ ETCD_CERT_PATH="/etc/etcd/ssl"
 PKG_PATH="bin"
 
 # ceph
-CEPH_ROOT_PASS="toor"
+#========== Change Ceph Mon IP HERE ==========
 #CEPH_MON_IP=(10.230.20.11
              #10.230.20.12
              #10.230.20.13)
 CEPH_MON_IP=(10.250.20.11
              10.250.20.12
              10.250.20.13)
+#========== Change Ceph Mon IP HERE ==========
+CEPH_ROOT_PASS="toor"
 CEPH_CLUSTER_ID=""
 CEPH_POOL="c7-k8s"
 CEPH_USER="c7-k8s"
@@ -92,11 +96,13 @@ CEPH_NAMESPACE="ceph"
 CEPH_STORAGECLASS="ceph-rbd"
 
 # kubernetes addon
-INSTALL_DASHBOARD=""
 INSTALL_KUBOARD=1
 INSTALL_INGRESS=1
-INSTALL_CEPH_CSI=1
+INSTALL_CEPHCSI=1
+INSTALL_TRAEFIK=1
+INSTALL_DASHBOARD=""
 INSTALL_HARBOR=""
+
 
 
 
@@ -807,15 +813,7 @@ function 11_setup_k8s_admin {
             kubectl apply -f bootstrap/bootstrap.secret.yaml
             break
         fi
-    done
-
-
-    # 为 master 打上污点
-    # 为 master 打上标签
-    for NODE in "${MASTER[@]}"; do
-        kubectl taint nodes ${NODE} node-role.kubernetes.io/master=:PreferNoSchedule --overwrite
-        #kubectl taint nodes ${NODE} node-role.kubernetes.io/master=:NoSchedule --overwrite
-        kubectl label node ${NODE} node-role.kubernetes.io/master='master' --overwrite  
+        sleep 1
     done
 }
 
@@ -971,6 +969,26 @@ function 16_deploy_metrics_server {
 
 
 
+function 17_label_and_taint_master_node {
+    # 为 master 节点打上污点
+    # 为 master 节点打上标签
+    # master 节点的 taint 默认是 NoSchedule，在这里我设置成了 PreferNoSchedule
+    MSG2 "17. Label and Taint master node"
+    while true; do
+        kubectl get node &> /dev/null
+        if [ $? == "0" ]; then break; fi
+        sleep 1
+    done
+    for NODE in "${MASTER[@]}"; do
+        kubectl taint nodes ${NODE} node-role.kubernetes.io/master:PreferNoSchedule --overwrite
+        #kubectl taint ondes ${NODE} node-role.kubernetes.io/master:NoSchedule --overwrite
+        kubectl label nodes ${NODE} node-role.kubernetes.io/master= --overwrite  
+        kubectl label nodes ${NODE} node-role.kubernetes.io/control-plane= --overwrite 
+    done
+}
+
+
+
 function deploy_dashboard {
     MSG2 "Deploy kubernetes dashboard"
     kubectl apply -f dashboard/dashboard.yaml
@@ -990,7 +1008,12 @@ function deploy_ingress {
     done
     helm install ingress-nginx helm/ingress-nginx/ -n ingress-nginx
 }
-function deploy_ceph_csi {
+function deploy_traefik {
+    MSG2 "Deploy Traefik"
+    kubectl create namespace traefik
+    helm install traefik helm/traefik -n traefik
+}
+function deploy_cephcsi {
     MSG2 "Deploy ceph csi"
 
     # Setup SSH Public Key Authentication
@@ -1080,10 +1103,12 @@ MSG1 "============ Stage 4: Deployment Kubernetes Cluster from Binary ==========
 14_deploy_calico
 15_deploy_coredns
 16_deploy_metrics_server
+17_label_and_taint_master_node
 
 MSG1 "==================== Stage 5: Deployment Kubernetes Addon ======================"
-[ ${INSTALL_DASHBOARD} ] && deploy_dashboard
 [ ${INSTALL_KUBOARD} ] && deploy_kuboard
 [ ${INSTALL_INGRESS} ] && deploy_ingress
-[ ${INSTALL_CEPH_CSI} ] && deploy_ceph_csi
+[ ${INSTALL_TRAEFIK} ] && deploy_traefik
+[ ${INSTALL_CEPHCSI} ] && deploy_cephcsi
+[ ${INSTALL_DASHBOARD} ] && deploy_dashboard
 [ ${INSTALL_HARBOR} ] && deploy_harbor
