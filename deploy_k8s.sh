@@ -1,27 +1,47 @@
 #!/usr/bin/env bash
 
+# to-do-list (跟你无关，你不用关注这个)
+#   - 扩展节点问题？ certSANs
+#   - hold docker-ce
+
 # 描述: 一共分为 5 个阶段
-#   Stage Prepare: 准备阶段，用来配置 ssh 免密码登录
+#   Stage Prepare: 准备阶段，用来配置 ssh 免密码登录和主机名
 #   Stage 1: Linux 系统准备
 #   Stage 2: 为部署 Kubernetes 做好环境准备
-#   Stage 3: 安装 Docker
+#   Stage 3: 安装 Docker/Containerd
 #   Stage 4: 部署 Kubernetes Cluster
+#   Stage 5: 部署 Kubernetes 必要组件和插件
+
+# Stage 1: 系统准备
+#   1. 导入所需 yum 源
+#   2. 安装必要软件
+#   3. 升级系统
+#   4. 关闭防火墙、SELinux
+#   5. 设置时区、NTP 时间同步
+#   6. 设置 sshd
+#   7. ulimits 参数调整
+# Stage 2: k8s 准备
+#   1. 安装 k8s 所需软件
+#   2. 关闭 swap 分区
+#   4. 升级 Kernel
+#   4. 加载 K8S 所需内核模块
+#   5. 调整内核参数
+# Stage 3: 安装 Docker
+#   1. 安装 docker 所需软件
+#   1. 安装 docker-ce
+#   2. 调整 docker-ce 启动参数
 
 # 注意事项：
-#   - 支持的系统: CentOS 7, Ubuntu 18, Ubuntu 20, Debian9, Debian 10
-#   - 运行此命令的必须是 master 节点，任何一台 master 节点都行
-#   - Stage Prepare、Stage 1、Stage 2、Stage 3 可以重复运行；Stage 4 不可以重复允许
-#     所以可以在 Stage Prepare、Stage 1 2 3 中断重复运行
-#   - 只需要提前配置好静态IP地址，只需等待一键安装(不需要提前配置好主机名，不需要提前配置好 SSH 免密码登录)
-#   - 必须要有网络
+#   1. 支持的系统: CentOS 7, Ubuntu 18, Ubuntu 20,  Debian 10 (Debian 10 还没有测试)
+#   2. 运行此命令的节点必须是 master 节点，任何一台 master 节点都行，不能是 worker 节点
+#   3. Stage1、Stage2、Stage3 可以重复运行，因为网络原因导致 Stage1/Stage2/Stage3 中断，
+#      可以重复运行此脚本，Stage4 运行后不要重复运行此脚本
+#   4. 你只需要提前配置好 k8s 节点的静态IP地址，不需要配置 ssh 无密钥登录，不需要配置
+#      主机名，一键安装。节点的静态IP和主机名配置在变量中。
+#   5. 所有 k8s 节点必须要相同的操作系统和 Linux 发行版本，要么都为 Ubuntu 要么都为 CentOS
+#   6. EXTRA_MASTER_HOST 和 EXTRA_MASTER_IP 数组用来扩展 etcd 节点和 k8s master 节点
+#      etcd 节点默认部署在 k8s master 节点上。
 
-# to-do-list
-#   - 扩展节点问题？ certSANs
-#   - 获取远程服务器的网卡接口名字
-#   - hosts 文件 设置 127.0.0.1
-#   - hold docker-ce
-#   - 写一下需要修改的地方
-#   - scp 的问题
 
 EXIT_SUCCESS=0
 EXIT_FAILURE=1
@@ -29,40 +49,29 @@ ERR(){ echo -e "\033[31m\033[01m$1\033[0m"; }
 MSG1(){ echo -e "\n\n\033[32m\033[01m$1\033[0m\n"; }
 MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 
+
 # k8s node hostname and ip
-#========== Change k8s hostname and ip here ==========
-MASTER_HOST=(master1
-             master2
-             master3)
-WORKER_HOST=(worker1
-             worker2
-             worker3)
-#MASTER_IP=(10.230.11.11
-           #10.230.11.12
-           #10.230.11.13)
-#WORKER_IP=(10.230.11.21
-           #10.230.11.22
-           #10.230.11.23)
-#CONTROL_PLANE_ENDPOINT="10.230.11.10:8443"
-#MASTER_IP=(10.230.12.11
-           #10.230.12.12
-           #10.230.12.13)
-#WORKER_IP=(10.230.12.21
-           #10.230.12.22
-           #10.230.12.23)
-#CONTROL_PLANE_ENDPOINT="10.230.12.10:8443"
+MASTER_HOST=(master1 master2 master3)
+WORKER_HOST=(worker1 worker2 worker3)
+EXTRA_MASTER_HOST=(master4 master5 master6)
 MASTER_IP=(10.250.11.11
            10.250.11.12
            10.250.11.13)
 WORKER_IP=(10.250.11.21
            10.250.11.22
            10.250.11.23)
+EXTRA_MASTER_IP=(10.250.11.14
+                 10.250.11.15
+                 10.250.11.16)
 CONTROL_PLANE_ENDPOINT="10.250.11.10:8443"
-#========== Change k8s hostname and ip here ==========
-MASTER=(${MASTER_HOST[@]})
-WORKER=(${WORKER_HOST[@]})
-ALL_NODE=(${MASTER[@]} ${WORKER[@]})
+MASTER=("${MASTER_HOST[@]}")
+WORKER=("${WORKER_HOST[@]}")
+ALL_NODE=("${MASTER[@]}" "${WORKER[@]}")
 
+# k8s service nework cidr
+# k8s pod network cidr
+# SRV_NETWORK_IP: kubernetes.default.svc.cluster.local address (usually service netweork first ip)
+# SRV_NETWORK_DNS_IP: kube-dns.kube-system.svc.cluster.local address (coredns)
 SRV_NETWORK_CIDR="172.18.0.0/16"
 POD_NETWORK_CIDR="192.168.0.0/16"
 SRV_NETWORK_IP="172.18.0.1"
@@ -78,15 +87,11 @@ KUBE_CERT_PATH="/etc/kubernetes/pki"
 ETCD_CERT_PATH="/etc/etcd/ssl"
 PKG_PATH="bin"
 
+
 # ceph
-#========== Change Ceph Mon IP HERE ==========
-#CEPH_MON_IP=(10.230.20.11
-             #10.230.20.12
-             #10.230.20.13)
 CEPH_MON_IP=(10.250.20.11
              10.250.20.12
              10.250.20.13)
-#========== Change Ceph Mon IP HERE ==========
 CEPH_ROOT_PASS="toor"
 CEPH_CLUSTER_ID=""
 CEPH_POOL="c7-k8s"
@@ -95,21 +100,29 @@ CEPH_USER_KEY=""
 CEPH_NAMESPACE="ceph"
 CEPH_STORAGECLASS="ceph-rbd"
 
+
+# nfs
+NFS_SERVER="10.250.11.11"
+NFS_STORAGE_PATH="/nfs-storage"
+NFS_STORAGECLASS="nfs-client"
+NFS_NAMESPACE="nfs-provisioner"
+
+
 # kubernetes addon
 INSTALL_KUBOARD=1
 INSTALL_INGRESS=1
 INSTALL_CEPHCSI=1
 INSTALL_TRAEFIK=1
+INSTALL_NFSCLIENT=""
 INSTALL_DASHBOARD=""
 INSTALL_HARBOR=""
-
 
 
 
 function 0_check_root_and_os() {
     # 检测是否为 root 用户，否则推出脚本
     # 检测是否为支持的 Linux 版本，否则退出脚本
-    [[ $(id -u) != "0" ]] && ERR "not root !" && exit $EXIT_FAILURE
+    [[ $(id -u) -ne 0 ]] && ERR "not root !" && exit $EXIT_FAILURE
     [[ "$(uname)" != "Linux" ]] && ERR "not support !" && exit $EXIT_FAILURE
     source /etc/os-release
     K8S_NODE_OS=${ID}
@@ -124,8 +137,7 @@ function 0_check_root_and_os() {
 
 
     # 检查网络是否可用，否则退出脚本
-    timeout 2 ping -c 1 -i 1 8.8.8.8
-    if [ $? != 0 ]; then ERR "no network"; exit $EXIT_FAILURE; fi
+    if ! timeout 2 ping -c 1 -i 1 8.8.8.8; then ERR "not network" && exit $EXIT_FAILURE; fi
 }
 
 
@@ -144,10 +156,12 @@ function stage_prepare {
 
     # 安装 sshpass ssh-keyscan
     # 生成 ssh 密钥对
-    command -v sshpass &> /dev/null
-    if [ $? != 0 ]; then ${INSTALL_MANAGER} install -y sshpass; fi
-    command -v ssh-keyscan &> /dev/null
-    if [ $? != 0 ]; then ${INSTALL_MANAGER} install -y ssh-keyscan; fi
+    #command -v sshpass &> /dev/null
+    #if [ $? -ne 0 ]; then ${INSTALL_MANAGER} install -y sshpass; fi
+    if ! command -v sshpass &> /dev/null; then ${INSTALL_MANAGER} install -y sshpass; fi
+    #command -v ssh-keyscan &> /dev/null
+    #if [ $? != 0 ]; then ${INSTALL_MANAGER} install -y ssh-keyscan; fi
+    if ! command -v sshpass &> /dev/null; then ${INSTALL_MANAGER} install -y sshpass; fi
     [ ! -d "${K8S_PATH}" ] && rm -rf "${K8S_PATH}"; mkdir -p "${K8S_PATH}"
     [ ! -d "${KUBE_CERT_PATH}" ] && rm -rf "${KUBE_CERT_PATH}"; mkdir -p "${KUBE_CERT_PATH}"
     [ ! -d "${ETCD_CERT_PATH}" ] && rm -rf "${ETCD_CERT_PATH}"; mkdir -p "${ETCD_CERT_PATH}"
@@ -189,87 +203,6 @@ function stage_prepare {
             scp -r centos/yum.repos.d ${NODE}:/tmp/
         done
     fi
-}
-
-
-
-function stage_one {
-    # Stage 1: 系统准备
-    #   1. 导入所需 yum 源
-    #   2. 安装必要软件
-    #   3. 升级系统
-    #   4. 关闭防火墙、SELinux
-    #   5. 设置时区、NTP 时间同步
-    #   6. 设置 sshd
-    #   7. ulimits 参数调整
-    local stage_one_script_path=""
-    case "${K8S_NODE_OS}" in
-        "centos")
-            stage_one_script_path="centos/1_prepare_for_server.sh" ;;
-        "rhel")
-            stage_one_script_path="centos/1_prepare_for_server.sh" ;;
-        "debian")
-            stage_one_script_path="debian/1_prepare_for_server.sh" ;;
-        "ubuntu" )
-            stage_one_script_path="ubuntu/1_prepare_for_server.sh" ;;
-        *)
-            ERR "not support" && exit $EXIT_FAILURE ;;
-    esac
-    for NODE in "${ALL_NODE[@]}"; do
-        ssh ${NODE} "bash -s" < "${stage_one_script_path}"
-    done
-}
-
-
-
-function stage_two {
-    # Stage 2: k8s 准备
-    #   1. 安装 k8s 所需软件
-    #   2. 关闭 swap 分区
-    #   4. 升级 Kernel
-    #   4. 加载 K8S 所需内核模块
-    #   5. 调整内核参数
-    local stage_two_script_path=""
-    case "${K8S_NODE_OS}" in
-        "centos")
-            stage_two_script_path="centos/2_prepare_for_k8s.sh" ;;
-        "rhel")
-            stage_two_script_path="centos/2_prepare_for_k8s.sh" ;;
-        "debian")
-            stage_two_script_path="debian/2_prepare_for_k8s.sh" ;;
-        "ubuntu" )
-            stage_two_script_path="ubuntu/2_prepare_for_k8s.sh" ;;
-        *)
-            ERR "not support" && exit $EXIT_FAILURE ;;
-    esac
-    for NODE in "${ALL_NODE[@]}"; do
-        ssh ${NODE} "bash -s" < "${stage_two_script_path}"
-    done
-}
-
-
-
-function stage_three {
-    # Stage 3: 安装 Docker
-    #   1. 安装 docker 所需软件
-    #   1. 安装 docker-ce
-    #   2. 调整 docker-ce 启动参数
-    local stage_three_script_path=""
-    case "${K8S_NODE_OS}" in
-        "centos")
-            stage_three_script_path="centos/3_install_docker.sh" ;;
-        "rhel")
-            stage_three_script_path="centos/3_install_docker.sh" ;;
-        "debian")
-            stage_three_script_path="debian/3_install_docker.sh" ;;
-        "ubuntu" )
-            stage_three_script_path="ubuntu/3_install_docker.sh" ;;
-        *)
-            ERR "not support" && exit $EXIT_FAILURE ;;
-    esac
-    for NODE in "${ALL_NODE[@]}"; do
-        ssh ${NODE} "bash -s" < "${stage_three_script_path}"
-    done
 }
 
 
@@ -350,23 +283,25 @@ function 3_generate_etcd_certs {
 
     # 如果配置过 etcd 就不要在重新生成 etcd 证书
     # 重复生成 K8S 组件证书没事，但是如果重新生成 etcd 证书会有问题，需要额外设置
-    for NODE in "${MASTER[@]}"; do
-        ssh ${NODE} "systemctl status etcd" &> /dev/null
-        if [ $? == "0" ]; then
-            MSG2 "etcd is installed, skip"
-            return $EXIT_SUCCESS
-        fi
-    done
+    #for NODE in "${MASTER[@]}"; do
+        #ssh ${NODE} "systemctl status etcd" &> /dev/null
+        #if [ $? == "0" ]; then
+            #MSG2 "etcd is installed, skip"
+            #return $EXIT_SUCCESS
+        #fi
+    #done
 
 
-    # 在这里设置，可以为 etcd 多预留几个 hostname 或者 ip 地址，方便 etcd 扩容
+    # 在 EXTRA_MASTER_HOST 和 EXTRA_MASTER_IP 中多预留一些 hostname 和 IP 地址
     local HOSTNAME=""
     for NODE in "${MASTER_HOST[@]}"; do
-        HOSTNAME="${HOSTNAME}","${NODE}"
-    done
+        HOSTNAME="${HOSTNAME}","${NODE}"; done
     for NODE in "${MASTER_IP[@]}"; do
-        HOSTNAME="${HOSTNAME}","${NODE}"
-    done
+        HOSTNAME="${HOSTNAME}","${NODE}"; done
+    for NODE in "${EXTRA_MASTER_HOST[@]}"; do
+        HOSTNAME="${HOSTNAME}","${NODE}"; done
+    for NODE in "${EXTRA_MASTER_IP[@]}"; do
+        HOSTNAME="${HOSTNAME}","${NODE}"; done
     HOSTNAME=${HOSTNAME}",127.0.0.1"
     HOSTNAME=${HOSTNAME/,}
 
@@ -388,9 +323,8 @@ function 3_generate_etcd_certs {
     for NODE in "${MASTER[@]}"; do
         ssh ${NODE} "mkdir -p ${ETCD_CERT_PATH}"
         for FILE in etcd-ca-key.pem etcd-ca.pem etcd-key.pem etcd.pem; do
-            scp ${ETCD_CERT_PATH}/${FILE} ${NODE}:${ETCD_CERT_PATH}/${FILE}
-        done
-    done
+            scp ${ETCD_CERT_PATH}/${FILE} ${NODE}:${ETCD_CERT_PATH}/${FILE}; done; done
+    # 在这里设置，可以为 etcd 多预留几个 hostname 或者 ip 地址，方便 etcd 扩容
     # 将 etcd 证书拷贝到所有的 worker 节点上
     for NODE in "${WORKER[@]}"; do
         ssh ${NODE} mkdir -p ${ETCD_CERT_PATH}
@@ -876,8 +810,10 @@ function 13_setup_kube_proxy {
     # 2.kube-proxy.kubeconfig 配置文件不能放在 4_generate_kubernetes_certs 函数中执行，
     #   因为 生成 kube-proxy.kubeconfig 集群部署好后，才能生成，4_generate_kubernetes_certs  阶段
     #   还没有部署好 K8S 集群，11_setup_k8s_admin 阶段 
-    local SECRET=$(kubectl -n kube-system get sa/kube-proxy --output=jsonpath='{.secrets[0].name}')
-    local JWT_TOKEN=$(kubectl -n kube-system get secret/$SECRET --output=jsonpath='{.data.token}' | base64 -d)
+    local SECRET
+    local JWT_TOKEN
+    SECRET=$(kubectl -n kube-system get sa/kube-proxy --output=jsonpath='{.secrets[0].name}')
+    JWT_TOKEN=$(kubectl -n kube-system get secret/$SECRET --output=jsonpath='{.data.token}' | base64 -d)
     kubectl config set-cluster kubernetes \
         --certificate-authority="${KUBE_CERT_PATH}"/ca.pem \
         --embed-certs=true \
@@ -975,15 +911,17 @@ function 17_label_and_taint_master_node {
     # master 节点的 taint 默认是 NoSchedule，在这里我设置成了 PreferNoSchedule
     MSG2 "17. Label and Taint master node"
     while true; do
-        kubectl get node &> /dev/null
-        if [ $? == "0" ]; then break; fi
-        sleep 1
-    done
-    for NODE in "${MASTER[@]}"; do
-        kubectl taint nodes ${NODE} node-role.kubernetes.io/master:PreferNoSchedule --overwrite
-        #kubectl taint ondes ${NODE} node-role.kubernetes.io/master:NoSchedule --overwrite
-        kubectl label nodes ${NODE} node-role.kubernetes.io/master= --overwrite  
-        kubectl label nodes ${NODE} node-role.kubernetes.io/control-plane= --overwrite 
+        if kubectl get node | grep Ready; then
+            for NODE in "${MASTER[@]}"; do
+                kubectl taint nodes ${NODE} node-role.kubernetes.io/master:PreferNoSchedule --overwrite
+                #kubectl taint ondes ${NODE} node-role.kubernetes.io/master:NoSchedule --overwrite
+                kubectl label nodes ${NODE} node-role.kubernetes.io/master= --overwrite  
+                kubectl label nodes ${NODE} node-role.kubernetes.io/control-plane= --overwrite;
+            done
+            break
+        else
+            sleep 1
+        fi
     done
 }
 
@@ -995,24 +933,37 @@ function deploy_dashboard {
     kubectl apply -f dashboard/dashboard-user.yaml
 }
 
+
 function deploy_kuboard {
     MSG2 "Deploy Kuboard"
     kubectl apply -f kuboard/kuboard.yaml
 }
 
+
 function deploy_ingress {
     MSG2 "Deploy Ingress-nginx"
     kubectl create namespace ingress-nginx
-    for (( i=0; i<3; i++ )); do
-        kubectl label node ${WORKER[$i]} ingress="true" --overwrite
+    while true; do
+        if kubectl get node | grep Ready; then
+            for (( i=0; i<3; i++ )); do
+                kubectl label node ${WORKER[$i]} ingress="true" --overwrite
+            done
+            helm install ingress-nginx helm/ingress-nginx/ -n ingress-nginx
+            break
+        else
+            sleep 1
+        fi
     done
-    helm install ingress-nginx helm/ingress-nginx/ -n ingress-nginx
 }
+
+
 function deploy_traefik {
     MSG2 "Deploy Traefik"
     kubectl create namespace traefik
     helm install traefik helm/traefik -n traefik
 }
+
+
 function deploy_cephcsi {
     MSG2 "Deploy ceph csi"
 
@@ -1068,47 +1019,102 @@ function deploy_cephcsi {
 }
 
 
+function deploy_nfsclient {
+    helm install --create-namespace -n ${NFS_NAMESPACE} \
+        nfs-subdir-external-provisioner helm/nfs-subdir-external-provisioner \
+        --set nfs.server=${NFS_SERVER} \
+        --set nfs.path=${NFS_STORAGE_PATH} \
+        --set nfs.storageClass.name=${NFS_STORAGECLASS}
+}
 function deploy_harbor { :; }
 
 
 
+
+
+
+function stage_one {
+    local stage_one_script_path=""
+    case "${K8S_NODE_OS}" in
+        "centos"|"rhel")
+            stage_one_script_path="centos/1_prepare_for_server.sh" ;;
+        "debian")
+            stage_one_script_path="debian/1_prepare_for_server.sh" ;;
+        "ubuntu" )
+            stage_one_script_path="ubuntu/1_prepare_for_server.sh" ;;
+        *)
+            ERR "not support" && exit $EXIT_FAILURE ;;
+    esac
+    for NODE in "${ALL_NODE[@]}"; do
+        ssh ${NODE} "bash -s" < "${stage_one_script_path}"
+    done
+}
+function stage_two {
+    local stage_two_script_path=""
+    case "${K8S_NODE_OS}" in
+        "centos"|"rhel")
+            stage_two_script_path="centos/2_prepare_for_k8s.sh" ;;
+        "debian")
+            stage_two_script_path="debian/2_prepare_for_k8s.sh" ;;
+        "ubuntu" )
+            stage_two_script_path="ubuntu/2_prepare_for_k8s.sh" ;;
+        *)
+            ERR "not support" && exit $EXIT_FAILURE ;;
+    esac
+    for NODE in "${ALL_NODE[@]}"; do
+        ssh ${NODE} "bash -s" < "${stage_two_script_path}"
+    done
+}
+function stage_three {
+    local stage_three_script_path=""
+    case "${K8S_NODE_OS}" in
+        "centos"|"rhel")
+            stage_three_script_path="centos/3_install_docker.sh" ;;
+        "debian")
+            stage_three_script_path="debian/3_install_docker.sh" ;;
+        "ubuntu" )
+            stage_three_script_path="ubuntu/3_install_docker.sh" ;;
+        *)
+            ERR "not support" && exit $EXIT_FAILURE ;;
+    esac
+    for NODE in "${ALL_NODE[@]}"; do
+        ssh ${NODE} "bash -s" < "${stage_three_script_path}"
+    done
+}
+function stage_four {
+    1_copy_binary_package_and_create_dir
+    2_install_keepalived_and_haproxy
+    3_generate_etcd_certs
+    4_generate_kubernetes_certs
+    5_setup_etcd
+    6_setup_keepalived
+    7_setup_haproxy
+    8_setup_apiserver
+    9_setup_controller_manager
+    10_setup_scheduler
+    11_setup_k8s_admin
+    12_setup_kubelet
+    13_setup_kube_proxy
+    14_deploy_calico
+    15_deploy_coredns
+    16_deploy_metrics_server
+    17_label_and_taint_master_node
+}
+function stage_five {
+    [ ${INSTALL_KUBOARD} ] && deploy_kuboard
+    [ ${INSTALL_INGRESS} ] && deploy_ingress
+    [ ${INSTALL_TRAEFIK} ] && deploy_traefik
+    [ ${INSTALL_CEPHCSI} ] && deploy_cephcsi
+    [ ${INSTALL_DASHBOARD} ] && deploy_dashboard
+    [ ${INSTALL_HARBOR} ] && deploy_harbor
+    [ ${INSTALL_NFSCLIENT} ] && deploy_nfsclient
+}
+
+
 0_check_root_and_os
-
-MSG1 "=============== Prepare: Setup SSH Public Key Authentication =================="
-stage_prepare
-
-MSG1 "=================== Stage 1: Prepare for Linux Server ========================="
-stage_one
-
-MSG1 "====================== Stage 2: Prepare for Kubernetes ========================"
-stage_two
-
-MSG1 "========================= Stage 3: Install Docker ============================="
-stage_three
-
-MSG1 "============ Stage 4: Deployment Kubernetes Cluster from Binary ==============="
-1_copy_binary_package_and_create_dir
-2_install_keepalived_and_haproxy
-3_generate_etcd_certs
-4_generate_kubernetes_certs
-5_setup_etcd
-6_setup_keepalived
-7_setup_haproxy
-8_setup_apiserver
-9_setup_controller_manager
-10_setup_scheduler
-11_setup_k8s_admin
-12_setup_kubelet
-13_setup_kube_proxy
-14_deploy_calico
-15_deploy_coredns
-16_deploy_metrics_server
-17_label_and_taint_master_node
-
-MSG1 "==================== Stage 5: Deployment Kubernetes Addon ======================"
-[ ${INSTALL_KUBOARD} ] && deploy_kuboard
-[ ${INSTALL_INGRESS} ] && deploy_ingress
-[ ${INSTALL_TRAEFIK} ] && deploy_traefik
-[ ${INSTALL_CEPHCSI} ] && deploy_cephcsi
-[ ${INSTALL_DASHBOARD} ] && deploy_dashboard
-[ ${INSTALL_HARBOR} ] && deploy_harbor
+MSG1 "=============== Prepare: Setup SSH Public Key Authentication =================="; stage_prepare
+MSG1 "=================== Stage 1: Prepare for Linux Server ========================="; stage_one
+MSG1 "====================== Stage 2: Prepare for Kubernetes ========================"; stage_two
+MSG1 "========================= Stage 3: Install Docker ============================="; stage_three
+MSG1 "============ Stage 4: Deployment Kubernetes Cluster from Binary ==============="; stage_four
+MSG1 "==================== Stage 5: Deployment Kubernetes Addon ====================="; stage_five
