@@ -285,6 +285,11 @@ function 4_install_ceph {
     # step 8: add more ceph-mgr
     MSG2 "4.8 Add more ceph-mgr"
     ceph-deploy mgr create ${CEPH_NODE[1]} ${CEPH_NODE[2]}
+
+    # step 9: fix insecure global id reclaim
+    MSG2 "4.9 Fix insecure global id reclaim"
+    ceph config set mon mon_warn_on_insecure_global_id_reclaim false
+    ceph config set mon mon_warn_on_insecure_global_id_reclaim_allowed false
 }
 
 
