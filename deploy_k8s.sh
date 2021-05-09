@@ -1031,9 +1031,6 @@ function deploy_harbor { :; }
 
 
 
-
-
-
 function stage_one {
     local stage_one_script_path=""
     case "${K8S_NODE_OS}" in
