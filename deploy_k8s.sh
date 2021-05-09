@@ -3,6 +3,7 @@
 # to-do-list (跟你无关，你不用关注这个)
 #   - 扩展节点问题？ certSANs
 #   - hold docker-ce
+#   - 提供选项 kube-proxy mode: ipvs, iptables
 
 # 描述: 一共分为 5 个阶段
 #   Stage Prepare: 准备阶段，用来配置 ssh 免密码登录和主机名
@@ -54,16 +55,16 @@ MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 MASTER_HOST=(master1 master2 master3)
 WORKER_HOST=(worker1 worker2 worker3)
 EXTRA_MASTER_HOST=(master4 master5 master6)
-MASTER_IP=(10.250.11.11
-           10.250.11.12
-           10.250.11.13)
-WORKER_IP=(10.250.11.21
-           10.250.11.22
-           10.250.11.23)
-EXTRA_MASTER_IP=(10.250.11.14
-                 10.250.11.15
-                 10.250.11.16)
-CONTROL_PLANE_ENDPOINT="10.250.11.10:8443"
+MASTER_IP=(10.250.12.11
+           10.250.12.12
+           10.250.12.13)
+WORKER_IP=(10.250.12.21
+           10.250.12.22
+           10.250.12.23)
+EXTRA_MASTER_IP=(10.250.12.14
+                 10.250.12.15
+                 10.250.12.16)
+CONTROL_PLANE_ENDPOINT="10.250.12.10:8443"
 MASTER=("${MASTER_HOST[@]}")
 WORKER=("${WORKER_HOST[@]}")
 ALL_NODE=("${MASTER[@]}" "${WORKER[@]}")
@@ -73,9 +74,9 @@ ALL_NODE=("${MASTER[@]}" "${WORKER[@]}")
 # SRV_NETWORK_IP: kubernetes.default.svc.cluster.local address (usually service netweork first ip)
 # SRV_NETWORK_DNS_IP: kube-dns.kube-system.svc.cluster.local address (coredns)
 SRV_NETWORK_CIDR="172.18.0.0/16"
-POD_NETWORK_CIDR="192.168.0.0/16"
 SRV_NETWORK_IP="172.18.0.1"
 SRV_NETWORK_DNS_IP="172.18.0.10"
+POD_NETWORK_CIDR="192.168.0.0/16"
 
 K8S_ROOT_PASS="toor"                                            # k8s node root passwd, set here
 K8S_NODE_OS=""                                                  # Linux Distribution, not set here
@@ -94,8 +95,8 @@ CEPH_MON_IP=(10.250.20.11
              10.250.20.13)
 CEPH_ROOT_PASS="toor"
 CEPH_CLUSTER_ID=""
-CEPH_POOL="c7-k8s"
-CEPH_USER="c7-k8s"
+CEPH_POOL="u20-k8s"
+CEPH_USER="u20-k8s"
 CEPH_USER_KEY=""
 CEPH_NAMESPACE="ceph"
 CEPH_STORAGECLASS="ceph-rbd"
@@ -890,7 +891,7 @@ function 14_deploy_calico {
 function 15_deploy_coredns {
     MSG2 "15. Deploy coredns"
 
-    cp CoreDNS/coredns.yaml /tmp/coredns.yaml
+    cp coredns/coredns.yaml /tmp/coredns.yaml
     sed -i "s%192.168.0.10%${SRV_NETWORK_DNS_IP}%g" /tmp/coredns.yaml
     kubectl apply -f /tmp/coredns.yaml
 }
