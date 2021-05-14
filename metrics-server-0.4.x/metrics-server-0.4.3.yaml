@@ -127,6 +127,17 @@ spec:
       labels:
         k8s-app: metrics-server
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/master
+                operator: In
+                values:
+                - ""
+      tolerations:
+      - key: node-role.kubernetes.io/master
       containers:
         - args:
             - --cert-dir=/tmp
