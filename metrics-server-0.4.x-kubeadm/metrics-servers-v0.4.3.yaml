@@ -127,6 +127,17 @@ spec:
       labels:
         k8s-app: metrics-server
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/master
+                operator: In
+                values:
+                - ""
+      tolerations:
+      - key: node-role.kubernetes.io/master
       containers:
         - args:
             - --cert-dir=/tmp
@@ -138,7 +149,7 @@ spec:
             - --requestheader-username-headers=X-Remote-User
             - --requestheader-group-headers=X-Remote-Group
             - --requestheader-extra-headers-prefix=X-Remote-Extra-
-          image: registry.cn-hangzhou.aliyuncs.com/hybfkuf/metrics-server:v0.4.1
+          image: registry.cn-hangzhou.aliyuncs.com/hybfkuf/metrics-server:v0.4.3
           imagePullPolicy: IfNotPresent
           livenessProbe:
             failureThreshold: 3

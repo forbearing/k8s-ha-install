@@ -138,7 +138,7 @@ spec:
             - --requestheader-username-headers=X-Remote-User
             - --requestheader-group-headers=X-Remote-Group
             - --requestheader-extra-headers-prefix=X-Remote-Extra-
-          image: registry.cn-hangzhou.aliyuncs.com/hybfkuf/metrics-server:v0.4.3
+          image: registry.cn-hangzhou.aliyuncs.com/hybfkuf/metrics-server:v0.4.1
           imagePullPolicy: IfNotPresent
           livenessProbe:
             failureThreshold: 3
