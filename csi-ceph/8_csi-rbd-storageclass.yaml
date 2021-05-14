@@ -22,6 +22,9 @@ parameters:
   csi.storage.k8s.io/provisioner-secret-namespace: #CEPH_NAMESPACE#
   csi.storage.k8s.io/node-stage-secret-name: csi-rbd-secret
   csi.storage.k8s.io/node-stage-secret-namespace: #CEPH_NAMESPACE#
+  thickProvision: "false"
+  imageFeatures: layering
+  csi.storage.k8s.io/fstype: ext4
   #imageFeatures: "layering"
 reclaimPolicy: Delete
 mountOptions:
