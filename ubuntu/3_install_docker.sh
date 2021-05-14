@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# to-do-list
+# ubuntu20 和 ubuntu18 的 VERSION_STRING 不一样，需要设置
+
 EXIT_SUCCESS=0
 EXIT_FAILURE=1
 ERR(){ echo -e "\033[31m\033[01m$1\033[0m"; }
@@ -25,8 +28,13 @@ function 1_install_docker {
     apt-get update -y
     apt-get install -y docker-ce docker-ce-cli containerd.io
     local VERSION_STRING=""
-    VERSION_STRING="5:19.03.15~3-0~ubuntu-bionic"
-    apt-get install -y docker-ce=${VERSION_STRING} docker-ce-cli=${VERSION_STRING} containerd.io
+    local RELEASE=""
+    RELEASE=$(cat /etc/os-release | grep VERSION= | awk -F'.' '{print $1}' | awk -F \" '{print $2}')
+    if [[ ${RELEASE} -eq 18 ]]; then
+        VERSION_STRING="5:19.03.15~3-0~ubuntu-bionic"
+    elif [[ ${RELEASE} -eq 20 ]]; then
+        VERSION_STRING="5:19.03.15~3-0~ubuntu-focal"; fi
+    apt-get install -y --allow-downgrades docker-ce=${VERSION_STRING} docker-ce-cli=${VERSION_STRING} containerd.io
     apt-mark hold docker-ce
     systemctl enable --now docker
 }
@@ -59,6 +67,14 @@ EOF
 }
 
 
+function 3_configure_containerd {
+    MSG2 "3. Configure containerd"
+    sed -i "s/^KillMode=process/KillMode=mixed/g" /lib/systemd/system/containerd.service
+    systemctl daemon-reload
+}
+
+
 MSG1 "*** `hostname` *** Install Docker"
 1_install_docker
 2_configure_docker
+#3_configure_containerd
