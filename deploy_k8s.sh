@@ -95,8 +95,8 @@ CEPH_MON_IP=(10.250.20.11
              10.250.20.13)
 CEPH_ROOT_PASS="toor"
 CEPH_CLUSTER_ID=""
-CEPH_POOL="u20-k8s"
-CEPH_USER="u20-k8s"
+CEPH_POOL="k8s"
+CEPH_USER="u18-k8s"
 CEPH_USER_KEY=""
 CEPH_NAMESPACE="ceph"
 CEPH_STORAGECLASS="ceph-rbd"
@@ -113,7 +113,7 @@ NFS_NAMESPACE="nfs-provisioner"
 INSTALL_KUBOARD=1
 INSTALL_INGRESS=1
 INSTALL_CEPHCSI=1
-INSTALL_TRAEFIK=1
+INSTALL_TRAEFIK=""
 INSTALL_NFSCLIENT=""
 INSTALL_DASHBOARD=""
 INSTALL_HARBOR=""
@@ -901,7 +901,7 @@ function 15_deploy_coredns {
 function 16_deploy_metrics_server {
     MSG2 "16. Deploy metrics server"
 
-    kubectl apply -f  metrics-server-0.4.x/metrics-server-0.4.1.yaml
+    kubectl apply -f  metrics-server-0.4.x/metrics-server-0.4.3.yaml
 }
 
 
