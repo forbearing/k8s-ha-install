@@ -2,7 +2,6 @@
 
 # to-do-list (跟你无关，你不用关注这个)
 #   - 扩展节点问题？ certSANs
-#   - hold docker-ce
 #   - 提供选项 kube-proxy mode: ipvs, iptables
 
 # 描述: 一共分为 5 个阶段
@@ -35,12 +34,10 @@
 # 注意事项：
 #   1. 支持的系统: CentOS 7, Ubuntu 18, Ubuntu 20,  Debian 10 (Debian 10 还没有测试)
 #   2. 运行此命令的节点必须是 master 节点，任何一台 master 节点都行，不能是 worker 节点
-#   3. Stage1、Stage2、Stage3 可以重复运行，因为网络原因导致 Stage1/Stage2/Stage3 中断，
-#      可以重复运行此脚本，Stage4 运行后不要重复运行此脚本
-#   4. 你只需要提前配置好 k8s 节点的静态IP地址，不需要配置 ssh 无密钥登录，不需要配置
+#   3. 你只需要提前配置好 k8s 节点的静态IP地址，不需要配置 ssh 无密钥登录，不需要配置
 #      主机名，一键安装。节点的静态IP和主机名配置在变量中。
-#   5. 所有 k8s 节点必须要相同的操作系统和 Linux 发行版本，要么都为 Ubuntu 要么都为 CentOS
-#   6. EXTRA_MASTER_HOST 和 EXTRA_MASTER_IP 数组用来扩展 etcd 节点和 k8s master 节点
+#   4. 所有 k8s 节点必须要相同的操作系统和 Linux 发行版本，要么都为 Ubuntu 要么都为 CentOS
+#   5. EXTRA_MASTER_HOST 和 EXTRA_MASTER_IP 数组用来扩展 etcd 节点和 k8s master 节点
 #      etcd 节点默认部署在 k8s master 节点上。
 
 
@@ -52,19 +49,31 @@ MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 
 
 # k8s node hostname and ip
-MASTER_HOST=(master1 master2 master3)
-WORKER_HOST=(worker1 worker2 worker3)
-EXTRA_MASTER_HOST=(master4 master5 master6)
-MASTER_IP=(10.250.12.11
-           10.250.12.12
-           10.250.12.13)
-WORKER_IP=(10.250.12.21
-           10.250.12.22
-           10.250.12.23)
-EXTRA_MASTER_IP=(10.250.12.14
-                 10.250.12.15
-                 10.250.12.16)
-CONTROL_PLANE_ENDPOINT="10.250.12.10:8443"
+MASTER_HOST=(
+master1
+master2
+master3)
+WORKER_HOST=(
+worker1
+worker2
+worker3)
+EXTRA_MASTER_HOST=(
+master4
+master5
+master6)
+MASTER_IP=(
+10.250.13.11
+10.250.13.12
+10.250.13.13)
+WORKER_IP=(
+10.250.13.21
+10.250.13.22
+10.250.13.23)
+EXTRA_MASTER_IP=(
+10.250.13.14
+10.250.13.15
+10.250.13.16)
+CONTROL_PLANE_ENDPOINT="10.250.13.10:8443"
 MASTER=("${MASTER_HOST[@]}")
 WORKER=("${WORKER_HOST[@]}")
 ALL_NODE=("${MASTER[@]}" "${WORKER[@]}")
@@ -114,6 +123,7 @@ INSTALL_KUBOARD=1
 INSTALL_INGRESS=1
 INSTALL_CEPHCSI=1
 INSTALL_TRAEFIK=""
+INSTALL_KONG=""
 INSTALL_NFSCLIENT=""
 INSTALL_DASHBOARD=""
 INSTALL_HARBOR=""
@@ -277,20 +287,13 @@ function 2_install_keepalived_and_haproxy {
 
 
 
-# 1、生成 etcd 证书
-# 2、将 etcd 证书拷贝到其他节点上
 function 3_generate_etcd_certs {
     MSG2 "3. Generate certs for etcd"
 
-    # 如果配置过 etcd 就不要在重新生成 etcd 证书
-    # 重复生成 K8S 组件证书没事，但是如果重新生成 etcd 证书会有问题，需要额外设置
-    #for NODE in "${MASTER[@]}"; do
-        #ssh ${NODE} "systemctl status etcd" &> /dev/null
-        #if [ $? == "0" ]; then
-            #MSG2 "etcd is installed, skip"
-            #return $EXIT_SUCCESS
-        #fi
-    #done
+    # 如果 kubernetees 在正常运行，就不重新生成 etcd 证书
+    if kubectl get node; then
+        return
+    fi
 
 
     # 在 EXTRA_MASTER_HOST 和 EXTRA_MASTER_IP 中多预留一些 hostname 和 IP 地址
@@ -318,21 +321,6 @@ function 3_generate_etcd_certs {
         -profile=kubernetes \
         pki/etcd-csr.json \
         | cfssl-json -bare "${ETCD_CERT_PATH}"/etcd
-
-
-    # 将 etcd 证书拷贝到所有的 master 节点上
-    for NODE in "${MASTER[@]}"; do
-        ssh ${NODE} "mkdir -p ${ETCD_CERT_PATH}"
-        for FILE in etcd-ca-key.pem etcd-ca.pem etcd-key.pem etcd.pem; do
-            scp ${ETCD_CERT_PATH}/${FILE} ${NODE}:${ETCD_CERT_PATH}/${FILE}; done; done
-    # 在这里设置，可以为 etcd 多预留几个 hostname 或者 ip 地址，方便 etcd 扩容
-    # 将 etcd 证书拷贝到所有的 worker 节点上
-    for NODE in "${WORKER[@]}"; do
-        ssh ${NODE} mkdir -p ${ETCD_CERT_PATH}
-        for FILE in etcd-ca.pem etcd.pem etcd-key.pem; do
-            scp ${ETCD_CERT_PATH}/${FILE} ${NODE}:${ETCD_CERT_PATH}/${FILE}
-        done
-    done
 }
 
 
@@ -343,6 +331,11 @@ function 3_generate_etcd_certs {
 # 4、创建 ServiceAccount Key
 function 4_generate_kubernetes_certs() {
     MSG2 "4. Generate certs for Kubernetes"
+
+    # 如果 kubernetees 在正常运行，就不重新生成 kubernetes 证书
+    if kubectl get node; then
+        return
+    fi
 
     # 获取 control plane endpoint ip 地址
     local OLD_IFS=""
@@ -505,6 +498,24 @@ function 4_generate_kubernetes_certs() {
     # 这个 secret 会产生一个 token，token 的生成就是用这个证书生成的。
     openssl genrsa -out "${KUBE_CERT_PATH}"/sa.key 2048
     openssl rsa -in "${KUBE_CERT_PATH}"/sa.key -pubout -out "${KUBE_CERT_PATH}"/sa.pub
+}
+
+
+
+function 5_copy_etcd_and_k8s_certs {
+    # 将 etcd 证书拷贝到所有的 master 节点上
+    for NODE in "${MASTER[@]}"; do
+        ssh ${NODE} "mkdir -p ${ETCD_CERT_PATH}"
+        for FILE in etcd-ca-key.pem etcd-ca.pem etcd-key.pem etcd.pem; do
+            scp ${ETCD_CERT_PATH}/${FILE} ${NODE}:${ETCD_CERT_PATH}/${FILE}; done; done
+    # 在这里设置，可以为 etcd 多预留几个 hostname 或者 ip 地址，方便 etcd 扩容
+    # 将 etcd 证书拷贝到所有的 worker 节点上
+    for NODE in "${WORKER[@]}"; do
+        ssh ${NODE} mkdir -p ${ETCD_CERT_PATH}
+        for FILE in etcd-ca.pem etcd.pem etcd-key.pem; do
+            scp ${ETCD_CERT_PATH}/${FILE} ${NODE}:${ETCD_CERT_PATH}/${FILE}
+        done
+    done
 
 
     # 将生成的 kubernetes 各个组件的证书和配置文件分别拷贝到 master 节点
@@ -540,7 +551,7 @@ function 4_generate_kubernetes_certs() {
 #   （etcd.config.yaml 为 etcd 的配置文件
 #     etcd.service 为 etcd 的自启动文件）
 # 3、所有 etcd 节点设置 etcd 服务自启动
-function 5_setup_etcd() {
+function 6_setup_etcd() {
     MSG2 "5. Setup etcd"
     # 如果 etcd 在运行就不设置 etcd
     for NODE in "${MASTER[@]}"; do
@@ -585,7 +596,7 @@ function 5_setup_etcd() {
 
 
 
-function 6_setup_keepalived {
+function 7_setup_keepalived {
     MSG2 "6. Setup Keepalived"
 
     local OLD_IFS=""
@@ -633,7 +644,7 @@ function 6_setup_keepalived {
 
 
 
-function 7_setup_haproxy() {
+function 8_setup_haproxy() {
     MSG2 "7. Setup haproxy"
 
     local OLD_IFS=""
@@ -667,7 +678,7 @@ function 7_setup_haproxy() {
 
 
 
-function 8_setup_apiserver() {
+function 9_setup_apiserver() {
     MSG2 "8. Setup kube-apiserver"
 
     # 为 master 节点生成 kube-apiserver.service 文件
@@ -694,7 +705,7 @@ function 8_setup_apiserver() {
 
 
 
-function 9_setup_controller_manager {
+function 10_setup_controller_manager {
     MSG2 "9. Setup kube-controller-manager"
 
     # 为 master 节点生成 kube-controller-manager.service 文件
@@ -715,7 +726,7 @@ function 9_setup_controller_manager {
 
 
 
-function 10_setup_scheduler {
+function 11_setup_scheduler {
     MSG2 "10. Setup kube-scheduler"
 
     # 为 master 节点生成 kube-scheduler.service 文件
@@ -734,7 +745,7 @@ function 10_setup_scheduler {
 
 
 
-function 11_setup_k8s_admin {
+function 12_setup_k8s_admin {
     MSG2 "11. Setup K8S admin"
 
     [ ! -d /root/.kube ] && rm -rf /root/.kube && mkdir /root/.kube
@@ -754,7 +765,7 @@ function 11_setup_k8s_admin {
 
 
 
-function 12_setup_kubelet {
+function 13_setup_kubelet {
     MSG2 "12. Setup kubelet"
 
     # 需要三个文件，两个需要生成
@@ -796,7 +807,7 @@ function 12_setup_kubelet {
 
 
 
-function 13_setup_kube_proxy {
+function 14_setup_kube_proxy {
     MSG2 "13. Setup kube-proxy"
 
     # 为 kube-proxy 创建 serviceaccount: kube-proxy
@@ -810,7 +821,7 @@ function 13_setup_kube_proxy {
     # 1.生成 kube-proxy.kubeconfig 配置文件
     # 2.kube-proxy.kubeconfig 配置文件不能放在 4_generate_kubernetes_certs 函数中执行，
     #   因为 生成 kube-proxy.kubeconfig 集群部署好后，才能生成，4_generate_kubernetes_certs  阶段
-    #   还没有部署好 K8S 集群，11_setup_k8s_admin 阶段 
+    #   还没有部署好 K8S 集群，12_setup_k8s_admin 阶段 
     local SECRET
     local JWT_TOKEN
     SECRET=$(kubectl -n kube-system get sa/kube-proxy --output=jsonpath='{.secrets[0].name}')
@@ -854,7 +865,7 @@ function 13_setup_kube_proxy {
 
 
 
-function 14_deploy_calico {
+function 15_deploy_calico {
     MSG2 "14. Deploy calico"
 
     local ETCD_ENDPOINTS=""
@@ -888,7 +899,7 @@ function 14_deploy_calico {
 
 
 
-function 15_deploy_coredns {
+function 16_deploy_coredns {
     MSG2 "15. Deploy coredns"
 
     cp coredns/coredns.yaml /tmp/coredns.yaml
@@ -898,7 +909,7 @@ function 15_deploy_coredns {
 
 
 
-function 16_deploy_metrics_server {
+function 17_deploy_metrics_server {
     MSG2 "16. Deploy metrics server"
 
     kubectl apply -f  metrics-server-0.4.x/metrics-server-0.4.3.yaml
@@ -906,7 +917,7 @@ function 16_deploy_metrics_server {
 
 
 
-function 17_label_and_taint_master_node {
+function 18_label_and_taint_master_node {
     # 为 master 节点打上污点
     # 为 master 节点打上标签
     # master 节点的 taint 默认是 NoSchedule，在这里我设置成了 PreferNoSchedule
@@ -983,7 +994,7 @@ function deploy_cephcsi {
     # get ceph cluster id
     CEPH_CLUSTER_ID=`ssh ${CEPH_MON_IP[0]} "ceph -s" | grep 'id:' | awk '{print $2}'`
     # create ceph pool
-    ssh ${CEPH_MON_IP[0]} "ceph osd pool create ${CEPH_POOL} 64 64"
+    ssh ${CEPH_MON_IP[0]} "ceph osd pool create ${CEPH_POOL} 128 128"
     ssh ${CEPH_MON_IP[0]} "ceph osd pool application enable ${CEPH_POOL} rbd"
     # create ceph user
     ssh ${CEPH_MON_IP[0]} "ceph auth get-or-create client.${CEPH_USER} mon 'profile rbd' osd 'profile rbd pool=${CEPH_POOL}' mgr 'allow rw'"
@@ -1084,19 +1095,20 @@ function stage_four {
     2_install_keepalived_and_haproxy
     3_generate_etcd_certs
     4_generate_kubernetes_certs
-    5_setup_etcd
-    6_setup_keepalived
-    7_setup_haproxy
-    8_setup_apiserver
-    9_setup_controller_manager
-    10_setup_scheduler
-    11_setup_k8s_admin
-    12_setup_kubelet
-    13_setup_kube_proxy
-    14_deploy_calico
-    15_deploy_coredns
-    16_deploy_metrics_server
-    17_label_and_taint_master_node
+    5_copy_etcd_and_k8s_certs
+    6_setup_etcd
+    7_setup_keepalived
+    8_setup_haproxy
+    9_setup_apiserver
+    10_setup_controller_manager
+    11_setup_scheduler
+    12_setup_k8s_admin
+    13_setup_kubelet
+    14_setup_kube_proxy
+    15_deploy_calico
+    16_deploy_coredns
+    17_deploy_metrics_server
+    18_label_and_taint_master_node
 }
 function stage_five {
     [ ${INSTALL_KUBOARD} ] && deploy_kuboard
