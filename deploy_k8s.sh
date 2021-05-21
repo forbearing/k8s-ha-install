@@ -122,7 +122,7 @@ NFS_NAMESPACE="nfs-provisioner"
 INSTALL_KUBOARD=1
 INSTALL_INGRESS=1
 INSTALL_LONGHORN=1
-INSTALL_CEPHCSI=""
+INSTALL_CEPHCSI=1
 INSTALL_TRAEFIK=""
 INSTALL_KONG=""
 INSTALL_NFSCLIENT=""
@@ -351,11 +351,13 @@ function 4_generate_kubernetes_certs() {
     # 在这里设置，可以为 master 节点和 worker 节点多预留几个主机名和IP地址，方便集群扩展
     local HOSTNAME=""
     for NODE in "${MASTER_HOST[@]}"; do
-        HOSTNAME="${HOSTNAME}","${NODE}"
-    done
+        HOSTNAME="${HOSTNAME}","${NODE}"; done
     for NODE in "${MASTER_IP[@]}"; do
-        HOSTNAME="${HOSTNAME}","${NODE}"
-    done
+        HOSTNAME="${HOSTNAME}","${NODE}"; done
+    for NODE in "${EXTRA_MASTER_HOST}"; do
+        HOSTNAME="${HOSTNAME}","${NODE}"; done
+    for NODE in "${EXTRA_MASTER_IP}"; do
+        HOSTNAME="${HOSTNAME}","${NODE}"; done
     HOSTNAME=${HOSTNAME}",127.0.0.1"
     HOSTNAME=${HOSTNAME}",${SRV_NETWORK_IP}"
     HOSTNAME=${HOSTNAME}",${CONTROL_PLANE_ENDPOINT_IP}"
@@ -927,7 +929,7 @@ function 18_label_and_taint_master_node {
         if kubectl get node | grep Ready; then
             for NODE in "${MASTER[@]}"; do
                 kubectl label nodes ${NODE} node-role.kubernetes.io/master= --overwrite  
-                kubectl label nodes ${NODE} node-role.kubernetes.io/control-plane= --overwrite;
+                kubectl label nodes ${NODE} node-role.kubernetes.io/control-plane= --overwrite
                 kubectl taint nodes ${NODE} node-role.kubernetes.io/master:NoSchedule --overwrite
                 #kubectl taint nodes ${NODE} node-role.kubernetes.io/master:PreferNoSchedule --overwrite
             done
@@ -1033,7 +1035,9 @@ function deploy_cephcsi {
 
 
 function deploy_longhorn {
-    helm --create-namespace -n longhorn  longhorn helm/longhorn
+    MSG2 "Deploy longhorn"
+
+    helm install --create-namespace -n longhorn-system longhorn helm/longhorn/longhorn
 }
 
 
