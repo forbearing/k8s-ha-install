@@ -121,7 +121,8 @@ NFS_NAMESPACE="nfs-provisioner"
 # kubernetes addon
 INSTALL_KUBOARD=1
 INSTALL_INGRESS=1
-INSTALL_CEPHCSI=1
+INSTALL_LONGHORN=1
+INSTALL_CEPHCSI=""
 INSTALL_TRAEFIK=""
 INSTALL_KONG=""
 INSTALL_NFSCLIENT=""
@@ -925,10 +926,10 @@ function 18_label_and_taint_master_node {
     while true; do
         if kubectl get node | grep Ready; then
             for NODE in "${MASTER[@]}"; do
-                kubectl taint nodes ${NODE} node-role.kubernetes.io/master:PreferNoSchedule --overwrite
-                #kubectl taint ondes ${NODE} node-role.kubernetes.io/master:NoSchedule --overwrite
                 kubectl label nodes ${NODE} node-role.kubernetes.io/master= --overwrite  
                 kubectl label nodes ${NODE} node-role.kubernetes.io/control-plane= --overwrite;
+                kubectl taint nodes ${NODE} node-role.kubernetes.io/master:NoSchedule --overwrite
+                #kubectl taint nodes ${NODE} node-role.kubernetes.io/master:PreferNoSchedule --overwrite
             done
             break
         else
@@ -1031,6 +1032,11 @@ function deploy_cephcsi {
 }
 
 
+function deploy_longhorn {
+    helm --create-namespace -n longhorn  longhorn helm/longhorn
+}
+
+
 function deploy_nfsclient {
     helm install --create-namespace -n ${NFS_NAMESPACE} \
         nfs-subdir-external-provisioner helm/nfs-subdir-external-provisioner \
@@ -1115,6 +1121,7 @@ function stage_five {
     [ ${INSTALL_INGRESS} ] && deploy_ingress
     [ ${INSTALL_TRAEFIK} ] && deploy_traefik
     [ ${INSTALL_CEPHCSI} ] && deploy_cephcsi
+    [ ${INSTALL_LONGHORN} ] && deploy_longhorn
     [ ${INSTALL_DASHBOARD} ] && deploy_dashboard
     [ ${INSTALL_HARBOR} ] && deploy_harbor
     [ ${INSTALL_NFSCLIENT} ] && deploy_nfsclient
