@@ -25,7 +25,7 @@ parameters:
   thickProvision: "false"
   imageFeatures: layering
   csi.storage.k8s.io/fstype: ext4
-  #imageFeatures: "layering"
+  imageFeatures: "layering"
 reclaimPolicy: Delete
 mountOptions:
    - discard
