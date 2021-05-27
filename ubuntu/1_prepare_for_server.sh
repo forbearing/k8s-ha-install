@@ -23,7 +23,7 @@ function 1_upgrade_system {
 function 2_install_necessary_package {
     MSG2 "2. Install necessary package"
 
-    apt-get install -y coreutils apt-file apt-transport-https software-properties-common iputils-ping bash-completion wget curl zip unzip bzip2 vim net-tools git zsh fish rsync psmisc procps dnsutils lvm2 ntp ntpdate jq sysstat tree lsof virt-what conntrack
+    apt-get install -y coreutils apt-file apt-transport-https software-properties-common iputils-ping bash-completion wget curl zip unzip bzip2 vim net-tools git zsh fish rsync psmisc procps dnsutils lvm2 ntp ntpdate jq sysstat tree lsof virt-what conntrack ipset
     add-apt-repository universe
     if [[ $(virt-what) == "vmware" ]]; then
         apt-get install -y open-vm-tools
