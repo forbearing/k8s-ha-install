@@ -129,10 +129,19 @@ INSTALL_DASHBOARD=""
 INSTALL_HARBOR=""
 
 
-# 覆盖上面的环境变量
-if [[ ! -z $1 ]]; then
-    source $1
-fi
+while getopts "e:i:s:h" opt; do
+    case "${opt}" in
+        "e")
+            source ${OPTARG} ;;
+        "i")
+            NEW_WORKER_IP=${OPTARG} ;;
+        "s")
+            NEW_WORKER_HOSTNAME=${OPTARG} ;;
+        "h")
+            MSG1 "$(basename $0) [-e environment_file] [-i new_worker_ip] [-s new_worker_hostname]" && exit $EXIT_SUCCESS ;;
+    esac
+done
+
 
 function 0_check_root_and_os() {
     # 检测是否为 root 用户，否则推出脚本
@@ -574,6 +583,8 @@ function 5_copy_etcd_and_k8s_certs {
 #     etcd.service 为 etcd 的自启动文件）
 # 3、所有 etcd 节点设置 etcd 服务自启动
 function 6_setup_etcd() {
+    MSG2 "6. Setup etcd"
+
     for NODE in "${MASTER[@]}"; do
         ssh $NODE "mkdir ${KUBE_CERT_PATH}/etcd/"
         ssh $NODE "ln -sf ${ETCD_CERT_PATH}/* ${KUBE_CERT_PATH}/etcd/"
@@ -1041,8 +1052,44 @@ function deploy_cephcsi {
 
 function deploy_longhorn {
     MSG2 "Deploy longhorn"
+    # service
+    service_ui_type="NodePort"
+    service_ui_nodePort=30008
+    service_manager_type="ClusterIP"
 
-    helm install --create-namespace -n longhorn-system longhorn helm/longhorn/longhorn
+    # ingress
+    ingress_enabled="false"
+    ingress_host="longhorn.qxis.com"
+    ingress_tls="false"
+
+    # longhorn
+    defaultDataPath="/longhorn"
+    storageOverProvisioningPercentage=500
+    storageMinimalAvailablePercentage=10
+    defaultReplicaCount=3
+    defaultLonghornStaticStorageClass="longhorn"
+    replicaSoftAntiAffinity="false"
+    allowVolumeCreationWithDegradedAvailability="false"
+    guaranteedEngineManagerCPU=12
+    guaranteedReplicaManagerCPU=12
+
+    helm install --create-namespace -n longhorn-system longhorn helm/longhorn/longhorn \
+        --set service.ui.type=${service_ui_type} \
+        --set service.ui.nodePort=${service_ui_nodePort} \
+        --set service.manager.type=${service_manager_type} \
+        --set ingress.enabled=${ingress_enabled} \
+        --set ingress.host=${ingress_host} \
+        --set ingress.tls=${ingress_tls} \
+        --set defaultSettings.defaultDataPath=${defaultDataPath} \
+        --set defaultSettings.storageOverProvisioningPercentage=${storageOverProvisioningPercentage} \
+        --set defaultSettings.storageMinimalAvailablePercentage=${storageMinimalAvailablePercentage} \
+        --set defaultSettings.defaultReplicaCount=${defaultReplicaCount} \
+        --set defaultSettings.defaultLonghornStaticStorageClass=${defaultLonghornStaticStorageClass} \
+        --set defaultSettings.replicaSoftAntiAffinity=${replicaSoftAntiAffinity} \
+        --set defaultSettings.allowVolumeCreationWithDegradedAvailability=${allowVolumeCreationWithDegradedAvailability}
+        #--set defaultSettings.guaranteedEngineManagerCPU=${guaranteedEngineManagerCPU} \
+        #--set defaultSettings.guaranteedReplicaManagerCPU=${guaranteedReplicaManagerCPU} \
+        #--set defaultSettings.taintToleration="node-role.kubernetes.io/master:NoSchedule"
 }
 
 

@@ -96,6 +96,9 @@ function 5_configure_kernel_parameter {
         "net.ipv4.tcp.max_syn_backlog = 16384"
         "net.ipv4.tcp_timestamps = 0"
         "net.core.somaxconn = 16384"
+        "net.ipv4.neigh.default.gc_thresh1 = 1024"
+        "net.ipv4.neigh.default.gc_thresh2 = 2048"
+        "net.ipv4.neigh.default.gc_thresh3 = 4096"
     )
     printf '%s\n' "${k8s_sysctl[@]}" > /etc/sysctl.d/98-k8s.conf
     sysctl --system

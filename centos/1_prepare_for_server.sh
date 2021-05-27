@@ -50,17 +50,10 @@ function 4_disable_firewald_and_selinux {
 function 5_set_timezone_and_ntp_client {
     MSG2 "5. Set timezone and ntp"
 
-    echo "server 0.asia.pool.ntp.org iburst" > /etc/ntpd.conf
-    echo "server 1.asia.pool.ntp.org iburst" >> /etc/ntpd.conf
-    echo "server 2.asia.pool.ntp.org iburst" >> /etc/ntpd.conf
-    echo "server 3.asia.pool.ntp.org iburst" >> /etc/ntpd.conf
-
     timedatectl set-timezone 'Asia/Shanghai'
-    timedatectl set-ntp 0
-    systemctl disable --now systemd-timedated.service
-    systemctl disable --now chrony &> /dev/null
-    systemctl enable --now ntpd.service
-    systemctl restart ntpd.service
+    timedatectl set-ntp 1
+    systemctl restart rsyslog
+    systemctl restart crond
 }
 
 
