@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 # to-do-list (跟你无关，你不用关注这个)
-#   - 扩展节点问题？ certSANs
 #   - 提供选项 kube-proxy mode: ipvs, iptables
 
 # 描述: 一共分为 5 个阶段
@@ -50,29 +49,29 @@ MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 
 # k8s node hostname and ip
 MASTER_HOST=(
-master1
-master2
-master3)
+    master1
+    master2
+    master3)
 WORKER_HOST=(
-worker1
-worker2
-worker3)
+    worker1
+    worker2
+    worker3)
 EXTRA_MASTER_HOST=(
-master4
-master5
-master6)
+    master4
+    master5
+    master6)
 MASTER_IP=(
-10.250.13.11
-10.250.13.12
-10.250.13.13)
+    10.250.13.11
+    10.250.13.12
+    10.250.13.13)
 WORKER_IP=(
-10.250.13.21
-10.250.13.22
-10.250.13.23)
+    10.250.13.21
+    10.250.13.22
+    10.250.13.23)
 EXTRA_MASTER_IP=(
-10.250.13.14
-10.250.13.15
-10.250.13.16)
+    10.250.13.14
+    10.250.13.15
+    10.250.13.16)
 CONTROL_PLANE_ENDPOINT="10.250.13.10:8443"
 MASTER=("${MASTER_HOST[@]}")
 WORKER=("${WORKER_HOST[@]}")
@@ -130,6 +129,10 @@ INSTALL_DASHBOARD=""
 INSTALL_HARBOR=""
 
 
+# 覆盖上面的环境变量
+if [[ ! -z $1 ]]; then
+    source $1
+fi
 
 function 0_check_root_and_os() {
     # 检测是否为 root 用户，否则推出脚本
@@ -237,8 +240,7 @@ function 1_copy_binary_package_and_create_dir {
             kube-apiserver kube-controller-manager kube-scheduler \
             kube-proxy kubelet kubectl \
             cfssl cfssl-json cfssl-certinfo \
-            helm
-        do
+            helm; do
             scp ${PKG_PATH}/${PKG} ${NODE}:/usr/local/bin/${PKG}
         done
     done
@@ -265,8 +267,6 @@ function 1_copy_binary_package_and_create_dir {
             ssh ${NODE} "mkdir -p ${DIR_PATH}"
         done
     done
-
-
 }
 
 
@@ -394,6 +394,21 @@ function 4_generate_kubernetes_certs() {
 
 
     # 生成 controller-manager 证书
+    # 生成 controller-manager 的 kubeconfig 文件
+    #   kube-controller-manager 使用 kubeconfig 文件访问 apiserver，该文件提供了 apiserver
+    #   地址、嵌入式 CA 证书和 kube-controller-manager 证书等信息
+    #
+    # kubectl config 参数解释
+    #   kubectl config set-cluster        设置一个集群项（设置集群参数）
+    #       --certificate-authority       验证 kube-apiserver 证书的根证书
+    #       --embed-cert=true             将 CA 证书和客户端证书其纳入到生成的 kubeconfig 文件中
+    #           否则，写入的是证书文件路径，后续拷贝 kubeconfig 到其它机器时，还需要单独拷贝整数，不方便
+    #       --server                      指定 kube-apiserver 的地址.
+    #   kubectl config set-credentials    设置一个用户项（设置客户端认证参数）
+    #       --client-certificate          生成的客户端证书
+    #       --client-key                  生成的客户端证书的私钥
+    #   kubectl config set-context        设置一个环境项（设置上下文参数）
+    #   kubectl config use-context        使用某个环境当做默认环境（设置默认上下文）
     cfssl gencert \
         -ca="${KUBE_CERT_PATH}"/ca.pem \
         -ca-key="${KUBE_CERT_PATH}"/ca-key.pem \
@@ -401,10 +416,6 @@ function 4_generate_kubernetes_certs() {
         -profile=kubernetes \
         pki/manager-csr.json \
         | cfssl-json -bare "${KUBE_CERT_PATH}"/controller-manager
-    # kubectl config set-cluster        设置一个集群项
-    # kubectl config set-credentials    设置一个用户项
-    # kubectl config set-context        设置一个环境项（一个上下文）
-    # kubectl config use-context        使用某个环境当做默认环境
     kubectl config set-cluster kubernetes \
         --certificate-authority="${KUBE_CERT_PATH}"/ca.pem \
         --embed-certs=true \
@@ -424,6 +435,9 @@ function 4_generate_kubernetes_certs() {
 
 
     # 生成 scheduler 证书
+    # 生成 scheduler 的 kubeconfig 文件
+    #   kube-scheduler 使用 kubeconfig 文件访问 apiserver，该文件提供了 apiserver 地址、
+    #   嵌入式的 CA 证书和 kube-scheduler 证书
     cfssl gencert \
         -ca="${KUBE_CERT_PATH}"/ca.pem \
         -ca-key="${KUBE_CERT_PATH}"/ca-key.pem \
@@ -451,6 +465,9 @@ function 4_generate_kubernetes_certs() {
 
 
     # 生成 kubernetes admin 证书，给 kubernetes 管理员使用
+    # 为 kubectl 客户端工具(k8s 管理员) 生成 kubeconfig 文件
+    #   kubectl 使用 kubeconfig 文件访问 apiserver，该文件包含了 kube-apiserver 的地址
+    #   和认证信息（CA 证书和客户端证书）
     cfssl gencert \
         -ca="${KUBE_CERT_PATH}"/ca.pem \
         -ca-key="${KUBE_CERT_PATH}"/ca-key.pem \
@@ -476,6 +493,7 @@ function 4_generate_kubernetes_certs() {
         --kubeconfig=/etc/kubernetes/admin.kubeconfig
 
 
+    # 生成 bootstrap-kubelet.kubeconfig 文件
     # 1.TLS Bootstrap 用于自动给 kubelet 颁发证书，生成 /etc/kubelet.kubeconfig 文件
     # 2.node 节点启动，如果没有 /etc/kubelet.kubeconfig 文件，则会用 /etc/bootstrap-kubelet.kubeconfig
     #   申请一个 /etc/kubelet.kubeconfig 文件，然后才启动 kubelet 进程
@@ -506,6 +524,8 @@ function 4_generate_kubernetes_certs() {
 
 
 function 5_copy_etcd_and_k8s_certs {
+    MSG2 "5. Copy etcd and k8s certs"
+
     # 将 etcd 证书拷贝到所有的 master 节点上
     for NODE in "${MASTER[@]}"; do
         ssh ${NODE} "mkdir -p ${ETCD_CERT_PATH}"
@@ -531,8 +551,7 @@ function 5_copy_etcd_and_k8s_certs {
             controller-manager.kubeconfig \
             scheduler.kubeconfig \
             admin.kubeconfig \
-            bootstrap-kubelet.kubeconfig
-        do
+            bootstrap-kubelet.kubeconfig; do
             scp ${K8S_PATH}/${FILE} ${NODE}:${K8S_PATH}/${FILE}
         done
     done
@@ -555,17 +574,6 @@ function 5_copy_etcd_and_k8s_certs {
 #     etcd.service 为 etcd 的自启动文件）
 # 3、所有 etcd 节点设置 etcd 服务自启动
 function 6_setup_etcd() {
-    MSG2 "5. Setup etcd"
-    # 如果 etcd 在运行就不设置 etcd
-    for NODE in "${MASTER[@]}"; do
-        ssh ${NODE} "systemctl status etcd" &> /dev/null
-        if [ $? == "0" ]; then
-            MSG2 "etcd is installed, skip"
-            return $EXIT_SUCCESS
-        fi
-    done
-
-
     for NODE in "${MASTER[@]}"; do
         ssh $NODE "mkdir ${KUBE_CERT_PATH}/etcd/"
         ssh $NODE "ln -sf ${ETCD_CERT_PATH}/* ${KUBE_CERT_PATH}/etcd/"
@@ -600,7 +608,7 @@ function 6_setup_etcd() {
 
 
 function 7_setup_keepalived {
-    MSG2 "6. Setup Keepalived"
+    MSG2 "7. Setup Keepalived"
 
     local OLD_IFS=""
     local CONTROL_PLANE_ENDPOINT_IP=""
@@ -648,7 +656,7 @@ function 7_setup_keepalived {
 
 
 function 8_setup_haproxy() {
-    MSG2 "7. Setup haproxy"
+    MSG2 "8. Setup haproxy"
 
     local OLD_IFS=""
     local CONTROL_PLANE_ENDPOINT_PORT=""
@@ -682,7 +690,7 @@ function 8_setup_haproxy() {
 
 
 function 9_setup_apiserver() {
-    MSG2 "8. Setup kube-apiserver"
+    MSG2 "9. Setup kube-apiserver"
 
     # 为 master 节点生成 kube-apiserver.service 文件
     for (( i=0; i<${#MASTER[@]}; i++ )); do
@@ -709,7 +717,7 @@ function 9_setup_apiserver() {
 
 
 function 10_setup_controller_manager {
-    MSG2 "9. Setup kube-controller-manager"
+    MSG2 "10. Setup kube-controller-manager"
 
     # 为 master 节点生成 kube-controller-manager.service 文件
     cp conf/kube-controller-manager.service /tmp/kube-controller-manager.service
@@ -730,7 +738,7 @@ function 10_setup_controller_manager {
 
 
 function 11_setup_scheduler {
-    MSG2 "10. Setup kube-scheduler"
+    MSG2 "11. Setup kube-scheduler"
 
     # 为 master 节点生成 kube-scheduler.service 文件
     cp conf/kube-scheduler.service /tmp/kube-scheduler.service
@@ -749,7 +757,7 @@ function 11_setup_scheduler {
 
 
 function 12_setup_k8s_admin {
-    MSG2 "11. Setup K8S admin"
+    MSG2 "12. Setup K8S admin"
 
     [ ! -d /root/.kube ] && rm -rf /root/.kube && mkdir /root/.kube
     cp ${K8S_PATH}/admin.kubeconfig /root/.kube/config
@@ -757,8 +765,7 @@ function 12_setup_k8s_admin {
 
     # 应用 bootstrap/bootstrap.secret.yaml
     while true; do
-        kubectl get cs &> /dev/null
-        if [ $? == "0" ]; then
+        if kubectl get cs; then
             kubectl apply -f bootstrap/bootstrap.secret.yaml
             break
         fi
@@ -769,7 +776,7 @@ function 12_setup_k8s_admin {
 
 
 function 13_setup_kubelet {
-    MSG2 "12. Setup kubelet"
+    MSG2 "13. Setup kubelet"
 
     # 需要三个文件，两个需要生成
     #   /lib/systemd/system/kubelet.service
@@ -786,9 +793,7 @@ function 13_setup_kubelet {
     sed -i "s%#KUBE_CERT_PATH#%${KUBE_CERT_PATH}%" /tmp/kubelet-conf.yaml
     sed -i "s%#SRV_NETWORK_DNS_IP#%${SRV_NETWORK_DNS_IP}%" /tmp/kubelet-conf.yaml
     case "${K8S_NODE_OS}" in
-        "centos" )
-            sed -i "s%#resolvConf#%/etc/resolv.conf%g" /tmp/kubelet-conf.yaml;;
-          "rhel" )
+        "centos"|"rhel" )
             sed -i "s%#resolvConf#%/etc/resolv.conf%g" /tmp/kubelet-conf.yaml ;;
           "debian" )
             sed -i "s%#resolvConf#%/etc/resolv.conf%g" /tmp/kubelet-conf.yaml ;;
@@ -811,7 +816,7 @@ function 13_setup_kubelet {
 
 
 function 14_setup_kube_proxy {
-    MSG2 "13. Setup kube-proxy"
+    MSG2 "14. Setup kube-proxy"
 
     # 为 kube-proxy 创建 serviceaccount: kube-proxy
     # 为 kube-proxy 创建 clusterrolebinding system:kube-proxy
@@ -869,7 +874,7 @@ function 14_setup_kube_proxy {
 
 
 function 15_deploy_calico {
-    MSG2 "14. Deploy calico"
+    MSG2 "15. Deploy calico"
 
     local ETCD_ENDPOINTS=""
     local ETCD_CA=""
@@ -903,7 +908,7 @@ function 15_deploy_calico {
 
 
 function 16_deploy_coredns {
-    MSG2 "15. Deploy coredns"
+    MSG2 "16. Deploy coredns"
 
     cp coredns/coredns.yaml /tmp/coredns.yaml
     sed -i "s%192.168.0.10%${SRV_NETWORK_DNS_IP}%g" /tmp/coredns.yaml
@@ -913,7 +918,7 @@ function 16_deploy_coredns {
 
 
 function 17_deploy_metrics_server {
-    MSG2 "16. Deploy metrics server"
+    MSG2 "17. Deploy metrics server"
 
     kubectl apply -f  metrics-server-0.4.x/metrics-server-0.4.3.yaml
 }
@@ -921,10 +926,10 @@ function 17_deploy_metrics_server {
 
 
 function 18_label_and_taint_master_node {
-    # 为 master 节点打上污点
     # 为 master 节点打上标签
-    # master 节点的 taint 默认是 NoSchedule，在这里我设置成了 PreferNoSchedule
-    MSG2 "17. Label and Taint master node"
+    # 为 master 节点打上污点
+    # master 节点的 taint 默认是 NoSchedule，为了充分利用 master 资源可以设置成 PreferNoSchedule
+    MSG2 "18. Label and Taint master node"
     while true; do
         if kubectl get node | grep Ready; then
             for NODE in "${MASTER[@]}"; do
@@ -961,7 +966,7 @@ function deploy_ingress {
     while true; do
         if kubectl get node | grep Ready; then
             for (( i=0; i<3; i++ )); do
-                kubectl label node ${WORKER[$i]} ingress="true" --overwrite
+                kubectl label node ${WORKER[$i]} ingress-nginx="true" --overwrite
             done
             helm install ingress-nginx helm/ingress-nginx/ -n ingress-nginx
             break
