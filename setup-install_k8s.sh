@@ -72,10 +72,10 @@ EXTRA_MASTER_IP=(
     10.250.13.14
     10.250.13.15
     10.250.13.16)
-CONTROL_PLANE_ENDPOINT="10.250.13.10:8443"
 MASTER=("${MASTER_HOST[@]}")
 WORKER=("${WORKER_HOST[@]}")
 ALL_NODE=("${MASTER[@]}" "${WORKER[@]}")
+CONTROL_PLANE_ENDPOINT="10.250.13.10:8443"
 
 # k8s service nework cidr
 # k8s pod network cidr
@@ -86,7 +86,7 @@ SRV_NETWORK_IP="172.18.0.1"
 SRV_NETWORK_DNS_IP="172.18.0.10"
 POD_NETWORK_CIDR="192.168.0.0/16"
 
-K8S_ROOT_PASS="toor"                                            # k8s node root passwd, set here
+K8S_ROOT_PASS=""                                                # k8s node root passwd, set here
 K8S_NODE_OS=""                                                  # Linux Distribution, not set here
 INSTALL_MANAGER=""                                              # like apt-get, yum etc, not set here
 
@@ -97,31 +97,11 @@ ETCD_CERT_PATH="/etc/etcd/ssl"
 PKG_PATH="bin"
 
 
-# ceph
-CEPH_MON_IP=(10.250.20.11
-             10.250.20.12
-             10.250.20.13)
-CEPH_ROOT_PASS="toor"
-CEPH_CLUSTER_ID=""
-CEPH_POOL="k8s"
-CEPH_USER="u18-k8s"
-CEPH_USER_KEY=""
-CEPH_NAMESPACE="ceph"
-CEPH_STORAGECLASS="ceph-rbd"
-
-
-# nfs
-NFS_SERVER="10.250.11.11"
-NFS_STORAGE_PATH="/nfs-storage"
-NFS_STORAGECLASS="nfs-client"
-NFS_NAMESPACE="nfs-provisioner"
-
-
 # kubernetes addon
 INSTALL_KUBOARD=1
 INSTALL_INGRESS=1
 INSTALL_LONGHORN=1
-INSTALL_CEPHCSI=1
+INSTALL_CEPHCSI=""
 INSTALL_TRAEFIK=""
 INSTALL_KONG=""
 INSTALL_NFSCLIENT=""
@@ -129,18 +109,37 @@ INSTALL_DASHBOARD=""
 INSTALL_HARBOR=""
 
 
-while getopts "e:i:s:h" opt; do
+environment_file=""
+while getopts "e:h" opt; do
     case "${opt}" in
-        "e")
-            source ${OPTARG} ;;
-        "i")
-            NEW_WORKER_IP=${OPTARG} ;;
-        "s")
-            NEW_WORKER_HOSTNAME=${OPTARG} ;;
-        "h")
-            MSG1 "$(basename $0) [-e environment_file] [-i new_worker_ip] [-s new_worker_hostname]" && exit $EXIT_SUCCESS ;;
+        e) environment_file="${OPTARG}" ;;
+        h) MSG1 "$(basename $0) -e environment_file" && exit $EXIT_SUCCESS ;;
+        *) ERR "$(basename $0) -e environment_file" && exit $EXIT_FAILURE
     esac
 done
+
+[ -z $environment_file ] && ERR "$(basename $0) -e environment_file" && exit $EXIT_FAILURE
+source "$environment_file"
+
+MSG1 "=================================== Environment ==================================="
+echo "MASTER_HOST:              ${MASTER_HOST[@]}"
+echo "WORKER_HOST:              ${WORKER_HOST[@]}"
+echo "EXTRA_MASTER_HOST:        ${EXTRA_MASTER_HOST[@]}"
+echo "MASTER_IP:                ${MASTER_IP[@]}"
+echo "WORKER_IP:                ${WORKER_IP[@]}"
+echo "EXTRA_MASTER_IP:          ${EXTRA_MASTER_IP[@]}"
+echo "CONTROL_PLANE_ENDPOINT:   ${CONTROL_PLANE_ENDPOINT}"
+echo "ALL_NODE:                 ${ALL_NODE[@]}"
+echo "SRV_NETWORK_CIDR:         ${SRV_NETWORK_CIDR[@]}"
+echo "SRV_NETWORK_IP:           ${SRV_NETWORK_IP}"
+echo "SRV_NETWORK_DNS_IP:       ${SRV_NETWORK_DNS_IP[@]}"
+echo "POD_NETWORK_CIDR:         ${POD_NETWORK_CIDR[@]}"
+echo "ROOT_PASS:                ${K8S_ROOT_PASS}"
+echo "K8S_PATH                  ${K8S_PATH}"
+echo "KUBE_CERT_PATH:           ${KUBE_CERT_PATH}"
+echo "ETCD_CERT_PATH:           ${ETCD_CERT_PATH}"
+MSG1 "=================================== Environment ==================================="
+
 
 
 function 0_check_root_and_os() {
@@ -161,7 +160,7 @@ function 0_check_root_and_os() {
 
 
     # 检查网络是否可用，否则退出脚本
-    if ! timeout 2 ping -c 1 -i 1 8.8.8.8; then ERR "not network" && exit $EXIT_FAILURE; fi
+    if ! timeout 2 ping -c 1 -i 1 8.8.8.8; then ERR "no network" && exit $EXIT_FAILURE; fi
 }
 
 
@@ -231,18 +230,18 @@ function stage_prepare {
 
 
 
-# 1、将 kubernetes 二进制软件包、etcd 二进制软件包、cfssl 工具包拷贝到所有的 master 节点上
-# 2、将 Kubernetes 二进制软件包拷贝到所有的 worker 节点上
 function 1_copy_binary_package_and_create_dir {
+    # 1、将 kubernetes 二进制软件包、etcd 二进制软件包、cfssl 工具包拷贝到所有的 master 节点上
+    # 2、将 Kubernetes 二进制软件包拷贝到所有的 worker 节点上
     MSG2 "1. Copy Binary Package and Create Dir"
 
     # 将二进制软件包拷贝到 k8s 节点上
-    tar -xvf bin/kube-apiserver.tgz -C bin/
-    tar -xvf bin/kube-controller-manager.tgz -C bin/
-    tar -xvf bin/kube-scheduler.tgz -C bin/
-    tar -xvf bin/kubelet.tgz -C bin/
-    tar -xvf bin/kube-proxy.tgz -C bin/
-    tar -xvf bin/kubectl.tgz -C bin/
+    tar -xvf ${PKG_PATH}/kube-apiserver.tgz -C bin/
+    tar -xvf ${PKG_PATH}/kube-controller-manager.tgz -C bin/
+    tar -xvf ${PKG_PATH}/kube-scheduler.tgz -C bin/
+    tar -xvf ${PKG_PATH}/kubelet.tgz -C bin/
+    tar -xvf ${PKG_PATH}/kube-proxy.tgz -C bin/
+    tar -xvf ${PKG_PATH}/kubectl.tgz -C bin/
     # 将二进制软件包拷贝到 master 节点
     for NODE in "${MASTER[@]}"; do
         for PKG in etcd etcdctl \
@@ -280,8 +279,8 @@ function 1_copy_binary_package_and_create_dir {
 
 
 
-# 检测 master 节点是否安装了 keepalived, haproxy
 function 2_install_keepalived_and_haproxy {
+    # 检测 master 节点是否安装了 keepalived, haproxy
     MSG2 "2. Installed Keepalived and Haproxy for Master Node"
     for NODE in "${MASTER[@]}"; do
         ssh ${NODE} "ls /usr/sbin/keepalived" &> /dev/null
@@ -335,11 +334,11 @@ function 3_generate_etcd_certs {
 
 
 
-# 1、分别为 apiserver、front-proxy、controller-manager、scheduler、kubernetes-admin 创建证书
-# 2、分别为 controller-manager、scheduler、kubernetes-admin 创建 kubeconfig 文件
-# 3、将 kubernetes 相关的所有证书和 kubeconfig 文件拷贝到所有的 master 节点上
-# 4、创建 ServiceAccount Key
 function 4_generate_kubernetes_certs() {
+    # 1、分别为 apiserver、front-proxy、controller-manager、scheduler、kubernetes-admin 创建证书
+    # 2、分别为 controller-manager、scheduler、kubernetes-admin 创建 kubeconfig 文件
+    # 3、将 kubernetes 相关的所有证书和 kubeconfig 文件拷贝到所有的 master 节点上
+    # 4、创建 ServiceAccount Key
     MSG2 "4. Generate certs for Kubernetes"
 
     # 如果 kubernetees 在正常运行，就不重新生成 kubernetes 证书
@@ -576,13 +575,13 @@ function 5_copy_etcd_and_k8s_certs {
 
 
 
-# 1、通过 etcd.config.yaml 模版文件，分别为3个 etcd 节点生成 etcd.config.yaml 配置文件
-#   （3个 master 节点分别对应3个 etcd 节点）
-# 2、将配置文件 etcd.config.yaml 和 etcd.service 配置文件拷贝到所有的 etcd 节点上
-#   （etcd.config.yaml 为 etcd 的配置文件
-#     etcd.service 为 etcd 的自启动文件）
-# 3、所有 etcd 节点设置 etcd 服务自启动
 function 6_setup_etcd() {
+    # 1、通过 etcd.config.yaml 模版文件，分别为3个 etcd 节点生成 etcd.config.yaml 配置文件
+    #   （3个 master 节点分别对应3个 etcd 节点）
+    # 2、将配置文件 etcd.config.yaml 和 etcd.service 配置文件拷贝到所有的 etcd 节点上
+    #   （etcd.config.yaml 为 etcd 的配置文件
+    #     etcd.service 为 etcd 的自启动文件）
+    # 3、所有 etcd 节点设置 etcd 服务自启动
     MSG2 "6. Setup etcd"
 
     for NODE in "${MASTER[@]}"; do
@@ -998,6 +997,18 @@ function deploy_traefik {
 function deploy_cephcsi {
     MSG2 "Deploy ceph csi"
 
+    local CEPH_MON_IP=(10.250.20.11
+                 10.250.20.12
+                 10.250.20.13)
+    local CEPH_ROOT_PASS="toor"
+    local CEPH_CLUSTER_ID=""
+    local CEPH_POOL="k8s"
+    local CEPH_USER="u18-k8s"
+    local CEPH_USER_KEY=""
+    local CEPH_NAMESPACE="ceph"
+    local CEPH_STORAGECLASS="ceph-rbd"
+
+
     # Setup SSH Public Key Authentication
     for NODE in "${CEPH_MON_IP[@]}"; do 
         ssh-keyscan "${NODE}" >> /root/.ssh/known_hosts 2> /dev/null
@@ -1094,6 +1105,11 @@ function deploy_longhorn {
 
 
 function deploy_nfsclient {
+    local NFS_SERVER="10.250.11.11"
+    local NFS_STORAGE_PATH="/nfs-storage"
+    local NFS_STORAGECLASS="nfs-client"
+    local NFS_NAMESPACE="nfs-provisioner"
+
     helm install --create-namespace -n ${NFS_NAMESPACE} \
         nfs-subdir-external-provisioner helm/nfs-subdir-external-provisioner \
         --set nfs.server=${NFS_SERVER} \
@@ -1104,52 +1120,36 @@ function deploy_harbor { :; }
 
 
 
+source /etc/os-release
+case "$ID" in
+    centos|rhel)
+        stage_one_script_path="centos/1_prepare_for_server.sh"
+        stage_two_script_path="centos/2_prepare_for_k8s.sh"
+        stage_three_script_path="centos/3_install_docker.sh" ;;
+    ubuntu)
+        stage_one_script_path="ubuntu/1_prepare_for_server.sh"
+        stage_two_script_path="ubuntu/2_prepare_for_k8s.sh"
+        stage_three_script_path="ubuntu/3_install_docker.sh" ;;
+    debian)
+        stage_one_script_path="debian/1_prepare_for_server.sh"
+        stage_two_script_path="debian/2_prepare_for_k8s.sh"
+        stage_three_script_path="debian/3_install_docker.sh" ;;
+    *)
+        ERR "not support" && exit $EXIT_FAILURE ;;
+esac
 function stage_one {
-    local stage_one_script_path=""
-    case "${K8S_NODE_OS}" in
-        "centos"|"rhel")
-            stage_one_script_path="centos/1_prepare_for_server.sh" ;;
-        "debian")
-            stage_one_script_path="debian/1_prepare_for_server.sh" ;;
-        "ubuntu" )
-            stage_one_script_path="ubuntu/1_prepare_for_server.sh" ;;
-        *)
-            ERR "not support" && exit $EXIT_FAILURE ;;
-    esac
     for NODE in "${ALL_NODE[@]}"; do
-        ssh ${NODE} "bash -s" < "${stage_one_script_path}"
+        ssh "${NODE}" "bash -s" < "${stage_one_script_path}"
     done
 }
 function stage_two {
-    local stage_two_script_path=""
-    case "${K8S_NODE_OS}" in
-        "centos"|"rhel")
-            stage_two_script_path="centos/2_prepare_for_k8s.sh" ;;
-        "debian")
-            stage_two_script_path="debian/2_prepare_for_k8s.sh" ;;
-        "ubuntu" )
-            stage_two_script_path="ubuntu/2_prepare_for_k8s.sh" ;;
-        *)
-            ERR "not support" && exit $EXIT_FAILURE ;;
-    esac
     for NODE in "${ALL_NODE[@]}"; do
-        ssh ${NODE} "bash -s" < "${stage_two_script_path}"
+        ssh "$NODE" "bash -s" < "${stage_two_script_path}"
     done
 }
 function stage_three {
-    local stage_three_script_path=""
-    case "${K8S_NODE_OS}" in
-        "centos"|"rhel")
-            stage_three_script_path="centos/3_install_docker.sh" ;;
-        "debian")
-            stage_three_script_path="debian/3_install_docker.sh" ;;
-        "ubuntu" )
-            stage_three_script_path="ubuntu/3_install_docker.sh" ;;
-        *)
-            ERR "not support" && exit $EXIT_FAILURE ;;
-    esac
     for NODE in "${ALL_NODE[@]}"; do
-        ssh ${NODE} "bash -s" < "${stage_three_script_path}"
+        ssh "${NODE}" "bash -s" < "${stage_three_script_path}"
     done
 }
 function stage_four {
@@ -1185,7 +1185,7 @@ function stage_five {
 
 
 0_check_root_and_os
-MSG1 "=============== Prepare: Setup SSH Public Key Authentication =================="; stage_prepare
+MSG1 "=============  Stage Prepare: Setup SSH Public Key Authentication ============="; stage_prepare
 MSG1 "=================== Stage 1: Prepare for Linux Server ========================="; stage_one
 MSG1 "====================== Stage 2: Prepare for Kubernetes ========================"; stage_two
 MSG1 "========================= Stage 3: Install Docker ============================="; stage_three
