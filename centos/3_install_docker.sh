@@ -26,7 +26,7 @@ cat > /etc/docker/daemon.json <<-EOF
   "live-restore": true,
   "log-opts": {
     "max-size": "300m",
-    "max-file": "2"
+    "max-file": "5"
   },
   "storage-driver": "overlay2",
   "storage-opts": [
