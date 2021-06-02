@@ -9,8 +9,10 @@ ExecStart=/usr/local/bin/kube-scheduler \
     --logtostderr=true \
     --address=127.0.0.1 \
     --leader-elect=true \
-    --kubeconfig=#K8S_PATH#/scheduler.kubeconfig
-
+    --kubeconfig=#K8S_PATH#/scheduler.kubeconfig \
+    --authentication-kubeconfig=#K8S_PATH#/scheduler.kubeconfig \
+    --authorization-kubeconfig=#K8S_PATH#/scheduler.kubeconfig \
+    --port=0
 Restart=always
 RestartSec=10s
 
