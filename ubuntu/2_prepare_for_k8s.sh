@@ -33,6 +33,7 @@ function 2_load_kernel_module {
         "ip_vs_sed"
         "ip_vs_ftp"
         "br_netfilter"
+        "bridge"
         "nf_conntrack"
         "nf_conntrack_ipv4"
         "nf_conntrack_ipv6"
@@ -42,8 +43,7 @@ function 2_load_kernel_module {
         "ipt_set"
         "ipt_rpfilter"
         "ipt_REJECT"
-        "ipip"
-    )
+        "ipip" )
     printf '%s\n' "${k8s_modules[@]}" > /etc/modules-load.d/k8s.conf
     systemctl enable --now systemd-modules-load.service
 }
@@ -82,14 +82,14 @@ function 3_configure_kernel_parameter {
         "net.core.somaxconn = 16384"
         "net.ipv4.neigh.default.gc_thresh1 = 1024"
         "net.ipv4.neigh.default.gc_thresh2 = 2048"
-        "net.ipv4.neigh.default.gc_thresh3 = 4096"
-    )
+        "net.ipv4.neigh.default.gc_thresh3 = 4096" )
     printf '%s\n' "${k8s_sysctl[@]}" > /etc/sysctl.d/98-k8s.conf
     sysctl --system
 }
 
 
 MSG1 "*** `hostname` *** Prepare for Kubernetes"
+
 1_disable_swap
 2_load_kernel_module
 3_configure_kernel_parameter
