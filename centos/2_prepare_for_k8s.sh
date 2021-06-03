@@ -49,6 +49,7 @@ function 4_load_kernel_module {
         "modprobe -- ip_vs_sed"
         "modprobe -- ip_vs_ftp"
         "modprobe -- br_netfilter"
+        "modprobe -- bridge"
         "modprobe -- nf_conntrack"
         "modprobe -- nf_conntrack_ipv4"
         "modprobe -- nf_conntrack_ipv6"
