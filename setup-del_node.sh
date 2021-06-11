@@ -15,9 +15,9 @@ while getopts "H:h" opt; do
         "H" )
             DEL_WORKER_HOSTNAME=${OPTARG} ;;
         "h")
-            MSG1 "Usage: $(basename $0) -H [del_wroker_hostname]" ;;
+            MSG1 "Usage: $(basename $0) -H [del_wroker_hostname]" && exit $EXIT_SUCCESS ;;
         *)
-            ERR "Usage: $(basename $0) -H [del_worker_hostname]"
+            ERR "Usage: $(basename $0) -H [del_worker_hostname]" && exit $EXIT_FAILURE
     esac
 done
 [ -z ${DEL_WORKER_HOSTNAME} ] && ERR "Usage: $(basename $0) -H [del_worker_hostname]" && exit $EXIT_FAILURE
