@@ -58,7 +58,7 @@ controller:
   ## Disabled by default
   ##
   hostPort:
-    enabled: false
+    enabled: true
     ports:
       http: 80
       https: 443
