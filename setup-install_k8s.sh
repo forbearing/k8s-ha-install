@@ -101,12 +101,14 @@ PKG_PATH="bin"
 INSTALL_KUBOARD=1
 INSTALL_INGRESS=1
 INSTALL_LONGHORN=1
+INSTALL_METALLB=1
 INSTALL_CEPHCSI=""
 INSTALL_TRAEFIK=""
 INSTALL_KONG=""
 INSTALL_NFSCLIENT=""
 INSTALL_DASHBOARD=""
 INSTALL_HARBOR=""
+
 
 
 environment_file=""
@@ -117,27 +119,49 @@ while getopts "e:h" opt; do
         *) ERR "$(basename $0) -e environment_file" && exit $EXIT_FAILURE
     esac
 done
-
 [ -z $environment_file ] && ERR "$(basename $0) -e environment_file" && exit $EXIT_FAILURE
 source "$environment_file"
 
+
+source /etc/os-release
+case "$ID" in
+    centos|rhel)
+        stage_one_script_path="centos/1_prepare_for_server.sh"
+        stage_two_script_path="centos/2_prepare_for_k8s.sh"
+        stage_three_script_path="centos/3_install_docker.sh" ;;
+    ubuntu)
+        stage_one_script_path="ubuntu/1_prepare_for_server.sh"
+        stage_two_script_path="ubuntu/2_prepare_for_k8s.sh"
+        stage_three_script_path="ubuntu/3_install_docker.sh" ;;
+    debian)
+        stage_one_script_path="debian/1_prepare_for_server.sh"
+        stage_two_script_path="debian/2_prepare_for_k8s.sh"
+        stage_three_script_path="debian/3_install_docker.sh" ;;
+    *)
+        ERR "not support" && exit $EXIT_FAILURE ;;
+esac
+
+
 MSG1 "=================================== Environment ==================================="
-echo "MASTER_HOST:              ${MASTER_HOST[@]}"
-echo "WORKER_HOST:              ${WORKER_HOST[@]}"
-echo "EXTRA_MASTER_HOST:        ${EXTRA_MASTER_HOST[@]}"
-echo "MASTER_IP:                ${MASTER_IP[@]}"
-echo "WORKER_IP:                ${WORKER_IP[@]}"
-echo "EXTRA_MASTER_IP:          ${EXTRA_MASTER_IP[@]}"
+echo "MASTER_HOST:              ${MASTER_HOST[*]}"
+echo "WORKER_HOST:              ${WORKER_HOST[*]}"
+echo "EXTRA_MASTER_HOST:        ${EXTRA_MASTER_HOST[*]}"
+echo "MASTER_IP:                ${MASTER_IP[*]}"
+echo "WORKER_IP:                ${WORKER_IP[*]}"
+echo "EXTRA_MASTER_IP:          ${EXTRA_MASTER_IP[*]}"
 echo "CONTROL_PLANE_ENDPOINT:   ${CONTROL_PLANE_ENDPOINT}"
-echo "ALL_NODE:                 ${ALL_NODE[@]}"
-echo "SRV_NETWORK_CIDR:         ${SRV_NETWORK_CIDR[@]}"
+echo "ALL_NODE:                 ${ALL_NODE[*]}"
+echo "SRV_NETWORK_CIDR:         ${SRV_NETWORK_CIDR[*]}"
 echo "SRV_NETWORK_IP:           ${SRV_NETWORK_IP}"
-echo "SRV_NETWORK_DNS_IP:       ${SRV_NETWORK_DNS_IP[@]}"
-echo "POD_NETWORK_CIDR:         ${POD_NETWORK_CIDR[@]}"
+echo "SRV_NETWORK_DNS_IP:       ${SRV_NETWORK_DNS_IP[*]}"
+echo "POD_NETWORK_CIDR:         ${POD_NETWORK_CIDR[*]}"
 echo "ROOT_PASS:                ${K8S_ROOT_PASS}"
 echo "K8S_PATH                  ${K8S_PATH}"
 echo "KUBE_CERT_PATH:           ${KUBE_CERT_PATH}"
 echo "ETCD_CERT_PATH:           ${ETCD_CERT_PATH}"
+echo "stage_one_script_path:    ${stage_one_script_path}"
+echo "stage_two_script_path:    ${stage_two_script_path}"
+echo "stage_three_script_path:  ${stage_three_script_path}"
 MSG1 "=================================== Environment ==================================="
 
 
@@ -169,22 +193,15 @@ function stage_prepare {
     # 生成 /etc/hosts 文件
     for (( i=0; i<${#MASTER[@]}; i++ )); do
         sed -r -i "/(.*)${MASTER_HOST[$i]}(.*)/d" /etc/hosts
-        echo "${MASTER_IP[$i]} ${MASTER_HOST[$i]}" >> /etc/hosts
-    done
+        echo "${MASTER_IP[$i]} ${MASTER_HOST[$i]}" >> /etc/hosts; done
     for (( i=0; i<${#WORKER[@]}; i++ )); do
         sed -r -i "/(.*)${WORKER_HOST[$i]}(.*)/d" /etc/hosts
-        echo "${WORKER_IP[$i]} ${WORKER_HOST[$i]}" >> /etc/hosts
-    done
+        echo "${WORKER_IP[$i]} ${WORKER_HOST[$i]}" >> /etc/hosts; done
 
 
     # 安装 sshpass ssh-keyscan
     # 生成 ssh 密钥对
-    #command -v sshpass &> /dev/null
-    #if [ $? -ne 0 ]; then ${INSTALL_MANAGER} install -y sshpass; fi
-    if ! command -v sshpass &> /dev/null; then ${INSTALL_MANAGER} install -y sshpass; fi
-    #command -v ssh-keyscan &> /dev/null
-    #if [ $? != 0 ]; then ${INSTALL_MANAGER} install -y ssh-keyscan; fi
-    if ! command -v sshpass &> /dev/null; then ${INSTALL_MANAGER} install -y sshpass; fi
+    if ! command -v sshpass; then ${INSTALL_MANAGER} install -y sshpass; fi
     [ ! -d "${K8S_PATH}" ] && rm -rf "${K8S_PATH}"; mkdir -p "${K8S_PATH}"
     [ ! -d "${KUBE_CERT_PATH}" ] && rm -rf "${KUBE_CERT_PATH}"; mkdir -p "${KUBE_CERT_PATH}"
     [ ! -d "${ETCD_CERT_PATH}" ] && rm -rf "${ETCD_CERT_PATH}"; mkdir -p "${ETCD_CERT_PATH}"
@@ -198,34 +215,28 @@ function stage_prepare {
     # 收集 master 节点和 worker 节点的主机指纹
     # 将本机的 SSH 公钥拷贝到所有的 K8S 节点上
     for NODE in "${ALL_NODE[@]}"; do 
-        ssh-keyscan "${NODE}" >> /root/.ssh/known_hosts 2> /dev/null
-    done
+        ssh-keyscan "${NODE}" >> /root/.ssh/known_hosts 2> /dev/null; done
     for NODE in "${ALL_NODE[@]}"; do
         sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_rsa.pub root@"${NODE}"
         sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ecdsa.pub root@"${NODE}"
-        sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ed25519.pub root@"${NODE}"
+        sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ed25519.pub root@"${NODE}"; done
         #sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_xmss.pub root@"${NODE}"
-    done
 
 
     # 设置 hostname
-    # 将 /etc/hosts 文件复制到所有节点
     for (( i=0; i<${#MASTER[@]}; i++ )); do
         ssh ${MASTER[$i]} "hostnamectl set-hostname ${MASTER_HOST[$i]}"
-        scp /etc/hosts ${MASTER[$i]}:/etc/hosts
-    done
+        scp /etc/hosts ${MASTER[$i]}:/etc/hosts; done
+    # 将 /etc/hosts 文件复制到所有节点
     for (( i=0; i<${#WORKER[@]}; i++ )); do
         ssh ${WORKER[$i]} "hostnamectl set-hostname ${WORKER_HOST[$i]}"
-        scp /etc/hosts ${WORKER[$i]}:/etc/hosts
-    done
+        scp /etc/hosts ${WORKER[$i]}:/etc/hosts; done
 
 
     # yum 源目录 yum.repos.d 复制到所有的节点上
     if [[ "${K8S_NODE_OS}" == "centos" || "${K8S_NODE_OS}" == "rhel" ]]; then
         for NODE in "${ALL_NODE[@]}"; do
-            scp -r centos/yum.repos.d ${NODE}:/tmp/
-        done
-    fi
+            scp -r centos/yum.repos.d ${NODE}:/tmp/; done; fi
 }
 
 
@@ -249,15 +260,11 @@ function 1_copy_binary_package_and_create_dir {
             kube-proxy kubelet kubectl \
             cfssl cfssl-json cfssl-certinfo \
             helm; do
-            scp ${PKG_PATH}/${PKG} ${NODE}:/usr/local/bin/${PKG}
-        done
-    done
+            scp ${PKG_PATH}/${PKG} ${NODE}:/usr/local/bin/${PKG}; done; done
     # 将二进制软件包拷贝到 worker 节点
     for NODE in "${WORKER[@]}"; do
         for PKG in kube-proxy kubelet kubectl; do
-            scp ${PKG_PATH}/${PKG} ${NODE}:/usr/local/bin/${PKG}
-        done
-    done
+            scp ${PKG_PATH}/${PKG} ${NODE}:/usr/local/bin/${PKG}; done; done
 
 
     # k8s 所有节点创建所需目录
@@ -268,13 +275,11 @@ function 1_copy_binary_package_and_create_dir {
             ${ETCD_CERT_PATH} \
             "/etc/kubernetes/manifests" \
             "/etc/systemd/system/kubelet.service.d" \
-            "/etc/cni/bin" \
+            "/opt/cni/bin" \
             "/var/lib/kubelet" \
             "/var/log/kubernetes" \
             "/tmp/k8s-install-log"; do
-            ssh ${NODE} "mkdir -p ${DIR_PATH}"
-        done
-    done
+            ssh ${NODE} "mkdir -p ${DIR_PATH}"; done; done
 }
 
 
@@ -284,13 +289,11 @@ function 2_install_keepalived_and_haproxy {
     MSG2 "2. Installed Keepalived and Haproxy for Master Node"
     for NODE in "${MASTER[@]}"; do
         ssh ${NODE} "ls /usr/sbin/keepalived" &> /dev/null
-        if [[ "$?" != 0 ]]; then
-            ssh ${NODE} "${INSTALL_MANAGER} install -y keepalived"
-        fi
+        if [[ "$?" -ne 0 ]]; then
+            ssh ${NODE} "${INSTALL_MANAGER} install -y keepalived"; fi
         ssh ${NODE} "ls /usr/sbin/haproxy" &> /dev/null
-        if [[ "$?" != 0 ]]; then
-            ssh ${NODE} "${INSTALL_MANAGER} install -y haproxy"
-        fi
+        if [[ "$?" -ne 0 ]]; then
+            ssh ${NODE} "${INSTALL_MANAGER} install -y haproxy"; fi
     done
 }
 
@@ -299,10 +302,9 @@ function 2_install_keepalived_and_haproxy {
 function 3_generate_etcd_certs {
     MSG2 "3. Generate certs for etcd"
 
-    # 如果 kubernetees 在正常运行，就不重新生成 etcd 证书
+    # 如果 kubernetees 在部署成功，就不重新生成 etcd 证书
     if kubectl get node; then
-        return
-    fi
+        return; fi
 
 
     # 在 EXTRA_MASTER_HOST 和 EXTRA_MASTER_IP 中多预留一些 hostname 和 IP 地址
@@ -315,8 +317,9 @@ function 3_generate_etcd_certs {
         HOSTNAME="${HOSTNAME}","${NODE}"; done
     for NODE in "${EXTRA_MASTER_IP[@]}"; do
         HOSTNAME="${HOSTNAME}","${NODE}"; done
-    HOSTNAME=${HOSTNAME}",127.0.0.1"
+    HOSTNAME=${HOSTNAME},"127.0.0.1"
     HOSTNAME=${HOSTNAME/,}
+    MSG2 "etcd hostname string: ${HOSTNAME}"
 
 
     # 生成 etcd ca 证书
@@ -342,9 +345,8 @@ function 4_generate_kubernetes_certs() {
     MSG2 "4. Generate certs for Kubernetes"
 
     # 如果 kubernetees 在正常运行，就不重新生成 kubernetes 证书
-    if kubectl get node; then
-        return
-    fi
+    if kubectl get node; then 
+        return; fi
 
     # 获取 control plane endpoint ip 地址
     local OLD_IFS=""
@@ -362,15 +364,16 @@ function 4_generate_kubernetes_certs() {
         HOSTNAME="${HOSTNAME}","${NODE}"; done
     for NODE in "${MASTER_IP[@]}"; do
         HOSTNAME="${HOSTNAME}","${NODE}"; done
-    for NODE in "${EXTRA_MASTER_HOST}"; do
+    for NODE in "${EXTRA_MASTER_HOST[@]}"; do
         HOSTNAME="${HOSTNAME}","${NODE}"; done
-    for NODE in "${EXTRA_MASTER_IP}"; do
+    for NODE in "${EXTRA_MASTER_IP[@]}"; do
         HOSTNAME="${HOSTNAME}","${NODE}"; done
-    HOSTNAME=${HOSTNAME}",127.0.0.1"
-    HOSTNAME=${HOSTNAME}",${SRV_NETWORK_IP}"
-    HOSTNAME=${HOSTNAME}",${CONTROL_PLANE_ENDPOINT_IP}"
-    HOSTNAME=${HOSTNAME}",kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster,kubernetes.default.svc.cluster.local"
+    HOSTNAME="${HOSTNAME}","127.0.0.1"
+    HOSTNAME="${HOSTNAME}","${SRV_NETWORK_IP}"
+    HOSTNAME="${HOSTNAME}","${CONTROL_PLANE_ENDPOINT_IP}"
+    HOSTNAME="${HOSTNAME}","kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster,kubernetes.default.svc.cluster.local"
     HOSTNAME=${HOSTNAME/,}
+    MSG2 "kubernetes hostname string: ${HOSTNAME}"
 
 
     # 生成两个 CA 证书
@@ -532,45 +535,40 @@ function 4_generate_kubernetes_certs() {
 
 
 function 5_copy_etcd_and_k8s_certs {
-    MSG2 "5. Copy etcd and k8s certs"
+    # calico 插件以 daemonset 方式部署在每一个 k8s 节点上
+    # calico 插件需要 etcd-ca.pem, etcd.pem, etcd-key.pem 三个文件
+    # worker 节点比 master 节点少一个 etcd-ca-key.pem
+    MSG2 "5. Copy etcd and k8s certs and config file"
 
     # 将 etcd 证书拷贝到所有的 master 节点上
     for NODE in "${MASTER[@]}"; do
         ssh ${NODE} "mkdir -p ${ETCD_CERT_PATH}"
         for FILE in etcd-ca-key.pem etcd-ca.pem etcd-key.pem etcd.pem; do
             scp ${ETCD_CERT_PATH}/${FILE} ${NODE}:${ETCD_CERT_PATH}/${FILE}; done; done
-    # 在这里设置，可以为 etcd 多预留几个 hostname 或者 ip 地址，方便 etcd 扩容
     # 将 etcd 证书拷贝到所有的 worker 节点上
     for NODE in "${WORKER[@]}"; do
         ssh ${NODE} mkdir -p ${ETCD_CERT_PATH}
         for FILE in etcd-ca.pem etcd.pem etcd-key.pem; do
-            scp ${ETCD_CERT_PATH}/${FILE} ${NODE}:${ETCD_CERT_PATH}/${FILE}
-        done
-    done
+            scp ${ETCD_CERT_PATH}/${FILE} ${NODE}:${ETCD_CERT_PATH}/${FILE}; done; done
 
 
-    # 将生成的 kubernetes 各个组件的证书和配置文件分别拷贝到 master 节点
+    # 将生成的 kubernetes 各个组件的证书和 kubeconfig 文件分别拷贝到 master 节点
     for NODE in "${MASTER[@]}"; do
         ssh ${NODE} "mkdir -p ${KUBE_CERT_PATH}"
         for FILE in $(ls ${KUBE_CERT_PATH} | grep -v etcd); do
-            scp ${KUBE_CERT_PATH}/${FILE} ${NODE}:${KUBE_CERT_PATH}/${FILE}
-        done
+            scp ${KUBE_CERT_PATH}/${FILE} ${NODE}:${KUBE_CERT_PATH}/${FILE}; done
         for FILE in \
             controller-manager.kubeconfig \
             scheduler.kubeconfig \
-            admin.kubeconfig \
-            bootstrap-kubelet.kubeconfig; do
-            scp ${K8S_PATH}/${FILE} ${NODE}:${K8S_PATH}/${FILE}
-        done
-    done
+            bootstrap-kubelet.kubeconfig \
+            admin.kubeconfig; do
+            scp ${K8S_PATH}/${FILE} ${NODE}:${K8S_PATH}/${FILE}; done; done
     # 将 所需证书和配置文件拷贝到 worker 节点
     for NODE in "${WORKER[@]}"; do
         ssh ${NODE} "mkdir -p ${KUBE_CERT_PATH}"
         for FILE in ca.pem ca-key.pem front-proxy-ca.pem; do
-            scp ${KUBE_CERT_PATH}/${FILE} ${NODE}:${KUBE_CERT_PATH}/${FILE}
-        done
-        scp ${K8S_PATH}/bootstrap-kubelet.kubeconfig ${NODE}:${K8S_PATH}/bootstrap-kubelet.kubeconfig
-    done
+            scp ${KUBE_CERT_PATH}/${FILE} ${NODE}:${KUBE_CERT_PATH}/${FILE}; done
+        scp ${K8S_PATH}/bootstrap-kubelet.kubeconfig ${NODE}:${K8S_PATH}/bootstrap-kubelet.kubeconfig; done
 }
 
 
@@ -585,9 +583,8 @@ function 6_setup_etcd() {
     MSG2 "6. Setup etcd"
 
     for NODE in "${MASTER[@]}"; do
-        ssh $NODE "mkdir ${KUBE_CERT_PATH}/etcd/"
-        ssh $NODE "ln -sf ${ETCD_CERT_PATH}/* ${KUBE_CERT_PATH}/etcd/"
-    done
+        ssh ${NODE} "mkdir ${KUBE_CERT_PATH}/etcd/"
+        ssh ${NODE} "ln -sf ${ETCD_CERT_PATH}/* ${KUBE_CERT_PATH}/etcd/"; done
 
 
     # 生成配置文件
@@ -600,9 +597,7 @@ function 6_setup_etcd() {
         sed -i "s%#KUBE_CERT_PATH#%${KUBE_CERT_PATH}%" /tmp/etcd.config.yaml-$i
         for (( j=0; j<${#MASTER[@]}; j++ )); do
             sed -i "s/#MASTER_HOSTNAME_$j#/${MASTER_HOST[$j]}/" /tmp/etcd.config.yaml-$i
-            sed -i "s/#MASTER_IP_$j#/${MASTER_IP[$j]}/" /tmp/etcd.config.yaml-$i
-        done
-    done
+            sed -i "s/#MASTER_IP_$j#/${MASTER_IP[$j]}/" /tmp/etcd.config.yaml-$i; done; done
 
 
     # 将配置文件 etcd.config.yaml 和 etcd 服务自启动文件 etcd.service 复制到远程服务器上
@@ -642,25 +637,21 @@ function 7_setup_keepalived {
             PRIORITY=100
         else
             STATE="BACKUP"
-            PRIORITY=101
-        fi
+            PRIORITY=101; fi
         cp conf/keepalived.conf /tmp/keepalived.conf-$i
         sed -i "s/#STATE#/${STATE}/" /tmp/keepalived.conf-$i
         sed -i "s/#INTERFACE#/${INTERFACE}/" /tmp/keepalived.conf-$i
         sed -i "s/#PRIORITY#/${PRIORITY}/" /tmp/keepalived.conf-$i
         sed -i "s/#MASTER_IP#/${MASTER_IP[$i]}/" /tmp/keepalived.conf-$i
-        sed -i "s/#VIRTUAL_IPADDRESS#/${VIRTUAL_IPADDRESS}/" /tmp/keepalived.conf-$i
-    done
+        sed -i "s/#VIRTUAL_IPADDRESS#/${VIRTUAL_IPADDRESS}/" /tmp/keepalived.conf-$i; done
     
 
     # 将生成好的配置文件keepalived.cfg 复制到 master 节点
     for (( i=0; i<${#MASTER[@]}; i++ )); do
-        #rsync -avzH /tmp/keepalived.conf-$i ${MASTER[$i]}:/etc/keepalived/keepalived.conf
         scp /tmp/keepalived.conf-$i ${MASTER[$i]}:/etc/keepalived/keepalived.conf
         scp conf/check_apiserver.sh ${MASTER[$i]}:/etc/keepalived/check_apiserver.sh
         ssh ${MASTER[$i]} "systemctl enable keepalived"
-        ssh ${MASTER[$i]} "systemctl restart keepalived"
-    done
+        ssh ${MASTER[$i]} "systemctl restart keepalived"; done
 }
 
 
@@ -683,9 +674,7 @@ function 8_setup_haproxy() {
         sed -i "s/#PORT#/${CONTROL_PLANE_ENDPOINT_PORT}/" /tmp/haproxy.cfg-$i
         for (( j=0; j<${#MASTER[@]}; j++ )); do
             sed -i "s/#MASTER_HOSTNAME_$j#/${MASTER_HOST[$j]}/" /tmp/haproxy.cfg-$i
-            sed -i "s/#MASTER_IP_$j#/${MASTER_IP[$j]}/" /tmp/haproxy.cfg-$i
-        done
-    done
+            sed -i "s/#MASTER_IP_$j#/${MASTER_IP[$j]}/" /tmp/haproxy.cfg-$i; done; done
 
 
     # 将生成好的配置文件 haproxy.cfg 复制到所有 master 节点
@@ -693,8 +682,7 @@ function 8_setup_haproxy() {
         scp /tmp/haproxy.cfg-$i ${MASTER[$i]}:/etc/haproxy/haproxy.cfg
         #rsync -avzH /tmp/haproxy.cfg-$i ${MASTER[$i]}:/etc/haproxy/haproxy.cfg
         ssh ${MASTER[$i]} "systemctl enable haproxy"
-        ssh ${MASTER[$i]} "systemctl restart haproxy"
-    done
+        ssh ${MASTER[$i]} "systemctl restart haproxy"; done
 }
 
 
@@ -710,9 +698,7 @@ function 9_setup_apiserver() {
         sed -i "s%#KUBE_CERT_PATH#%${KUBE_CERT_PATH}%" /tmp/kube-apiserver.service-$i
         sed -i "s%#ETCD_CERT_PATH#%${ETCD_CERT_PATH}%" /tmp/kube-apiserver.service-$i
         for (( j=0; j<${#MASTER[@]}; j++ )); do
-            sed -i "s/#MASTER_IP_$j#/${MASTER_IP[$j]}/" /tmp/kube-apiserver.service-$i
-        done
-    done
+            sed -i "s/#MASTER_IP_$j#/${MASTER_IP[$j]}/" /tmp/kube-apiserver.service-$i; done; done
 
 
     # 将生成好的配置文件 kube-apiserver.service 复制到所有 master 节点
@@ -720,8 +706,7 @@ function 9_setup_apiserver() {
         scp /tmp/kube-apiserver.service-$i ${MASTER[$i]}:/lib/systemd/system/kube-apiserver.service
         ssh ${MASTER[$i]} "systemctl daemon-reload"
         ssh ${MASTER[$i]} "systemctl enable kube-apiserver"
-        ssh ${MASTER[$i]} "systemctl restart kube-apiserver"
-    done
+        ssh ${MASTER[$i]} "systemctl restart kube-apiserver"; done
 }
 
 
@@ -741,8 +726,7 @@ function 10_setup_controller_manager {
         scp /tmp/kube-controller-manager.service ${MASTER[$i]}:/lib/systemd/system/kube-controller-manager.service
         ssh ${MASTER[$i]} "systemctl daemon-reload"
         ssh ${MASTER[$i]} "systemctl enable kube-controller-manager"
-        ssh ${MASTER[$i]} "systemctl restart kube-controller-manager"
-    done
+        ssh ${MASTER[$i]} "systemctl restart kube-controller-manager"; done
 }
 
 
@@ -760,8 +744,7 @@ function 11_setup_scheduler {
         scp /tmp/kube-scheduler.service ${MASTER[$i]}:/lib/systemd/system/kube-scheduler.service
         ssh ${MASTER[$i]} "systemctl daemon-reload"
         ssh ${MASTER[$i]} "systemctl enable kube-scheduler"
-        ssh ${MASTER[$i]} "systemctl restart kube-scheduler"
-    done
+        ssh ${MASTER[$i]} "systemctl restart kube-scheduler"; done
 }
 
 
@@ -777,10 +760,8 @@ function 12_setup_k8s_admin {
     while true; do
         if kubectl get cs; then
             kubectl apply -f bootstrap/bootstrap.secret.yaml
-            break
-        fi
-        sleep 1
-    done
+            break; fi
+        sleep 1; done
 }
 
 
@@ -819,8 +800,7 @@ function 13_setup_kubelet {
         scp /tmp/kubelet-conf.yaml ${NODE}:${K8S_PATH}/kubelet-conf.yaml
         ssh ${NODE} "systemctl daemon-reload"
         ssh ${NODE} "systemctl enable kubelet"
-        ssh ${NODE} "systemctl restart kubelet"
-    done
+        ssh ${NODE} "systemctl restart kubelet"; done
 }
 
 
@@ -877,8 +857,7 @@ function 14_setup_kube_proxy {
         scp /tmp/kube-proxy.conf ${NODE}:${K8S_PATH}/kube-proxy.conf
         ssh ${NODE} "systemctl daemon-reload"
         ssh ${NODE} "systemctl enable kube-proxy"
-        ssh ${NODE} "systemctl restart kube-proxy"
-    done
+        ssh ${NODE} "systemctl restart kube-proxy"; done
 }
 
 
@@ -891,8 +870,7 @@ function 15_deploy_calico {
     local ETCD_CERT=""
     local ETCD_KEY=""
     for (( i=0; i<${#MASTER_IP[@]}; i++ )); do
-        ETCD_ENDPOINTS="${ETCD_ENDPOINTS},https://${MASTER_IP[$i]}:2379"
-    done
+        ETCD_ENDPOINTS="${ETCD_ENDPOINTS},https://${MASTER_IP[$i]}:2379"; done
     ETCD_ENDPOINTS=${ETCD_ENDPOINTS/,}
     ETCD_CA=$(cat ${KUBE_CERT_PATH}/etcd/etcd-ca.pem | base64 | tr -d '\n')
     ETCD_CERT=$(cat ${KUBE_CERT_PATH}/etcd/etcd.pem | base64 | tr -d '\n')
@@ -903,15 +881,15 @@ function 15_deploy_calico {
     #cp calico_3.18/calico-etcd.yaml /tmp/calico-etcd.yaml                                      # v3.18.1
     curl https://docs.projectcalico.org/manifests/calico-etcd.yaml -o /tmp/calico-etcd.yaml     # latest version
     sed -r -i "s%(.*)http://<ETCD_IP>:<ETCD_PORT>(.*)%\1${ETCD_ENDPOINTS}\2%" /tmp/calico-etcd.yaml
-    sed -i "s%# etcd-key: null%etcd-key: ${ETCD_KEY}%g" /tmp/calico-etcd.yaml
-    sed -i "s%# etcd-cert: null%etcd-cert: ${ETCD_CERT}%g" /tmp/calico-etcd.yaml
-    sed -i "s%# etcd-ca: null%etcd-ca: ${ETCD_CA}%g" /tmp/calico-etcd.yaml
+    sed -i    "s%# etcd-key: null%etcd-key: ${ETCD_KEY}%g" /tmp/calico-etcd.yaml
+    sed -i    "s%# etcd-cert: null%etcd-cert: ${ETCD_CERT}%g" /tmp/calico-etcd.yaml
+    sed -i    "s%# etcd-ca: null%etcd-ca: ${ETCD_CA}%g" /tmp/calico-etcd.yaml
     sed -r -i "s%etcd_ca: \"\"(.*)%etcd_ca: \"/calico-secrets/etcd-ca\"%g" /tmp/calico-etcd.yaml
     sed -r -i "s%etcd_cert: \"\"(.*)%etcd_cert: \"/calico-secrets/etcd-cert\"%g" /tmp/calico-etcd.yaml
     sed -r -i "s%etcd_key: \"\"(.*)%etcd_key: \"/calico-secrets/etcd-key\"%g" /tmp/calico-etcd.yaml
-    sed -i "s%# - name: CALICO_IPV4POOL_CIDR%- name: CALICO_IPV4POOL_CIDR%g" /tmp/calico-etcd.yaml
-    sed -i "s%#   value: \"192.168.0.0/16\"%  value: \"${POD_NETWORK_CIDR}\"%g" /tmp/calico-etcd.yaml
-    sed -i "s%defaultMode: 0400%defaultMode: 0440%g" /tmp/calico-etcd.yaml
+    sed -i    "s%# - name: CALICO_IPV4POOL_CIDR%- name: CALICO_IPV4POOL_CIDR%g" /tmp/calico-etcd.yaml
+    sed -i    "s%#   value: \"192.168.0.0/16\"%  value: \"${POD_NETWORK_CIDR}\"%g" /tmp/calico-etcd.yaml
+    sed -i    "s%defaultMode: 0400%defaultMode: 0440%g" /tmp/calico-etcd.yaml
     kubectl apply -f /tmp/calico-etcd.yaml
 }
 
@@ -945,14 +923,11 @@ function 18_label_and_taint_master_node {
             for NODE in "${MASTER[@]}"; do
                 kubectl label nodes ${NODE} node-role.kubernetes.io/master= --overwrite  
                 kubectl label nodes ${NODE} node-role.kubernetes.io/control-plane= --overwrite
-                kubectl taint nodes ${NODE} node-role.kubernetes.io/master:NoSchedule --overwrite
+                kubectl taint nodes ${NODE} node-role.kubernetes.io/master:NoSchedule --overwrite; done
                 #kubectl taint nodes ${NODE} node-role.kubernetes.io/master:PreferNoSchedule --overwrite
-            done
             break
         else
-            sleep 1
-        fi
-    done
+            sleep 1; fi; done
 }
 
 
@@ -972,18 +947,14 @@ function deploy_kuboard {
 
 function deploy_ingress {
     MSG2 "Deploy Ingress-nginx"
-    kubectl create namespace ingress-nginx
     while true; do
         if kubectl get node | grep Ready; then
             for (( i=0; i<3; i++ )); do
-                kubectl label node ${WORKER[$i]} ingress-nginx="true" --overwrite
-            done
-            helm install ingress-nginx helm/ingress-nginx/ -n ingress-nginx
+                kubectl label node ${WORKER[$i]} ingress-nginx="true" --overwrite; done
+            helm install --create-namespace -n ingress-nginx ingress-nginx helm/ingress-nginx/ 
             break
         else
-            sleep 1
-        fi
-    done
+            sleep 1; fi; done
 }
 
 
@@ -1011,14 +982,12 @@ function deploy_cephcsi {
 
     # Setup SSH Public Key Authentication
     for NODE in "${CEPH_MON_IP[@]}"; do 
-        ssh-keyscan "${NODE}" >> /root/.ssh/known_hosts 2> /dev/null
-    done
+        ssh-keyscan "${NODE}" >> /root/.ssh/known_hosts 2> /dev/null; done
     for NODE in "${CEPH_MON_IP[@]}"; do
         sshpass -p "${CEPH_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_rsa.pub root@"${NODE}"
         sshpass -p "${CEPH_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ecdsa.pub root@"${NODE}"
-        sshpass -p "${CEPH_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ed25519.pub root@"${NODE}"
+        sshpass -p "${CEPH_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ed25519.pub root@"${NODE}"; done
         #sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_xmss.pub root@"${NODE}"
-    done
 
 
     # get ceph cluster id
@@ -1043,11 +1012,9 @@ function deploy_cephcsi {
         /tmp/csi-ceph/6_csi-rbdplugin-provisioner.yaml \
         /tmp/csi-ceph/7_csi-rbdplugin.yaml \
         /tmp/csi-ceph/8_csi-rbd-storageclass.yaml; do
-        sed -i "s%#CEPH_NAMESPACE#%${CEPH_NAMESPACE}%g" ${FILE}
-    done
+        sed -i "s%#CEPH_NAMESPACE#%${CEPH_NAMESPACE}%g" ${FILE}; done
     for (( i=0; i<${#CEPH_MON_IP[@]}; i++ )); do
-        sed -i "s%#CEPH_MON_IP_$i#%${CEPH_MON_IP[$i]}%g" /tmp/csi-ceph/1_cm_ceph-csi-config.yaml
-    done
+        sed -i "s%#CEPH_MON_IP_$i#%${CEPH_MON_IP[$i]}%g" /tmp/csi-ceph/1_cm_ceph-csi-config.yaml; done
     sed -i "s%#CEPH_CLUSTER_ID#%${CEPH_CLUSTER_ID}%g" /tmp/csi-ceph/1_cm_ceph-csi-config.yaml
     sed -i "s%#CEPH_USER#%${CEPH_USER}%g" /tmp/csi-ceph/3_secret_csi-rbd-secret.yaml
     sed -i "s%#CEPH_USER_KEY#%${CEPH_USER_KEY}%g" /tmp/csi-ceph/3_secret_csi-rbd-secret.yaml
@@ -1074,15 +1041,16 @@ function deploy_longhorn {
     ingress_tls="false"
 
     # longhorn
-    defaultDataPath="/longhorn"
+    defaultDataPath="/longhorn/disk1"
     storageOverProvisioningPercentage=500
     storageMinimalAvailablePercentage=10
     defaultReplicaCount=3
     defaultLonghornStaticStorageClass="longhorn"
     replicaSoftAntiAffinity="false"
     allowVolumeCreationWithDegradedAvailability="false"
-    guaranteedEngineManagerCPU=12
-    guaranteedReplicaManagerCPU=12
+    taintToleration="node-role.kubernetes.io/master:NoSchedule"
+    guaranteedEngineManagerCPU=20
+    guaranteedReplicaManagerCPU=20
 
     helm install --create-namespace -n longhorn-system longhorn helm/longhorn/longhorn \
         --set service.ui.type=${service_ui_type} \
@@ -1097,10 +1065,10 @@ function deploy_longhorn {
         --set defaultSettings.defaultReplicaCount=${defaultReplicaCount} \
         --set defaultSettings.defaultLonghornStaticStorageClass=${defaultLonghornStaticStorageClass} \
         --set defaultSettings.replicaSoftAntiAffinity=${replicaSoftAntiAffinity} \
-        --set defaultSettings.allowVolumeCreationWithDegradedAvailability=${allowVolumeCreationWithDegradedAvailability}
-        #--set defaultSettings.guaranteedEngineManagerCPU=${guaranteedEngineManagerCPU} \
-        #--set defaultSettings.guaranteedReplicaManagerCPU=${guaranteedReplicaManagerCPU} \
-        #--set defaultSettings.taintToleration="node-role.kubernetes.io/master:NoSchedule"
+        --set defaultSettings.allowVolumeCreationWithDegradedAvailability=${allowVolumeCreationWithDegradedAvailability} \
+        --set defaultSettings.taintToleration=${taintToleration} \
+        --set defaultSettings.guaranteedEngineManagerCPU=${guaranteedEngineManagerCPU} \
+        --set defaultSettings.guaranteedReplicaManagerCPU=${guaranteedReplicaManagerCPU}
 }
 
 
@@ -1116,42 +1084,28 @@ function deploy_nfsclient {
         --set nfs.path=${NFS_STORAGE_PATH} \
         --set nfs.storageClass.name=${NFS_STORAGECLASS}
 }
+
+
+function deploy_metallb {
+    MSG2 "Deploy MetalLb"
+    kubectl apply -f metalLB/1_namespace.yaml
+    bash metalLB/2_create_secret.sh 
+    kubectl apply -f metalLB/3_metallb.yaml
+}
 function deploy_harbor { :; }
 
 
 
-source /etc/os-release
-case "$ID" in
-    centos|rhel)
-        stage_one_script_path="centos/1_prepare_for_server.sh"
-        stage_two_script_path="centos/2_prepare_for_k8s.sh"
-        stage_three_script_path="centos/3_install_docker.sh" ;;
-    ubuntu)
-        stage_one_script_path="ubuntu/1_prepare_for_server.sh"
-        stage_two_script_path="ubuntu/2_prepare_for_k8s.sh"
-        stage_three_script_path="ubuntu/3_install_docker.sh" ;;
-    debian)
-        stage_one_script_path="debian/1_prepare_for_server.sh"
-        stage_two_script_path="debian/2_prepare_for_k8s.sh"
-        stage_three_script_path="debian/3_install_docker.sh" ;;
-    *)
-        ERR "not support" && exit $EXIT_FAILURE ;;
-esac
+
 function stage_one {
     for NODE in "${ALL_NODE[@]}"; do
-        ssh "${NODE}" "bash -s" < "${stage_one_script_path}"
-    done
-}
+        ssh "${NODE}" "bash -s" < "${stage_one_script_path}"; done; }
 function stage_two {
     for NODE in "${ALL_NODE[@]}"; do
-        ssh "$NODE" "bash -s" < "${stage_two_script_path}"
-    done
-}
+        ssh "${NODE}" "bash -s" < "${stage_two_script_path}"; done; }
 function stage_three {
     for NODE in "${ALL_NODE[@]}"; do
-        ssh "${NODE}" "bash -s" < "${stage_three_script_path}"
-    done
-}
+        ssh "${NODE}" "bash -s" < "${stage_three_script_path}"; done; }
 function stage_four {
     1_copy_binary_package_and_create_dir
     2_install_keepalived_and_haproxy
@@ -1170,20 +1124,17 @@ function stage_four {
     15_deploy_calico
     16_deploy_coredns
     17_deploy_metrics_server
-    18_label_and_taint_master_node
-}
+    18_label_and_taint_master_node; }
 function stage_five {
     [ ${INSTALL_KUBOARD} ] && deploy_kuboard
     [ ${INSTALL_INGRESS} ] && deploy_ingress
     [ ${INSTALL_TRAEFIK} ] && deploy_traefik
     [ ${INSTALL_CEPHCSI} ] && deploy_cephcsi
     [ ${INSTALL_LONGHORN} ] && deploy_longhorn
+    [ ${INSTALL_METALLB} ] && deploy_metallb
     [ ${INSTALL_DASHBOARD} ] && deploy_dashboard
     [ ${INSTALL_HARBOR} ] && deploy_harbor
-    [ ${INSTALL_NFSCLIENT} ] && deploy_nfsclient
-}
-
-
+    [ ${INSTALL_NFSCLIENT} ] && deploy_nfsclient; }
 0_check_root_and_os
 MSG1 "=============  Stage Prepare: Setup SSH Public Key Authentication ============="; stage_prepare
 MSG1 "=================== Stage 1: Prepare for Linux Server ========================="; stage_one
