@@ -22,7 +22,7 @@ function 2_install_necessary_package {
     MSG2 "2. Install necessary package"
 
     yum install -y epel-release
-    yum install -y coreutils bash-completion iputils wget curl zip unzip bzip2 vim net-tools git zsh fish rsync psmisc procps-ng bind-utils yum-utils device-mapper-persistent-data lvm2 ntp ntpdate jq sysstat nc tree lsof virt-what audit iscsi-initiator-utils
+    yum install -y coreutils bash-completion iputils wget curl zip unzip bzip2 vim net-tools git zsh fish rsync psmisc procps-ng bind-utils yum-utils device-mapper-persistent-data lvm2 ntp ntpdate jq sysstat nc tree lsof virt-what audit iscsi-initiator-utils socat
     if [[ $(virt-what) == "vmware" ]]; then
         yum install -y open-vm-tools
         systemctl enable --now vmtoolsd
@@ -68,8 +68,8 @@ function 6_configure_sshd {
     sed -i "/^PermitEmptyPasswords/d" ${SSH_CONF_PATH}
     sed -i "/^PubkeyAuthentication/d" ${SSH_CONF_PATH}
     sed -i "/^AuthorizedKeysFile/d" ${SSH_CONF_PATH}
-    sed -i "/^ClientAliveInterval/d" ${SSH_CONF_PATH}
-    sed -i "/^ClientAliveCountMax/d" ${SSH_CONF_PATH}
+    #sed -i "/^ClientAliveInterval/d" ${SSH_CONF_PATH}
+    #sed -i "/^ClientAliveCountMax/d" ${SSH_CONF_PATH}
     sed -i "/^Protocol/d" ${SSH_CONF_PATH}
 
     echo "UseDNS no" >> ${SSH_CONF_PATH}
@@ -79,8 +79,8 @@ function 6_configure_sshd {
     echo "PermitEmptyPasswords no" >> ${SSH_CONF_PATH}
     echo "PubkeyAuthentication yes" >> ${SSH_CONF_PATH}
     echo "AuthorizedKeysFile .ssh/authorized_keys" >> ${SSH_CONF_PATH}
-    echo "ClientAliveInterval 360" >> ${SSH_CONF_PATH}
-    echo "ClientAliveCountMax 0" >> ${SSH_CONF_PATH}
+    #echo "ClientAliveInterval 360" >> ${SSH_CONF_PATH}
+    #echo "ClientAliveCountMax 0" >> ${SSH_CONF_PATH}
     echo "Protocol 2" >> ${SSH_CONF_PATH}
 
     systemctl restart sshd
