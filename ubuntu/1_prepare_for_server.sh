@@ -10,25 +10,38 @@ MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 function 1_upgrade_system {
     MSG2 "1. Upgrade system"
 
+    RELEASE=$(cat /etc/os-release | grep VERSION= | awk -F'.' '{print $1}' | awk -F \" '{print $2}')
+    if [[ ${RELEASE} -eq 18 ]]; then
+        source_list=(
+            "deb https://mirrors.ustc.edu.cn/ubuntu bionic main restricted multiverse universe"
+            "deb https://mirrors.ustc.edu.cn/ubuntu bionic-updates main restricted universe multiverse"
+            "deb https://mirrors.ustc.edu.cn/ubuntu bionic-backports main restricted universe multiverse"
+            "deb https://mirrors.ustc.edu.cn/ubuntu bionic-security main restricted universe multiverse")
+    elif [[ ${RELEASE} -eq 20 ]]; then
+        source_list=(
+            "deb https://mirrors.ustc.edu.cn/ubuntu focal main restricted multiverse universe"
+            "deb https://mirrors.ustc.edu.cn/ubuntu focal-updates main restricted universe multiverse"
+            "deb https://mirrors.ustc.edu.cn/ubuntu focal-backports main restricted universe multiverse"
+            "deb https://mirrors.ustc.edu.cn/ubuntu focal-security main restricted universe multiverse"); fi
+    mv /etc/apt/sources.list /etc/apt/sources.list.bak
+    printf "%s\n" "${source_list[@]}" > /etc/apt/sources.list
+
     local DEBIAN_FRONTEND=noninteractive
     apt-get update -y
     apt-get -o Dpkg::Options::="--force-confold" upgrade -q -y
     apt-get -o Dpkg::Options::="--force-confold" dist-upgrade -q -y
     apt-get autoremove -y
     apt-get autoclean -y
-
 }
 
 
 function 2_install_necessary_package {
     MSG2 "2. Install necessary package"
 
-    apt-get install -y coreutils apt-file apt-transport-https software-properties-common iputils-ping bash-completion wget curl zip unzip bzip2 vim net-tools git zsh fish rsync psmisc procps dnsutils lvm2 ntp ntpdate jq sysstat tree lsof virt-what conntrack ipset open-iscsi ipvsadm auditd
-    add-apt-repository universe
+    apt-get install -y coreutils apt-file apt-transport-https software-properties-common iputils-ping bash-completion wget curl zip unzip bzip2 vim net-tools git zsh fish rsync psmisc procps dnsutils lvm2 ntp ntpdate jq sysstat tree lsof virt-what conntrack ipset open-iscsi ipvsadm auditd socat
     if [[ $(virt-what) == "vmware" ]]; then
         apt-get install -y open-vm-tools
-        systemctl enable --now open-vm-tools
-    fi
+        systemctl enable --now open-vm-tools; fi
 }
 
 
@@ -60,8 +73,8 @@ function 5_configure_sshd {
     sed -i "/^PermitEmptyPasswords/d" ${SSH_CONF_PATH}
     sed -i "/^PubkeyAuthentication/d" ${SSH_CONF_PATH}
     sed -i "/^AuthorizedKeysFile/d" ${SSH_CONF_PATH}
-    sed -i "/^ClientAliveInterval/d" ${SSH_CONF_PATH}
-    sed -i "/^ClientAliveCountMax/d" ${SSH_CONF_PATH}
+    #sed -i "/^ClientAliveInterval/d" ${SSH_CONF_PATH}
+    #sed -i "/^ClientAliveCountMax/d" ${SSH_CONF_PATH}
     sed -i "/^Protocol/d" ${SSH_CONF_PATH}
 
     echo "UseDNS no" >> ${SSH_CONF_PATH}
@@ -71,8 +84,8 @@ function 5_configure_sshd {
     echo "PermitEmptyPasswords no" >> ${SSH_CONF_PATH}
     echo "PubkeyAuthentication yes" >> ${SSH_CONF_PATH}
     echo "AuthorizedKeysFile .ssh/authorized_keys" >> ${SSH_CONF_PATH}
-    echo "ClientAliveInterval 360" >> ${SSH_CONF_PATH}
-    echo "ClientAliveCountMax 0" >> ${SSH_CONF_PATH}
+    #echo "ClientAliveInterval 360" >> ${SSH_CONF_PATH}
+    #echo "ClientAliveCountMax 0" >> ${SSH_CONF_PATH}
     echo "Protocol 2" >> ${SSH_CONF_PATH}
 
     systemctl restart sshd

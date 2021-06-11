@@ -53,7 +53,7 @@ cat > /etc/docker/daemon.json <<-EOF
   "live-restore": true,
   "log-opts": {
     "max-size": "300m",
-    "max-file": "2"
+    "max-file": "5"
   },
   "storage-driver": "overlay2",
   "storage-opts": [
@@ -72,8 +72,30 @@ function 3_configure_containerd {
     systemctl daemon-reload
 }
 
+function 4_audit_for_docker {
+    MSG2 "4. Audit for Docker"
+    audit_file=(
+        "-w /var/lib/docker -p wa"
+        "-w /etc/docker -p wa"
+        "-w /lib/systemd/system/docker.service -p wa"
+        "-w /lib/systemd/system/docker.socket -p wa"
+        "-w /etc/default/docker -p wa"
+        "-w /etc/docker/daemon.json -p wa"
+        "-w /usr/bin/docker -p wa"
+        "-w /usr/bin/containerd -p wa"
+        "-w /usr/bin/containerd-shim -p wa"
+        "-w /usr/bin/containerd-shim-runc-v1 -p wa"
+        "-w /usr/bin/containerd-shim-runc-v2 -p wa"
+        "-w /usr/bin/runc -p wa"
+        "-w /run/containerd -p wa"
+        "-w /etc/containerd/config.toml -p wa"
+        )
+    printf "%s\n" "${audit_file[@]}" > /etc/audit/rules.d/docker.rules
+}
+
 
 MSG1 "*** `hostname` *** Install Docker"
 1_install_docker
 2_configure_docker
 #3_configure_containerd
+4_audit_for_docker
