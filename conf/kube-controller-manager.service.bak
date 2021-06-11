@@ -1,0 +1,31 @@
+[Unit]
+Description=Kubernetes Controller Manager
+Documentation=https://github.com/kubernetes/kubernetes
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/kube-controller-manager \
+    --v=2 \
+    --logtostderr=true \
+    --address=127.0.0.1 \
+    --root-ca-file=#KUBE_CERT_PATH#/ca.pem \
+    --cluster-signing-cert-file=#KUBE_CERT_PATH#/ca.pem \
+    --cluster-signing-key-file=#KUBE_CERT_PATH#/ca-key.pem \
+    --service-account-private-key-file=#KUBE_CERT_PATH#/sa.key \
+    --kubeconfig=#K8S_PATH#/controller-manager.kubeconfig \
+    --leader-elect=true \
+    --experimental-cluster-signing-duration=876000h0m0s \
+    --use-service-account-credentials=true \
+    --node-monitor-grace-period=40s \
+    --node-monitor-period=5s \
+    --pod-eviction-timeout=2m0s \
+    --controllers=*,bootstrapsigner,tokencleaner \
+    --allocate-node-cidrs=true \
+    --cluster-cidr=#POD_NETWORK_CIDR# \
+    --requestheader-client-ca-file=#KUBE_CERT_PATH#/front-proxy-ca.pem \
+    --node-cidr-mask-size=24
+Restart=always
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
