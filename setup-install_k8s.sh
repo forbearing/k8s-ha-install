@@ -1126,14 +1126,14 @@ function stage_four {
     17_deploy_metrics_server
     18_label_and_taint_master_node; }
 function stage_five {
-    [ ${INSTALL_KUBOARD} ] && deploy_kuboard
-    [ ${INSTALL_INGRESS} ] && deploy_ingress
-    [ ${INSTALL_TRAEFIK} ] && deploy_traefik
-    [ ${INSTALL_CEPHCSI} ] && deploy_cephcsi
-    [ ${INSTALL_LONGHORN} ] && deploy_longhorn
-    [ ${INSTALL_METALLB} ] && deploy_metallb
+    [ ${INSTALL_KUBOARD} ]   && deploy_kuboard
+    [ ${INSTALL_INGRESS} ]   && deploy_ingress
+    [ ${INSTALL_TRAEFIK} ]   && deploy_traefik
+    [ ${INSTALL_CEPHCSI} ]   && deploy_cephcsi
+    [ ${INSTALL_LONGHORN} ]  && deploy_longhorn
+    [ ${INSTALL_METALLB} ]   && deploy_metallb
     [ ${INSTALL_DASHBOARD} ] && deploy_dashboard
-    [ ${INSTALL_HARBOR} ] && deploy_harbor
+    [ ${INSTALL_HARBOR} ]    && deploy_harbor
     [ ${INSTALL_NFSCLIENT} ] && deploy_nfsclient; }
 0_check_root_and_os
 MSG1 "=============  Stage Prepare: Setup SSH Public Key Authentication ============="; stage_prepare
