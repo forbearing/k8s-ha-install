@@ -112,6 +112,7 @@ longhornManager:
   priorityClass: ~
   tolerations:
   - key: node-role.kubernetes.io/master
+  - key: node-role.kubernetes.io/storage
   #- key: node-role.kubernetes.io/control-plane
   ## If you want to set tolerations for Longhorn Manager DaemonSet, delete the `[]` in the line above
   ## and uncomment this example block
@@ -127,7 +128,8 @@ longhornManager:
 
 longhornDriver:
   priorityClass: ~
-  tolerations: []
+  tolerations:
+  - key: node-role.kubernetes.io/storage
   ## If you want to set tolerations for Longhorn Driver Deployer Deployment, delete the `[]` in the line above
   ## and uncomment this example block
   # - key: "key"
@@ -142,7 +144,8 @@ longhornDriver:
 
 longhornUI:
   priorityClass: ~
-  tolerations: []
+  tolerations:
+  - key: node-role.kubernetes.io/storage
   ## If you want to set tolerations for Longhorn UI Deployment, delete the `[]` in the line above
   ## and uncomment this example block
   # - key: "key"
