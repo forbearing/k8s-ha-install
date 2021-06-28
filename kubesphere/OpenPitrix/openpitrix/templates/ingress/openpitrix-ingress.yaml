@@ -1,0 +1,17 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: openpitrix-ingress
+spec:
+  tls:
+  - hosts:
+    - demo.openpitrix.io
+    secretName: ingress-tls
+  rules:
+  - host: demo.openpitrix.io
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: openpitrix-dashboard
+          servicePort: 80

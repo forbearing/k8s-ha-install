@@ -1,0 +1,56 @@
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: global-config-watcher
+  labels:
+    app: openpitrix
+    component: global-config-watcher
+    version: {{ .Values.watcher.version }}
+spec:
+  selector:
+    matchLabels:
+      app: openpitrix
+      component: global-config-watcher
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: openpitrix
+        component: global-config-watcher
+        version: {{ .Values.watcher.version }}
+    spec:
+      initContainers:
+      - name: wait-etcd
+        image: busybox:1.28.4
+        imagePullPolicy: IfNotPresent
+        command: ['sh', '-c', 'until nc -z {{ .Values.etcd.host }}.{{ .Release.Namespace }}.svc {{ .Values.etcd.service_port }}; do echo "waiting for etcd"; sleep 2; done;']
+      containers:
+      - name: global-config-watcher
+        image: {{ .Values.watcher.image }}
+        imagePullPolicy: {{ .Values.image_pull_policy }}
+        command:
+          - watch
+        env:
+        - name: WATCHER_LOG_LEVEL
+          value: {{ .Values.openpitrix_log_level }}
+        - name: WATCHER_DURATION
+          value: "10"
+        - name: IGNORE_KEYS
+          value: '{{ .Values.global_config.ignore_keys }}'
+        - name: WATCHER_ETCD_ENDPOINTS
+          value: "{{ .Values.etcd.host }}.{{ .Release.Namespace }}.svc:{{ .Values.etcd.service_port }}"
+        resources:
+          limits:
+            cpu: {{ .Values.cpu_limits }}m
+            memory: {{ .Values.memory_limits }}Mi
+          requests:
+            cpu: {{ .Values.cpu_requests }}m
+            memory: {{ .Values.memory_requests }}Mi
+        volumeMounts:
+        - name: global-config
+          mountPath: /opt
+      volumes:
+      - name: global-config
+        configMap:
+          name: global-config

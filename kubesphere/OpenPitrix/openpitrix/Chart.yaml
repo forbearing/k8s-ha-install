@@ -1,0 +1,7 @@
+name: openpitrix
+home: https://openpitrix.io/
+version: v0.4.0
+appVersion: v0.4.1
+description: OpenPitrix is an open-source system to package, deploy and manage different types of applications including traditional application, microservice application and serverless applications into multiple cloud environment such as AWS, Azure, Kubernetes, QingCloud, OpenStack, VMWare etc.
+sources:
+- https://github.com/openpitrix/helm-chart
