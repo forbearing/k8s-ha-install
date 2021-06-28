@@ -100,7 +100,7 @@ PKG_PATH="bin"
 # kubernetes addon
 INSTALL_KUBOARD=1
 INSTALL_INGRESS=1
-INSTALL_LONGHORN=1
+INSTALL_LONGHORN=""
 INSTALL_METALLB=1
 INSTALL_CEPHCSI=""
 INSTALL_TRAEFIK=""
@@ -1048,10 +1048,13 @@ function deploy_longhorn {
     defaultLonghornStaticStorageClass="longhorn"
     replicaSoftAntiAffinity="false"
     allowVolumeCreationWithDegradedAvailability="false"
-    taintToleration="node-role.kubernetes.io/master:NoSchedule"
-    guaranteedEngineManagerCPU=20
-    guaranteedReplicaManagerCPU=20
+    taintToleration="node-role.kubernetes.io/master:NoSchedule;node-role.kubernetes.io/storage:NoSchedule"
+    guaranteedEngineManagerCPU=1
+    guaranteedReplicaManagerCPU=1
+    priorityClass="longhorn-priority"
+    priorityClassValue="1000000"
 
+    kubectl create priorityclass ${priorityClass} --value=${priorityClassValue} --global-default=false --description='longhorn priority'
     helm install --create-namespace -n longhorn-system longhorn helm/longhorn/longhorn \
         --set service.ui.type=${service_ui_type} \
         --set service.ui.nodePort=${service_ui_nodePort} \
@@ -1068,9 +1071,11 @@ function deploy_longhorn {
         --set defaultSettings.allowVolumeCreationWithDegradedAvailability=${allowVolumeCreationWithDegradedAvailability} \
         --set defaultSettings.taintToleration=${taintToleration} \
         --set defaultSettings.guaranteedEngineManagerCPU=${guaranteedEngineManagerCPU} \
-        --set defaultSettings.guaranteedReplicaManagerCPU=${guaranteedReplicaManagerCPU}
+        --set defaultSettings.guaranteedReplicaManagerCPU=${guaranteedReplicaManagerCPU} \
+        --set defaultSettings.priorityClass=${priorityClass} \
+        --set longhornManager.priorityClass=${priorityClass} \
+        --set longhornDriver.priorityClass=${priorityClass}
 }
-
 
 function deploy_nfsclient {
     local NFS_SERVER="10.250.11.11"
@@ -1085,7 +1090,6 @@ function deploy_nfsclient {
         --set nfs.storageClass.name=${NFS_STORAGECLASS}
 }
 
-
 function deploy_metallb {
     MSG2 "Deploy MetalLb"
     kubectl apply -f metalLB/1_namespace.yaml
@@ -1093,7 +1097,6 @@ function deploy_metallb {
     kubectl apply -f metalLB/3_metallb.yaml
 }
 function deploy_harbor { :; }
-
 
 
 
