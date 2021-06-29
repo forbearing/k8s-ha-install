@@ -17,30 +17,37 @@ bash setup_install-k8s.sh -e k8s-vm.env
 ### 这是环境变量
 
 \# k8s node hostname and ip
+
 MASTER_HOST=(
     master1
     master2
     master3)
+
 WORKER_HOST=(
     worker1
     worker2
     worker3)
+
 EXTRA_MASTER_HOST=(
     master4
     master5
     master6)
+
 MASTER_IP=(
     10.250.13.11
     10.250.13.12
     10.250.13.13)
+
 WORKER_IP=(
     10.250.13.21
     10.250.13.22
     10.250.13.23)
+
 EXTRA_MASTER_IP=(
     10.250.13.14
     10.250.13.15
     10.250.13.16)
+
 MASTER=("${MASTER_HOST[@]}")
 WORKER=("${WORKER_HOST[@]}")
 ALL_NODE=("${MASTER[@]}" "${WORKER[@]}")
