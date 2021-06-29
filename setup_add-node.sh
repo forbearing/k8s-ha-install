@@ -175,7 +175,7 @@ function 6_enable_kube_service {
         ssh ${NODE} "systemctl enable kubelet"
         ssh ${NODE} "systemctl restart kubelet"
         ssh ${NODE} "systemctl enable kube-proxy"
-        ssh ${NODE} "systemctl restart kube-proxy"
+        ssh ${NODE} "systemctl restart kube-proxy" 
     done
 }
 
