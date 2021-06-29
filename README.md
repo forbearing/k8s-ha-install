@@ -52,14 +52,14 @@ CONTROL_PLANE_ENDPOINT="10.250.13.10:8443"
 \# SRV_NETWORK_DNS_IP: kube-dns.kube-system.svc.cluster.local address (coredns)
 SRV_NETWORK_CIDR="172.18.0.0/16"
 SRV_NETWORK_IP="172.18.0.1"
-SRV_NETWORK_DNS_IP="172.18.0.10"
+SRV_NETWORK_DNS_IP="172.18.0.10"</br>
 POD_NETWORK_CIDR="192.168.0.0/16"
 
 K8S_ROOT_PASS="toor"                                            # k8s node root passwd, set here
 
 \# kubernetes addon
 INSTALL_KUBOARD=1
-INSTALL_INGRESS=1
+INSTALL_INGRESS=1Cancel changes
 INSTALL_LONGHORN=1
 INSTALL_METALLB=1
 INSTALL_CEPHCSI=""
