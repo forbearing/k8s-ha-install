@@ -242,7 +242,7 @@ controller:
   ##
   nodeSelector:
     kubernetes.io/os: linux
-    ingress-nginx: "true"
+    ingress-nginx: "enabled"
 
   ## Liveness and readiness probe values
   ## Ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes
