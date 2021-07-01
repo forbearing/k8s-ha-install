@@ -917,6 +917,7 @@ function 18_label_and_taint_master_node {
     # 为 master 节点打上污点
     # master 节点的 taint 默认是 NoSchedule，为了充分利用 master 资源可以设置成 PreferNoSchedule
     MSG2 "18. Label and Taint master node"
+    sleep 5
     while true; do
         if kubectl get node | grep Ready; then
             for NODE in "${MASTER[@]}"; do
@@ -926,7 +927,8 @@ function 18_label_and_taint_master_node {
                 #kubectl taint nodes ${NODE} node-role.kubernetes.io/master:PreferNoSchedule --overwrite
             break
         else
-            sleep 1; fi; done
+            sleep 1; 
+    fi; done
 }
 
 
@@ -947,13 +949,20 @@ function deploy_kuboard {
 function deploy_ingress {
     MSG2 "Deploy Ingress-nginx"
     while true; do
-        if kubectl get node | grep Ready; then
-            for (( i=0; i<3; i++ )); do
-                kubectl label node ${WORKER[$i]} ingress-nginx="true" --overwrite; done
+        ALL_RUNNING_NODE=($(kubectl get node | sed -n '2,$p' | awk '{print $2}'))
+        if [[ "${ALL_RUNNING_NODE[*]}" =~ NotReady ]]; then
+            echo "Waiting All Node Ready ..."
+            sleep 5; 
+        else
+            echo "All Node is Ready, Start Installing Ingress-nginx ..."
+            for (( i=0; i<${#WORKER[@]}; i++ )); do
+                if [[ $i -eq 3 ]]; then break; fi
+                kubectl label node ${WORKER[$i]} ingress-nginx="enabled" --overwrite;
+            done
             helm install --create-namespace -n ingress-nginx ingress-nginx helm/ingress-nginx/ 
             break
-        else
-            sleep 1; fi; done
+        fi
+    done
 }
 
 
