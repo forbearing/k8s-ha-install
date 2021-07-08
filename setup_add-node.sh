@@ -30,7 +30,7 @@ MSG1 "=================================== Environment ==========================
 
 
 function 0_prepare {
-    # 检测是否为 root 用户，否则推出脚本
+    # 检测是否为 root 用户，否则退出脚本
     # 检测是否为支持的 Linux 版本，否则退出脚本
     [[ $(id -u) -ne 0 ]] && ERR "not root !" && exit $EXIT_FAILURE
     [[ "$(uname)" != "Linux" ]] && ERR "not support !" && exit $EXIT_FAILURE
@@ -45,6 +45,7 @@ function 0_prepare {
         EXIT $EXIT_FAILURE; fi
 
     # 检查网络是否可用，否则退出脚本
+    # 检查新增节点是否可达，否则退出脚本
     if ! timeout 2 ping -c 1 -i 1 8.8.8.8; then ERR "no network" && exit $EXIT_FAILURE; fi
     for NODE in "${ADD_WORKER_IP[@]}"; do
         if ! timeout 2 ping -c 1 -i 1 ${NODE}; then
@@ -53,7 +54,7 @@ function 0_prepare {
 }
 
 
-# 当前运行的 master 节点对 新的 worker 节点的 ssh 免密登录
+# 当前运行的 master 节点对新的 worker 节点的 ssh 免密登录
 function 1_ssh_auth {
     MSG1 "1. ssh auth"
 
@@ -171,11 +172,11 @@ function 6_enable_kube_service {
 
     for NODE in "${ADD_WORKER_IP[@]}"; do
         ssh root@${NODE} "systemctl daemon-reload"
-        ssh ${NODE} "systemctl enable --now docker"
-        ssh ${NODE} "systemctl enable kubelet"
-        ssh ${NODE} "systemctl restart kubelet"
-        ssh ${NODE} "systemctl enable kube-proxy"
-        ssh ${NODE} "systemctl restart kube-proxy" 
+        ssh root@${NODE} "systemctl enable --now docker"
+        ssh root@${NODE} "systemctl enable kubelet"
+        ssh root@${NODE} "systemctl restart kubelet"
+        ssh root@${NODE} "systemctl enable kube-proxy"
+        ssh root@${NODE} "systemctl restart kube-proxy" 
     done
 }
 
