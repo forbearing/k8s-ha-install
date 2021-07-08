@@ -1045,7 +1045,7 @@ function deploy_longhorn {
 
     # ingress
     ingress_enabled="false"
-    ingress_host="longhorn.qxis.com"
+    ingress_host="longhorn.example.com"
     ingress_tls="false"
 
     # longhorn
