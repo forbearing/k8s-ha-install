@@ -100,10 +100,11 @@ PKG_PATH="bin"
 # kubernetes addon
 INSTALL_KUBOARD=1
 INSTALL_INGRESS=1
+INSTALL_METALLB=1
+INSTALL_KONG=1
 INSTALL_LONGHORN=""
-INSTALL_METALLB=""
 INSTALL_TRAEFIK=""
-INSTALL_KONG=""
+INSTALL_CEPHCSI=""
 INSTALL_NFSCLIENT=""
 INSTALL_DASHBOARD=""
 INSTALL_HARBOR=""
@@ -758,7 +759,7 @@ function 12_setup_k8s_admin {
     # 应用 bootstrap/bootstrap.secret.yaml
     while true; do
         if kubectl get cs; then
-            kubectl apply -f bootstrap/bootstrap.secret.yaml
+            kubectl apply -f conf/bootstrap/bootstrap.secret.yaml
             break; fi
         sleep 1; done
 }
@@ -876,8 +877,8 @@ function 15_deploy_calico {
     ETCD_KEY=$(cat ${KUBE_CERT_PATH}/etcd/etcd-key.pem | base64 | tr -d '\n')
 
 
-    #cp calico_3.15/calico-etcd.yaml /tmp/calico-etcd.yaml                                      # v3.15.3
-    #cp calico_3.18/calico-etcd.yaml /tmp/calico-etcd.yaml                                      # v3.18.1
+    #cp addons/calico/calico_3.15/calico-etcd.yaml /tmp/calico-etcd.yaml                                      # v3.15.3
+    #cp addons/calico/calico_3.18/calico-etcd.yaml /tmp/calico-etcd.yaml                                      # v3.18.1
     curl https://docs.projectcalico.org/manifests/calico-etcd.yaml -o /tmp/calico-etcd.yaml     # latest version
     sed -r -i "s%(.*)http://<ETCD_IP>:<ETCD_PORT>(.*)%\1${ETCD_ENDPOINTS}\2%" /tmp/calico-etcd.yaml
     sed -i    "s%# etcd-key: null%etcd-key: ${ETCD_KEY}%g" /tmp/calico-etcd.yaml
@@ -897,7 +898,7 @@ function 15_deploy_calico {
 function 16_deploy_coredns {
     MSG2 "16. Deploy coredns"
 
-    cp coredns/coredns.yaml /tmp/coredns.yaml
+    cp addons/coredns/coredns.yaml /tmp/coredns.yaml
     sed -i "s%192.168.0.10%${SRV_NETWORK_DNS_IP}%g" /tmp/coredns.yaml
     kubectl apply -f /tmp/coredns.yaml
 }
@@ -907,7 +908,7 @@ function 16_deploy_coredns {
 function 17_deploy_metrics_server {
     MSG2 "17. Deploy metrics server"
 
-    kubectl apply -f  metrics-server-0.4.x/metrics-server-0.4.3.yaml
+    kubectl apply -f  addons/metrics-server/metrics-server-0.4.x/metrics-server-0.4.3.yaml
 }
 
 
@@ -928,21 +929,23 @@ function 18_label_and_taint_master_node {
             break
         else
             sleep 1; 
-    fi; done
+        fi
+    done
 }
 
 
 
 function deploy_dashboard {
     MSG2 "Deploy kubernetes dashboard"
-    kubectl apply -f dashboard/dashboard.yaml
-    kubectl apply -f dashboard/dashboard-user.yaml
+    kubectl apply -f addons-3rd/dashboard/dashboard.yaml
+    #kubectl apply -f dashboard/dashboard-user.yaml
 }
 
 
 function deploy_kuboard {
     MSG2 "Deploy Kuboard"
-    kubectl apply -f kuboard/kuboard.yaml
+    #kubectl apply -f kuboard/kuboard.yaml
+    kubectl apply -f https://addons.kuboard.cn/kuboard/kuboard-v3.yaml
 }
 
 
@@ -959,7 +962,7 @@ function deploy_ingress {
                 if [[ $i -eq 3 ]]; then break; fi
                 kubectl label node ${WORKER[$i]} ingress-nginx="enabled" --overwrite;
             done
-            helm install --create-namespace -n ingress-nginx ingress-nginx helm/ingress-nginx/ 
+            helm install --create-namespace -n ingress-nginx ingress-nginx addons-3rd/ingress-nginx/ 
             break
         fi
     done
@@ -968,8 +971,7 @@ function deploy_ingress {
 
 function deploy_traefik {
     MSG2 "Deploy Traefik"
-    kubectl create namespace traefik
-    helm install traefik helm/traefik -n traefik
+    helm install --create-namespace -n traefik traefik addons-3rd/traefik/traefik
 }
 
 
@@ -977,8 +979,8 @@ function deploy_cephcsi {
     MSG2 "Deploy ceph csi"
 
     local CEPH_MON_IP=(10.250.20.11
-                 10.250.20.12
-                 10.250.20.13)
+                       10.250.20.12
+                       10.250.20.13)
     local CEPH_ROOT_PASS="toor"
     local CEPH_CLUSTER_ID=""
     local CEPH_POOL="k8s"
@@ -1010,7 +1012,7 @@ function deploy_cephcsi {
     kubectl create namespace ${CEPH_NAMESPACE}
 
 
-    rm -rf /tmp/csi-ceph && cp -r csi-ceph /tmp/csi-ceph
+    rm -rf /tmp/csi-ceph && cp -r addons-3rd/csi-ceph /tmp/csi-ceph
     for FILE in \
         /tmp/csi-ceph/1_cm_ceph-csi-config.yaml \
         /tmp/csi-ceph/2_cm_ceph-csi-encryption-kms-config.yaml \
@@ -1063,7 +1065,7 @@ function deploy_longhorn {
     priorityClassValue="1000000"
 
     kubectl create priorityclass ${priorityClass} --value=${priorityClassValue} --global-default=false --description='longhorn priority'
-    helm install --create-namespace -n longhorn-system longhorn helm/longhorn/longhorn \
+    helm install --create-namespace -n longhorn-system longhorn addons-3rd/longhorn/longhorn \
         --set service.ui.type=${service_ui_type} \
         --set service.ui.nodePort=${service_ui_nodePort} \
         --set service.manager.type=${service_manager_type} \
@@ -1092,7 +1094,7 @@ function deploy_nfsclient {
     local NFS_NAMESPACE="nfs-provisioner"
 
     helm install --create-namespace -n ${NFS_NAMESPACE} \
-        nfs-subdir-external-provisioner helm/nfs-subdir-external-provisioner \
+        nfs-subdir-external-provisioner addons-3rd/nfs-subdir-external-provisioner \
         --set nfs.server=${NFS_SERVER} \
         --set nfs.path=${NFS_STORAGE_PATH} \
         --set nfs.storageClass.name=${NFS_STORAGECLASS}
@@ -1100,10 +1102,70 @@ function deploy_nfsclient {
 
 function deploy_metallb {
     MSG2 "Deploy MetalLb"
-    kubectl apply -f metalLB/1_namespace.yaml
-    bash metalLB/2_create_secret.sh 
-    kubectl apply -f metalLB/3_metallb.yaml
+    kubectl apply -f addons-3rd/metalLB/1_namespace.yaml
+    bash addons-3rd/metalLB/2_create_secret.sh 
+    kubectl apply -f addons-3rd/metalLB/3_metallb.yaml
 }
+
+function deploy_kong {
+    MSG2 "Deploy Kong ApiGateway"
+
+    namespace=kong
+    storageClass=rook-ceph-block
+
+    helm install --create-namespace -n ${namespace} kong addons-3rd/kong-kong/kong \
+        --set deployment.kong.daemonset=false \
+        --set replicaCount=3 \
+        --set env.database=postgres \
+        --set nginx_worker_processes=2 \
+        --set admin.enabled=true \
+        --set admin.type=ClusterIP \
+        --set admin.http.enabled=true \
+        --set admin.tls.enabled=false \
+        --set status.enabled=true \
+        --set status.http.enabled=true \
+        --set status.tls.enabled=flase \
+        --set cluster.enabled=false \
+        --set proxy.enabled=true \
+        --set proxy.type=NodePort \
+        --set proxy.http.enabled=true \
+        --set proxy.http.nodePort=32080 \
+        --set proxy.tls.enabled=true \
+        --set proxy.tls.nodePort=32443 \
+        --set proxy.ingress.enabled=false \
+        --set ingressController.enabled=true \
+        --set ingressController.installCRDs=false \
+        --set ingressController.ingressClass=kong \
+        --set postgresql.enabled=true \
+        --set postgresql.postgresqlUsername=kong \
+        --set postgresql.postgresqlPassword=kong168 \
+        --set postgresql.postgresqlDatabase=kong \
+        --set postgresql.service.port=5432 \
+        --set postgresql.persistence.storageClass=${storageClass} \
+        --set resources.limits.cpu=1000m \
+        --set resources.limits.memory=1024Mi \
+        --set resources.requests.cpu=100m \
+        --set resources.requests.memory=128Mi 
+        #--set autoscaling.enabled=false \
+        #--set autoscaling.minReplicas=1 \
+        #--set autoscaling.maxReplicas=3 \
+        #--set enterprise.enabled=false \
+        #--set manager.enabled=true \
+        #--set manager.type=NodePort \
+        #--set manager.http.enabled=true \
+        #--set manager.tls.enabled=true \
+        #--set manager.ingress.enabled=false \
+        #--set portal.enabled=true \
+        #--set portal.type=NodePort \
+        #--set portal.http.enabled=true \
+        #--set portal.tls.enabled=true \
+        #--set portalapi.enabled=true \
+        #--set portalapi.type=NodePort \
+        #--set portalapi.http.enabled=true \
+        #--set portalapi.tls.enabled=true \
+        #--set clustertelemetry.enabled=false
+}
+
 function deploy_harbor { :; }
 
 
@@ -1145,6 +1207,7 @@ function stage_five {
     [ ${INSTALL_METALLB} ]   && deploy_metallb
     [ ${INSTALL_DASHBOARD} ] && deploy_dashboard
     [ ${INSTALL_HARBOR} ]    && deploy_harbor
+    [ ${INSTALL_KONG} ]      && deploy_kong
     [ ${INSTALL_NFSCLIENT} ] && deploy_nfsclient; }
 0_check_root_and_os
 MSG1 "=============  Stage Prepare: Setup SSH Public Key Authentication ============="; stage_prepare
