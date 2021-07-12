@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: openpitrix-am-service
+  labels:
+    app: openpitrix
+    component: openpitrix-am-service
+    version: {{ .Values.am.version }}
+spec:
+  selector:
+    app: openpitrix
+    component: openpitrix-am-service
+  ports:
+  - name: openpitrix-am-service
+    protocol: TCP
+    port: 9120
+    targetPort: 9120
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: openpitrix-am-service-deployment
+  labels:
+    app: openpitrix
+    component: openpitrix-am-service
+    version: {{ .Values.am.version }}
+spec:
+  selector:
+    matchLabels:
+      app: openpitrix
+      component: openpitrix-am-service
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: openpitrix
+        component: openpitrix-am-service
+        version: {{ .Values.am.version }}
+    spec:
+      initContainers:
+      - name: wait-mysql
+        image: busybox:1.28.4
+        imagePullPolicy: IfNotPresent
+        command: ['sh', '-c', 'until nc -z {{ .Values.mysql.host }}.{{ .Release.Namespace }}.svc {{ .Values.mysql.service_port }}; do echo "waiting for mysql"; sleep 2; done;']
+      containers:
+      - name: openpitrix-am-service
+        image: {{ .Values.am.image }}
+        imagePullPolicy: {{ .Values.image_pull_policy }}
+        command:
+          - am
+        ports:
+        - containerPort: 9120
+          name: am-service
+        env:
+        - name: AM_LOG_LEVEL
+          value: {{ .Values.openpitrix_log_level }}
+        - name: AM_IM_HOST
+          value: "openpitrix-im-service"
+        - name: AM_IM_PORT
+          value: "9119"
+        - name: AM_LOG_LEVEL
+          value: {{ .Values.openpitrix_log_level }}
+        - name: AM_DB_HOST
+          value: {{ .Values.mysql.host | quote }}
+        - name: AM_DB_DATABASE
+          value: "am"
+        - name: AM_DB_LOG_MODE_ENABLE
+          value: {{ .Values.am.db_log_mode_enable | quote }}
+        - name: AM_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password.txt
+              name: mysql-pass
+        resources:
+          limits:
+            cpu: {{ .Values.cpu_limits }}m
+            memory: {{ .Values.memory_limits }}Mi
+          requests:
+            cpu: {{ .Values.cpu_requests }}m
+            memory: {{ .Values.memory_requests }}Mi

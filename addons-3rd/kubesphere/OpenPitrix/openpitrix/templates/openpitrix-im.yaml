@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: openpitrix-im-service
+  labels:
+    app: openpitrix
+    component: openpitrix-im-service
+    version: {{ .Values.im.version }}
+spec:
+  selector:
+    app: openpitrix
+    component: openpitrix-im-service
+  ports:
+  - name: openpitrix-im-service
+    protocol: TCP
+    port: 9119
+    targetPort: 9119
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: openpitrix-im-service-deployment
+  labels:
+    app: openpitrix
+    component: openpitrix-im-service
+    version: {{ .Values.im.version }}
+spec:
+  selector:
+    matchLabels:
+      app: openpitrix
+      component: openpitrix-im-service
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: openpitrix
+        component: openpitrix-im-service
+        version: {{ .Values.im.version }}
+    spec:
+      initContainers:
+      - name: wait-mysql
+        image: busybox:1.28.4
+        imagePullPolicy: IfNotPresent
+        command: ['sh', '-c', 'until nc -z {{ .Values.mysql.host }}.{{ .Release.Namespace }}.svc {{ .Values.mysql.service_port }}; do echo "waiting for mysql"; sleep 2; done;']
+      containers:
+      - name: openpitrix-im-service
+        image: {{ .Values.im.image }}
+        imagePullPolicy: {{ .Values.image_pull_policy }}
+        command:
+        - im
+        ports:
+        - containerPort: 9119
+          name: im-service
+        env:
+        - name: IM_LOG_LEVEL
+          value: {{ .Values.openpitrix_log_level }}
+        - name: IM_DB_DATABASE
+          value: "im"
+        - name: IM_DB_HOST
+          value: {{ .Values.mysql.host | quote }}
+        - name: IM_DB_LOG_MODE_ENABLE
+          value: {{ .Values.im.db_log_mode_enable | quote }}
+        - name: IM_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password.txt
+              name: mysql-pass
+        resources:
+          limits:
+            cpu: {{ .Values.cpu_limits }}m
+            memory: {{ .Values.memory_limits }}Mi
+          requests:
+            cpu: {{ .Values.cpu_requests }}m
+            memory: {{ .Values.memory_requests }}Mi

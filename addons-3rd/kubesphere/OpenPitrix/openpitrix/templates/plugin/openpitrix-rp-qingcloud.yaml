@@ -1,0 +1,69 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: openpitrix-rp-qingcloud
+  labels:
+    app: openpitrix
+    component: openpitrix-rp-qingcloud
+    version: {{ .Values.rp.qingcloud_version }}
+spec:
+  selector:
+    app: openpitrix
+    component: openpitrix-rp-qingcloud
+  ports:
+  - name: openpitrix-rp-qingcloud
+    protocol: TCP
+    port: 9121
+    targetPort: 9121
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: openpitrix-rp-qingcloud-deployment
+  labels:
+    app: openpitrix
+    component: openpitrix-rp-qingcloud
+    version: {{ .Values.rp.qingcloud_version }}
+spec:
+  selector:
+    matchLabels:
+      app: openpitrix
+      component: openpitrix-rp-qingcloud
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: openpitrix
+        component: openpitrix-rp-qingcloud
+        version: {{ .Values.rp.qingcloud_version }}
+    spec:
+      initContainers:
+      - name: wait-etcd
+        image: busybox:1.28.4
+        imagePullPolicy: IfNotPresent
+        command: ['sh', '-c', 'until nc -z {{ .Values.etcd.host }}.{{ .Release.Namespace }}.svc {{ .Values.etcd.service_port }}; do echo "waiting for etcd"; sleep 2; done;']
+      - name: wait-runtime-manager
+        image: busybox:1.28.4
+        imagePullPolicy: IfNotPresent
+        command: ['sh', '-c', 'until nc -z openpitrix-rp-manager.{{ .Release.Namespace }}.svc 9121; do echo "waiting for runtime-manager.."; sleep 2; done;']
+      containers:
+      - name: openpitrix-rp-qingcloud
+        image: {{ .Values.rp.qingcloud_image }}
+        imagePullPolicy: {{ .Values.image_pull_policy }}
+        command:
+          - runtime-provider
+        ports:
+        - containerPort: 9121
+          name: rp-qingcloud
+        env:
+        - name: OPENPITRIX_GRPC_SHOW_ERROR_CAUSE
+          value: {{ .Values.grpc_show_error_cause | quote }}
+        - name: OPENPITRIX_LOG_LEVEL
+          value: {{ .Values.openpitrix_log_level }}
+        resources:
+          limits:
+            cpu: {{ .Values.cpu_limits }}m
+            memory: {{ .Values.memory_limits }}Mi
+          requests:
+            cpu: {{ .Values.cpu_requests }}m
+            memory: {{ .Values.memory_requests }}Mi
