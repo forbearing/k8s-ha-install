@@ -21,10 +21,16 @@ function 1_install_docker {
         curl \
         gnupg \
         lsb-release
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    while true; do
+        #if curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg; then
+        if curl -fsSL http://mirrors.ustc.edu.cn/docker-ce/linux/ubuntu/gpg | sudo gpg --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg; then
+            break; fi
+        sleep 1
+    done
     echo \
       "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
       $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    sed -i s%download.docker.com%mirrors.ustc.edu.cn/docker-ce% /etc/apt/sources.list.d/docker.list                 # mirror.ustc.edu.cn for docker-ce
     apt-get update -y
     local VERSION_STRING=""
     local RELEASE=""
@@ -34,7 +40,7 @@ function 1_install_docker {
     elif [[ ${RELEASE} -eq 20 ]]; then
         VERSION_STRING="5:19.03.15~3-0~ubuntu-focal"; fi
     apt-get install -y --allow-downgrades docker-ce=${VERSION_STRING} docker-ce-cli=${VERSION_STRING} containerd.io
-    apt-mark hold docker-ce
+    apt-mark hold docker-ce docker-ce-cli
     systemctl enable --now docker
 }
 
