@@ -35,6 +35,7 @@ function 4_load_kernel_module {
 
     k8s_modules=(
         "#!/usr/bin/env bash"
+        "modprobe -- overlay"
         "modprobe -- ip_vs"
         "modprobe -- ip_vs_rr"
         "modprobe -- ip_vs_wrr"

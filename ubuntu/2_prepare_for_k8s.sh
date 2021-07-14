@@ -19,6 +19,7 @@ function 2_load_kernel_module {
     MSG2 "2. Load kernel module"
 
     k8s_modules=(
+        "overlay"
         "ip_vs"
         "ip_vs_rr"
         "ip_vs_wrr"
