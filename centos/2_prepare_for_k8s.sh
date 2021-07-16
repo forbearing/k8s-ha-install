@@ -8,14 +8,14 @@ MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 
 
 function 1_install_necessary_package_for_k8s {
-    MSG2 "1. Install package for k8s"
+    MSG2 "1. [`hostname`] Install package for k8s"
 
     yum install -y conntrack-tools ipvsadm ipset jq iptables iptables-services bridge-utils sysstat libseccomp gcc gcc-c++ make cmake autoconf automake libxml2-devel openssl-deve curl-devel libaio-devel ncurses-devel zlib-devel ceph-common
 }
 
 
 function 2_disable_swap {
-    MSG2 "2. Disable swap"
+    MSG2 "2. [`hostname`] Disable swap"
 
     sed -i -r "/(.*)swap(.*)swap(.*)/d" /etc/fstab
     swapoff -a
@@ -23,7 +23,7 @@ function 2_disable_swap {
 
 
 function 3_upgrade_kernel {
-    MSG2 "3. Upgrade kernel"
+    MSG2 "3. [`hostname`] Upgrade kernel"
 
     yum install -y kernel-lt
 	grub2-set-default "$(cat /boot/grub2/grub.cfg  | grep '^menuentry' | sed -n '1,1p' | awk -F "'" '{print $2}')"
@@ -31,7 +31,7 @@ function 3_upgrade_kernel {
 
 
 function 4_load_kernel_module {
-    MSG2 "4. Load kernel module"
+    MSG2 "4. [`hostname`] Load kernel module"
 
     k8s_modules=(
         "#!/usr/bin/env bash"
@@ -68,7 +68,7 @@ function 4_load_kernel_module {
 
 
 function 5_configure_kernel_parameter {
-    MSG2 "5. Configure kernel parameter"
+    MSG2 "5. [`hostname`] Configure kernel parameter"
 
     k8s_sysctl=(
         "net.ipv4.ip_forward = 1"
