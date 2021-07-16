@@ -8,7 +8,7 @@ MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 
 
 function 1_disable_swap {
-    MSG2 "1. Disable swap"
+    MSG2 "1. [`hostname`] Disable swap"
 
     sed -i -r "/(.*)swap(.*)swap(.*)/d" /etc/fstab
     swapoff -a
@@ -16,7 +16,7 @@ function 1_disable_swap {
 
 
 function 2_load_kernel_module {
-    MSG2 "2. Load kernel module"
+    MSG2 "2. [`hostname`] Load kernel module"
 
     k8s_modules=(
         "overlay"
@@ -51,7 +51,7 @@ function 2_load_kernel_module {
 
 
 function 3_configure_kernel_parameter {
-    MSG2 "3. Configure kernel parameter"
+    MSG2 "3. [`hostname`] Configure kernel parameter"
 
     k8s_sysctl=(
         "net.ipv4.ip_forward = 1"
