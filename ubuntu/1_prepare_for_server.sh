@@ -8,7 +8,7 @@ MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 
 
 function 1_upgrade_system {
-    MSG2 "1. Upgrade system"
+    MSG2 "1. [`hostname`] Upgrade system"
 
     RELEASE=$(cat /etc/os-release | grep VERSION= | awk -F'.' '{print $1}' | awk -F \" '{print $2}')
     if [[ ${RELEASE} -eq 18 ]]; then
@@ -36,7 +36,7 @@ function 1_upgrade_system {
 
 
 function 2_install_necessary_package {
-    MSG2 "2. Install necessary package"
+    MSG2 "2. [`hostname`] Install necessary package"
 
     apt-get install -y coreutils apt-file apt-transport-https software-properties-common iputils-ping bash-completion wget curl zip unzip bzip2 vim net-tools git zsh fish rsync psmisc procps dnsutils lvm2 ntp ntpdate jq sysstat tree lsof virt-what conntrack ipset open-iscsi ipvsadm auditd socat
     if [[ $(virt-what) == "vmware" ]]; then
@@ -46,14 +46,14 @@ function 2_install_necessary_package {
 
 
 function 3_disable_firewald_and_selinux {
-    MSG2 "3. Disable firewalld and selinux"
+    MSG2 "3. [`hostname`] Disable firewalld and selinux"
 
     ufw disable
 }
 
 
 function 4_set_timezone_and_ntp_client {
-    MSG2 "4. Set timezone and ntp"
+    MSG2 "4. [`hostname`] Set timezone and ntp"
 
     timedatectl set-timezone Asia/Shanghai
     timedatectl set-ntp true
@@ -63,7 +63,7 @@ function 4_set_timezone_and_ntp_client {
 
 
 function 5_configure_sshd {
-    MSG2 "5. Configure ssh"
+    MSG2 "5. [`hostname`] Configure ssh"
     local SSH_CONF_PATH="/etc/ssh/sshd_config"
 
     sed -i "/^UseDNS/d" ${SSH_CONF_PATH}
@@ -93,7 +93,7 @@ function 5_configure_sshd {
 
 
 function 6_configure_ulimit {
-    MSG2 "6. Configure ulimit"
+    MSG2 "6. [`hostname`] Configure ulimit"
     local ULIMITS_CONF_PATH="/etc/security/limits.conf"
 
     sed -i -r "/^\*(.*)soft(.*)nofile(.*)/d" ${ULIMITS_CONF_PATH}
