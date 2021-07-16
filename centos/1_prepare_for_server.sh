@@ -8,10 +8,10 @@ MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 
 
 function 1_import_repo {
-    MSG2 "1. Imort yum repo"
+    MSG2 "1. [`hostname`] Imort yum repo"
     cp /tmp/yum.repos.d/elrepo.repo /etc/yum.repos.d/elrepo.repo
     cp /tmp/yum.repos.d/ceph-nautilus.repo-tsinghua /etc/yum.repos.d/ceph.repo
-    cp /tmp/yum.repos.d/docker-ce.repo /etc/yum.repos.d/docker-ce.repo
+    cp /tmp/yum.repos.d/docker-ce.repo-aliyun /etc/yum.repos.d/docker-ce.repo
     #cp /tmp/yum.repos.d/CentOS-Base.repo-tsinghua /etc/yum.repos.d/CentOS-Base.repo
     #cp /tmp/yum.repos.d/epel.repo-tsinghua /etc/yum.repos.d/epel.repo
     yum makecache
@@ -19,7 +19,7 @@ function 1_import_repo {
 
 
 function 2_install_necessary_package {
-    MSG2 "2. Install necessary package"
+    MSG2 "2. [`hostname`] Install necessary package"
 
     yum install -y epel-release
     yum install -y coreutils bash-completion iputils wget curl zip unzip bzip2 vim net-tools git zsh fish rsync psmisc procps-ng bind-utils yum-utils device-mapper-persistent-data lvm2 ntp ntpdate jq sysstat nc tree lsof virt-what audit iscsi-initiator-utils socat
@@ -31,14 +31,14 @@ function 2_install_necessary_package {
 
 
 function 3_upgrade_system {
-    MSG2 "3. Upgrade system"
+    MSG2 "3. [`hostname`] Upgrade system"
 
     yum update -y --exclude="docker-ce,kernel-lt"
 }
 
 
 function 4_disable_firewald_and_selinux {
-    MSG2 "4. Disable firewalld and selinux"
+    MSG2 "4. [`hostname`] Disable firewalld and selinux"
 
     systemctl disable --now firewalld
     setenforce 0
@@ -48,7 +48,7 @@ function 4_disable_firewald_and_selinux {
 
 
 function 5_set_timezone_and_ntp_client {
-    MSG2 "5. Set timezone and ntp"
+    MSG2 "5. [`hostname`] Set timezone and ntp"
 
     timedatectl set-timezone 'Asia/Shanghai'
     timedatectl set-ntp 1
@@ -58,7 +58,7 @@ function 5_set_timezone_and_ntp_client {
 
 
 function 6_configure_sshd {
-    MSG2 "6. Configure ssh"
+    MSG2 "6. [`hostname`] Configure ssh"
     local SSH_CONF_PATH="/etc/ssh/sshd_config"
 
     sed -i "/^UseDNS/d" ${SSH_CONF_PATH}
@@ -88,7 +88,7 @@ function 6_configure_sshd {
 
 
 function 7_configure_ulimit {
-    MSG2 "7. Configure ulimit"
+    MSG2 "7. [`hostname`] Configure ulimit"
     local ULIMITS_CONF_PATH="/etc/security/limits.conf"
 
     sed -i -r "/^\*(.*)soft(.*)nofile(.*)/d" ${ULIMITS_CONF_PATH}
