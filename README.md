@@ -13,4 +13,4 @@
 bash setup_install-k8s.sh
 
 ## 2.2 你需要修改的地方
-修改 k8s-vm.env 文件即可
+修改 k8s.env 文件即可
