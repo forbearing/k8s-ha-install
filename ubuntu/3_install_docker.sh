@@ -11,7 +11,7 @@ MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 
 
 function 1_install_docker {
-    MSG2 "1. Install docker"
+    MSG2 "1. [`hostname`] Install docker"
 
     apt-get remove -y docker docker-engine docker.io containerd runc
     apt-get update -y
@@ -46,7 +46,7 @@ function 1_install_docker {
 
 
 function 2_configure_docker {
-    MSG2 "2. Configure docker"
+    MSG2 "2. [`hostname`] Configure docker"
 
 cat > /etc/docker/daemon.json <<-EOF
 {
@@ -73,13 +73,13 @@ EOF
 
 
 function 3_configure_containerd {
-    MSG2 "3. Configure containerd"
+    MSG2 "3. [`hostname`] Configure containerd"
     sed -i "s/^KillMode=process/KillMode=mixed/g" /lib/systemd/system/containerd.service
     systemctl daemon-reload
 }
 
 function 4_audit_for_docker {
-    MSG2 "4. Audit for Docker"
+    MSG2 "4. [`hostname`] Audit for Docker"
     audit_file=(
         "-w /var/lib/docker -p wa"
         "-w /etc/docker -p wa"

@@ -8,13 +8,13 @@ MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 
 
 function 1_install_docker {
-    MSG2 "1. Install docker"
+    MSG2 "1. [`hostname`] Install docker"
     yum install -y docker-ce-19.03.15-3.el7
     systemctl enable --now docker
 }
 
 function 2_configure_docker {
-    MSG2 "2. Configure docker"
+    MSG2 "2. [`hostname`] Configure docker"
 cat > /etc/docker/daemon.json <<-EOF
 {
   "exec-opts": ["native.cgroupdriver=systemd"],
