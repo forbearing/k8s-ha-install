@@ -16,8 +16,10 @@ while getopts "e:h" opt; do
         *) ERR "$(basename $0) -e environment_file" && exit $EXIT_FAILURE
     esac
 done
-[ -z $environment_file ] && ERR "$(basename $0) -e environment_file" && exit $EXIT_FAILURE
+#[ -z $environment_file ] && ERR "$(basename $0) -e environment_file" && exit $EXIT_FAILURE
+[ -z $environment_file ] && environment_file="k8s.env"
 source "$environment_file"
+
 
 MSG1 "=================================== Environment ==================================="
 echo "MASTER_HOST:              ${MASTER_HOST[*]}"
@@ -46,7 +48,7 @@ function 0_prepare {
 
     # 检查网络是否可用，否则退出脚本
     # 检查新增节点是否可达，否则退出脚本
-    if ! timeout 2 ping -c 1 -i 1 8.8.8.8; then ERR "no network" && exit $EXIT_FAILURE; fi
+    if ! timeout 2 ping -c 2 -i 1 114.114.114.114 &> /dev/null; then ERR "no network" && exit $EXIT_FAILURE; fi
     for NODE in "${ADD_WORKER_IP[@]}"; do
         if ! timeout 2 ping -c 1 -i 1 ${NODE}; then
             ERR "worker node ${NODE} can't access"
@@ -95,7 +97,7 @@ function 2_copy_hosts_file {
 }
 
 
-#  复制二进制文件 kubelet kube-proxy
+# 初始化新添加的节点
 function 3_run_script {
     MSG1 "3. run script"
 
@@ -126,6 +128,7 @@ function 3_run_script {
 }
 
 
+# 复制二进制文件 kubelet kube-proxy kubectl
 function 4_copy_binary_file {
     MSG1 "4. copy binary file"
     tar -xvf bin/kubelet.tgz -C bin/
@@ -140,8 +143,11 @@ function 4_copy_binary_file {
 }
 
 
-# 从第一个 worker 节点上把相关的 k8s 证书文件、etcd 证书文件、
-# kubelet 和 kube-proxy 自启动文件、kublet 和 kube-proxy 的配置文件拷贝到新的 worker 节点上
+# 从第一个 worker 节点上把相关的：
+#   1、k8s 证书文件、etcd 证书文件、
+#   2、kubelet 和 kube-proxy 自启动文件
+#   3、kublet 和 kube-proxy 配置文件
+# 拷贝到新的 worker 节点上
 function 5_copy_certs_and_config_file {
     for NODE in "${ADD_WORKER_IP[@]}"; do
         MSG1 "5. copy certs and config file"
@@ -167,6 +173,8 @@ function 5_copy_certs_and_config_file {
     done
 }
 
+
+# enabled kublet, kube-proxy service
 function 6_enable_kube_service {
     MSG1 "6. Enbled kubelet kube-proxy service"
 
