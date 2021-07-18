@@ -43,8 +43,8 @@ function 2_delete_k8s_service_and_file {
     local K8S_FILE_LIST=(
         /root/.kube/
         /etc/kubernetes/
-        /etc/etcd/
         /etc/systemd/system/kubelet.service.d/
+        /etc/etcd/
         /etc/cni
         /opt/cni/
         /var/lib/etcd/
@@ -52,7 +52,19 @@ function 2_delete_k8s_service_and_file {
         /lib/systemd/system/kube-controller-manager.service
         /lib/systemd/system/kube-scheduler.service
         /lib/systemd/system/kube-proxy.service
-        /lib/systemd/system/kubelet.service)
+        /lib/systemd/system/kubelet.service
+        /lib/systemd/system/etcd.service
+        /usr/local/bin/kube-apiserver
+        /usr/local/bin/kube-controller-manager
+        /usr/local/bin/kube-scheduler
+        /usr/local/bin/kube-proxy
+        /usr/local/bin/kubelet
+        /usr/local/bin/kubectl
+        /usr/local/bin/etcd
+        /usr/local/bin/etcdctl
+        /usr/local/bin/cfssl
+        /usr/local/bin/cfssl-json
+        /usr/local/bin/cfssl-certinfo)
 
     # stop k8s service
     for SERVICE in "${K8S_SERVICE_LIST[@]}"; do
@@ -94,7 +106,7 @@ function 3_remove_docker_and_file {
             done
             ssh root@${DEL_WORKER} reboot
             ;;
-        "centos")
+        "centos"|"rhel")
             ssh root@${DEL_WORKER} "systemctl disable --now containerd docker"
             ssh root@${DEL_WORKER} "yum remove -y docker-ce docker-ce-cli containerd.io"
             ssh root@${DEL_WORKER} "groupdel docker"
