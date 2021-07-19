@@ -45,9 +45,11 @@ function 2_delete_k8s_service_and_file {
         /etc/kubernetes/
         /etc/systemd/system/kubelet.service.d/
         /etc/etcd/
-        /etc/cni
+        /etc/cni/
         /opt/cni/
         /var/lib/etcd/
+        /var/lib/kubelet/
+        /var/lib/calico/
         /lib/systemd/system/kube-apiserver.service
         /lib/systemd/system/kube-controller-manager.service
         /lib/systemd/system/kube-scheduler.service
@@ -60,11 +62,16 @@ function 2_delete_k8s_service_and_file {
         /usr/local/bin/kube-proxy
         /usr/local/bin/kubelet
         /usr/local/bin/kubectl
+        /usr/local/bin/helm
         /usr/local/bin/etcd
         /usr/local/bin/etcdctl
         /usr/local/bin/cfssl
         /usr/local/bin/cfssl-json
-        /usr/local/bin/cfssl-certinfo)
+        /usr/local/bin/cfssl-certinfo
+        /var/log/kubernetes/
+        /var/log/calico/
+        /var/log/containers/
+        /var/log/pods/)
 
     # stop k8s service
     for SERVICE in "${K8S_SERVICE_LIST[@]}"; do
@@ -82,14 +89,15 @@ function 3_remove_docker_and_file {
     MSG1 "3. remove docker-ce containerd"
 
     DOCKER_CONTAINERD_FILE_LIST=(
+        /var/lib/docker/
         /etc/docker/
         /run/docker/
-        /var/run/docker.sock
-        /var/run/dockershim.sock
-        /var/lib/docker/
-        /etc/containerd/
+        /run/docker.sock
         /var/lib/containerd/
-        /run/containerd/)
+        /etc/containerd/
+        /run/containerd/
+        /var/lib/dockershim/
+        /run/dockershim.sock)
 
     # remove docker-ce containerd
     scp root@${DEL_WORKER}:/etc/os-release /tmp/
