@@ -2,6 +2,7 @@
 
 # to-do-list (跟你无关，你不用关注这个)
 #   - 提供选项 kube-proxy mode: ipvs, iptables
+#   - 所有通用脚本，例如: 检查 Linux 版本、是否为 root 用户、检查网络，都放在 script/function.sh 文件中
 
 # 描述: 一共分为 5 个阶段
 #   Stage Prepare: 准备阶段，用来配置 ssh 免密码登录和主机名
@@ -38,6 +39,14 @@
 #   4. 所有 k8s 节点必须要相同的操作系统和 Linux 发行版本，要么都为 Ubuntu 要么都为 CentOS
 #   5. EXTRA_MASTER_HOST 和 EXTRA_MASTER_IP 数组用来扩展 etcd 节点和 k8s master 节点
 #      etcd 节点默认部署在 k8s master 节点上。
+# 说明:
+#   1. 安装 k8s 五个阶段的脚本都存放在 scripts 目录下，分别对应
+#      scripts/0_stage_prepare.sh
+#      scripts/1_stage_one.sh
+#      scripts/2_stage_two.sh
+#      scripts/3_stage_three.sh
+#      scripts/4_stage_four.sh
+#      scripts/5_stage_five.sh
 
 EXIT_SUCCESS=0
 EXIT_FAILURE=1
