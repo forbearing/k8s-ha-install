@@ -393,10 +393,10 @@ function 7_setup_keepalived {
     for (( i=0; i<${#MASTER[@]}; i++ )); do
         if [[ $i == "0" ]]; then
             STATE="MASTER"
-            PRIORITY=100
+            PRIORITY=101
         else
             STATE="BACKUP"
-            PRIORITY=101; fi
+            PRIORITY=100; fi
         cp conf/keepalived.conf /tmp/keepalived.conf-$i
         sed -i "s/#STATE#/${STATE}/" /tmp/keepalived.conf-$i
         sed -i "s/#INTERFACE#/${INTERFACE}/" /tmp/keepalived.conf-$i
