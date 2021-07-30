@@ -1,0 +1,24 @@
+# cephfs
+    ceph-deploy mds create node1
+    ceph-deploy mds create node2 node3
+    ceph osd pool create cephfs_metadata 16 16
+    ceph osd pool create cephfs_data 16 16
+    ceph fs new cephfs cephfs_metadata cephfs_data
+    ceph osd lspools
+        1 k8s                           # ceph rbd pool
+        2 cephfs_metadata               # ceph fs metadata pool
+        3 cephfs_data                   # ceph fs data pool
+
+    mkdir /mnt/cephfs
+    mount -t ceph 10.250.20.11:6789:/ /mnt/cephfs -o name=admin
+    mount -t ceph 10.250.20.11:6789,10.250.20.12:6789,10.250.20.13:6789:/ /mnt/cephfs/ \
+        -o name=admin,secret=AQDW8gNhCiu6NBAAEBSKPtQOMnplCPUX2K70Cg==
+    umount /mnt/cephfs
+
+    # 以上所有命令都执行成功，表示在 ceph 集群中，我的 cephfs 没有问题
+
+# install cephfs plugin for k8s
+#   1. 所有的 yaml 都是从 ceph-csi 的 github 复制粘贴 下来的
+#   2. 部署插件的步骤完全和 ceph-csi 的文档一致
+#   3. 我修改的地方: configmap、镜像
+#   4. 默认部署在 default 命名空间，我修改成部署到 ceph 命名空间下
