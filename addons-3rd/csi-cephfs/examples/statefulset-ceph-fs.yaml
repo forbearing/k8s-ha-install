@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-ceph-fs
+  labels:
+    app: nginx-ceph-fs
+spec:
+  clusterIP: None
+  selector:
+    app: nginx-ceph-fs
+  ports:
+  - name: http
+    port: 80
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nginx-ceph-fs
+spec:
+  serviceName: "nginx"
+  selector:
+    matchLabels:
+      app: nginx-ceph-fs
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: nginx-ceph-fs
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+          name: http
+        volumeMounts:
+        - name: www
+          mountPath: /usr/share/nginx/html
+  volumeClaimTemplates:
+  - metadata:
+      name: www
+    spec:
+      accessModes: ["ReadWriteMany"]
+      storageClassName: "ceph-fs"
+      resources:
+        requests:
+          storage: 1Gi
