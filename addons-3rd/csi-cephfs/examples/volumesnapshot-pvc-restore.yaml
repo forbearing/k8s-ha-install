@@ -1,0 +1,17 @@
+# restore from VolumeSnapshot
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: volumesnapshot-pvc2-restore1
+spec:
+  storageClassName: ceph-fs
+  dataSource:
+    name: volumesnapshot-snapshot2
+    kind: VolumeSnapshot
+    apiGroup: snapshot.storage.k8s.io
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

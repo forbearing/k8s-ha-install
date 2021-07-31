@@ -1,0 +1,16 @@
+# clone from PVC
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: volumesnapshot-pvc2-clone1
+spec:
+  storageClassName: ceph-fs
+  dataSource:
+    name: volumesnapshot-pvc2
+    kind: PersistentVolumeClaim
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
