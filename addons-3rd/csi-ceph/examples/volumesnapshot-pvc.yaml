@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: volumesnapshot-pvc1
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: ceph-rbd
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 1Gi

@@ -1,0 +1,9 @@
+---
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: volumesnapshot-snapshot1
+spec:
+  volumeSnapshotClassName: ceph-rbd-snapshot
+  source:
+    persistentVolumeClaimName: volumesnapshot-pvc1
