@@ -1,0 +1,19 @@
+# 3. Deploy ConfigMap for CSI plugins
+---
+apiVersion: v1
+kind: ConfigMap
+data:
+  config.json: |-
+    [
+      {
+        "clusterID": "54637766-dac9-4a10-97a3-654200467317",
+        "monitors": [
+          "10.250.20.11:6789",
+          "10.250.20.12:6789",
+          "10.250.20.13:6789"
+        ]
+      }
+    ]
+metadata:
+  name: ceph-csi-config
+  namespace: ceph
