@@ -77,7 +77,7 @@ function deploy_cephcsi {
     kubectl create namespace ${CEPH_NAMESPACE}
 
 
-    rm -rf /tmp/csi-ceph && cp -r addons-3rd/csi-ceph /tmp/csi-ceph
+    rm -rf /tmp/csi-ceph && cp -r addons-3rd/csi-ceph/v2.0.1/ /tmp/csi-ceph
     for FILE in \
         /tmp/csi-ceph/1_cm_ceph-csi-config.yaml \
         /tmp/csi-ceph/2_cm_ceph-csi-encryption-kms-config.yaml \
