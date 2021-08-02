@@ -28,10 +28,9 @@ function 0_check_root_and_os() {
     [ `id -u` != "0" ] && ERR "not root !" && exit $EXIT_FAILURE
     [ `uname` != "Linux" ] && ERR "not support !" && exit $EXIT_FAILURE
 
-    timeout 2 ping -c 1 -i 1 8.8.8.8
+    timeout 2 ping -c 1 -i 1 114.114.114.114
     if [ $? != 0 ]; then ERR "no network"; exit $EXIT_FAILURE; fi
 }
-
 
 
 function 1_ssh_public_key_auth {
@@ -167,16 +166,17 @@ sed -i 's/^[[:space:]]*//' /tmp/set_default_kernel.sh
     # 升级系统
     MSG2 "2.4 upgrade system"
     for NODE in "${CEPH_NODE[@]}"; do
-        ssh ${NODE} "yum update -y"
+        ssh ${NODE} "yum update -y" &
     done
+    wait
 
 
     # 时区、时间同步配置
     MSG2 "2.5 Setup timezone and ntp"
-    echo "server 0.asia.pool.ntp.org iburst" > /etc/ntpd.conf
-    echo "server 1.asia.pool.ntp.org iburst" >> /etc/ntpd.conf
-    echo "server 2.asia.pool.ntp.org iburst" >> /etc/ntpd.conf
-    echo "server 3.asia.pool.ntp.org iburst" >> /etc/ntpd.conf
+    echo "server 0.asia.pool.ntp.org iburst" > /etc/ntp.conf
+    echo "server 1.asia.pool.ntp.org iburst" >> /etc/ntp.conf
+    echo "server 2.asia.pool.ntp.org iburst" >> /etc/ntp.conf
+    echo "server 3.asia.pool.ntp.org iburst" >> /etc/ntp.conf
     for NODE in "${CEPH_NODE[@]}"; do
         ssh ${NODE} "timedatectl set-timezone 'Asia/Shanghai'"
         ssh ${NODE} "timedatectl set-ntp 0"
@@ -196,11 +196,14 @@ function 3_optimize_for_ceph {
     MSG1 "3. optimize for ceph"
 
     # 升级内核并设置默认内核
-    MSG2 "3.1 Upgrade Kernel"
-    for NODE in "${CEPH_NODE[@]}"; do
-        ssh ${NODE} "yum install -y kernel-lt"
-        ssh ${NODE} "bash -s" < "/tmp/set_default_kernel.sh"
-    done
+    #MSG2 "3.1 Upgrade Kernel"
+    #for NODE in "${CEPH_NODE[@]}"; do
+        #ssh ${NODE} "yum install -y kernel-lt" &
+    #done
+    #wait
+    #for NODE in "${CEPH_NODE[@]}"; do
+        #ssh ${NODE} "bash -s" < "/tmp/set_default_kernel.sh"
+    #done
 
 
     # 设置 ulimit，调整最大打开文件数、最大进程数、内存最大锁定值
@@ -254,8 +257,9 @@ function 4_install_ceph {
     # step 2: install new package in remote host
     MSG2 "4.2 Install ceph package in remote host"
     for NODE in "${CEPH_NODE[@]}"; do
-        ssh ${NODE} "yum install -y ceph-mon ceph-mgr ceph-osd ceph-mds ceph-radosgw ceph"
+        ssh ${NODE} "yum install -y ceph-mon ceph-mgr ceph-osd ceph-mds ceph-radosgw ceph" &
     done
+    wait
 
     # step 3: create ceph-mon
     MSG2 "4.3 Create ceph-mon"
