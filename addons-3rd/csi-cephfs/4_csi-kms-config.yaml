@@ -1,4 +1,4 @@
-
+apiVersion: v1
 kind: ConfigMap
 data:
   config.json: |-
@@ -66,3 +66,4 @@ data:
     }
 metadata:
   name: ceph-csi-encryption-kms-config
+  namespace: #CEPH_NAMESPACE#

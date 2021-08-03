@@ -4,14 +4,13 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: cephfs-csi-provisioner
-  namespace: ceph
+  namespace: #CEPH_NAMESPACE#
 
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: cephfs-external-provisioner-runner
-  namespace: ceph
 rules:
   - apiGroups: [""]
     resources: ["nodes"]
@@ -60,11 +59,10 @@ kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: cephfs-csi-provisioner-role
-  namespace: ceph
 subjects:
   - kind: ServiceAccount
     name: cephfs-csi-provisioner
-    namespace: ceph
+    namespace: #CEPH_NAMESPACE#
 roleRef:
   kind: ClusterRole
   name: cephfs-external-provisioner-runner
@@ -75,7 +73,7 @@ kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   # replace with non-default namespace name
-  namespace: ceph
+  namespace: #CEPH_NAMESPACE#
   name: cephfs-external-provisioner-cfg
 rules:
   # remove this once we stop supporting v1.0.0
@@ -92,7 +90,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: cephfs-csi-provisioner-role-cfg
   # replace with non-default namespace name
-  namespace: ceph
+  namespace: #CEPH_NAMESPACE#
 subjects:
   - kind: ServiceAccount
     name: cephfs-csi-provisioner

@@ -4,7 +4,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: csi-cephfsplugin-provisioner
-  namespace: ceph
+  namespace: #CEPH_NAMESPACE#
   labels:
     app: csi-metrics
 spec:
@@ -21,7 +21,7 @@ kind: Deployment
 apiVersion: apps/v1
 metadata:
   name: csi-cephfsplugin-provisioner
-  namespace: ceph
+  namespace: #CEPH_NAMESPACE#
 spec:
   selector:
     matchLabels:
