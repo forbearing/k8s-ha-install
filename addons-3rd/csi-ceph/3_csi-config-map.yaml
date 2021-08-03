@@ -6,14 +6,14 @@ data:
   config.json: |-
     [
       {
-        "clusterID": "54637766-dac9-4a10-97a3-654200467317",
+        "clusterID": "#CEPH_CLUSTER_ID#",
         "monitors": [
-          "10.250.20.11:6789",
-          "10.250.20.12:6789",
-          "10.250.20.13:6789"
+          "#CEPH_MON_IP_0#:6789",
+          "#CEPH_MON_IP_1#:6789",
+          "#CEPH_MON_IP_2#:6789"
         ]
       }
     ]
 metadata:
   name: ceph-csi-config
-  namespace: ceph
+  namespace: #CEPH_NAMESPACE#

@@ -2,7 +2,7 @@
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-   name: ceph-rbd
+   name: #CEPH_RBD_SC#
 provisioner: rbd.csi.ceph.com
 # If topology based provisioning is desired, delayed provisioning of
 # PV is required and is enabled using the following attribute
@@ -16,7 +16,7 @@ parameters:
    # Ensure to create an entry in the configmap named ceph-csi-config, based on
    # csi-config-map-sample.yaml, to accompany the string chosen to
    # represent the Ceph cluster in clusterID below
-   clusterID: 54637766-dac9-4a10-97a3-654200467317
+   clusterID: #CEPH_CLUSTER_ID#
 
    # (optional) If you want to use erasure coded pool with RBD, you need to
    # create two pools. one erasure coded and one replicated.
@@ -27,7 +27,7 @@ parameters:
 
    # (required) Ceph pool into which the RBD image shall be created
    # eg: pool: rbdpool
-   pool: k8s
+   pool: #CEPH_RBD_POOL#
 
    # Set thickProvision to true if you want RBD images to be fully allocated on
    # creation (thin provisioning is the default).
@@ -55,11 +55,11 @@ parameters:
    # The secrets have to contain Ceph credentials with required access
    # to the 'pool'.
    csi.storage.k8s.io/provisioner-secret-name: csi-rbd-secret
-   csi.storage.k8s.io/provisioner-secret-namespace: ceph
+   csi.storage.k8s.io/provisioner-secret-namespace: #CEPH_NAMESPACE#
    csi.storage.k8s.io/controller-expand-secret-name: csi-rbd-secret
-   csi.storage.k8s.io/controller-expand-secret-namespace: ceph
+   csi.storage.k8s.io/controller-expand-secret-namespace: #CEPH_NAMESPACE#
    csi.storage.k8s.io/node-stage-secret-name: csi-rbd-secret
-   csi.storage.k8s.io/node-stage-secret-namespace: ceph
+   csi.storage.k8s.io/node-stage-secret-namespace: #CEPH_NAMESPACE#
 
    # (optional) Specify the filesystem type of the volume. If not specified,
    # csi-provisioner will set default as `ext4`.
