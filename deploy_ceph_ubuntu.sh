@@ -13,12 +13,19 @@ MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 #========== ceph
 declare -A CEPH_NODE
 CEPH_NODE=( 
-    [sh-u18-ceph-node1]=10.250.19.11
-    [sh-u18-ceph-node2]=10.250.19.12
-    [sh-u18-ceph-node3]=10.250.19.13)
-CEPH_ROOT_PASS="toor"
-CEPH_CLUSTER_NETWORK="10.250.0.0/16"
-CEPH_PUBLIC_NETWORK="10.250.0.0/16"
+    [sh-u18-ceph-node1]=10.240.1.11
+    [sh-u18-ceph-node2]=10.240.1.12
+    [sh-u18-ceph-node3]=10.240.1.13)
+CEPH_ROOT_PASS="doe)aMmj,sk|"
+CEPH_CLUSTER_NETWORK="10.240.0.0/16"
+CEPH_PUBLIC_NETWORK="10.240.0.0/16"
+#CEPH_NODE=( 
+    #[sh-u18-ceph-node1]=10.250.19.11
+    #[sh-u18-ceph-node2]=10.250.19.12
+    #[sh-u18-ceph-node3]=10.250.19.13)
+#CEPH_ROOT_PASS="toor"
+#CEPH_CLUSTER_NETWORK="10.250.0.0/16"
+#CEPH_PUBLIC_NETWORK="10.250.0.0/16"
 CEPH_OSD_DISK="/dev/sdb"
 
 
@@ -187,12 +194,25 @@ function 5_deploy_ceph_cluster {
     cd /root/ceph-deploy
     ceph-deploy --overwrite-conf new --cluster-network="${CEPH_CLUSTER_NETWORK}" --public-network="${CEPH_PUBLIC_NETWORK}" $(hostname)
     ceph-deploy --overwrite-conf mon create-initial
+
     for HOST in "${!CEPH_NODE[@]}"; do
         local IP=${CEPH_NODE[$HOST]}
         ceph-deploy --overwrite-conf admin ${HOST}
+    done
+
+    cd /root/ceph-deploy/
+    local count=0
+    for HOST in "${!CEPH_NODE[@]}"; do
+        local IP=${CEPH_NODE[$HOST]}
         ceph-deploy --overwrite-conf mon create ${HOST}
         ceph-deploy --overwrite-conf mgr create ${HOST}
         ceph-deploy --overwrite-conf mds create ${HOST}
+        count=$(( count + 1 ))
+        if [[ $count -eq 3 ]]; then break; fi
+    done
+
+    for HOST in "${!CEPH_NODE[@]}"; do
+        local IP=${CEPH_NODE[$HOST]}
         ceph-deploy --overwrite-conf osd create ${HOST} --data ${CEPH_OSD_DISK}
     done
     ceph config set mon mon_warn_on_insecure_global_id_reclaim false
