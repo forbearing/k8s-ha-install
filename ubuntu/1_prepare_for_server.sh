@@ -10,23 +10,26 @@ MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 function 1_upgrade_system {
     MSG2 "1. [`hostname`] Upgrade system"
 
-    RELEASE=$(cat /etc/os-release | grep VERSION= | awk -F'.' '{print $1}' | awk -F \" '{print $2}')
-    if [[ ${RELEASE} -eq 18 ]]; then
-        source_list=(
-            "deb https://mirrors.ustc.edu.cn/ubuntu bionic main restricted multiverse universe"
-            "deb https://mirrors.ustc.edu.cn/ubuntu bionic-updates main restricted universe multiverse"
-            "deb https://mirrors.ustc.edu.cn/ubuntu bionic-backports main restricted universe multiverse"
-            "deb https://mirrors.ustc.edu.cn/ubuntu bionic-security main restricted universe multiverse")
-    elif [[ ${RELEASE} -eq 20 ]]; then
-        source_list=(
-            "deb https://mirrors.ustc.edu.cn/ubuntu focal main restricted multiverse universe"
-            "deb https://mirrors.ustc.edu.cn/ubuntu focal-updates main restricted universe multiverse"
-            "deb https://mirrors.ustc.edu.cn/ubuntu focal-backports main restricted universe multiverse"
-            "deb https://mirrors.ustc.edu.cn/ubuntu focal-security main restricted universe multiverse"); fi
-    mv /etc/apt/sources.list /etc/apt/sources.list.bak
+    local mirrors
+    local release
+    #mirrors="https://mirrors.ustc.edu.cn/ubuntu"
+    mirrors="https://mirrors.aliyun.com/ubuntu"
+    release=$(lsb_release -sc)
+    source_list=(
+        "deb ${mirrors} ${release} main restricted universe multiverse"
+        "deb ${mirrors} ${release}-security main restricted universe multiverse"
+        "deb ${mirrors} ${release}-updates main restricted universe multiverse"
+        "deb ${mirrors} ${release}-proposed main restricted universe multiverse"
+        "deb ${mirrors} ${release}-backports main restricted universe multiverse"
+        "deb-src ${mirrors} ${release} main restricted universe multiverse"
+        "deb-src ${mirrors} ${release}-security main restricted universe multiverse"
+        "deb-src ${mirrors} ${release}-updates main restricted universe multiverse"
+        "deb-src ${mirrors} ${release}-proposed main restricted universe multiverse"
+        "deb-src ${mirrors} ${release}-backports main restricted universe multiverse")
+    if ! ls /etc/apt/sources.list.bak; then cp /etc/apt/sources.list /etc/apt/sources.list.bak; fi
     printf "%s\n" "${source_list[@]}" > /etc/apt/sources.list
 
-    local DEBIAN_FRONTEND=noninteractive
+    export DEBIAN_FRONTEND=noninteractive
     apt-get update -y
     apt-get -o Dpkg::Options::="--force-confold" upgrade -q -y
     apt-get -o Dpkg::Options::="--force-confold" dist-upgrade -q -y
@@ -48,7 +51,7 @@ function 2_install_necessary_package {
 function 3_disable_firewald_and_selinux {
     MSG2 "3. [`hostname`] Disable firewalld and selinux"
 
-    ufw disable
+    ufw --force disable
 }
 
 
