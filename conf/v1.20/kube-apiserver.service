@@ -1,0 +1,47 @@
+[Unit]
+Description=Kubernetes API Server
+Documentation=https://github.com/kubernetes/kubernetes
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/kube-apiserver \
+    --v=2  \
+    --logtostderr=true  \
+    --allow-privileged=true  \
+    --bind-address=0.0.0.0  \
+    --secure-port=6443  \
+    --insecure-port=0  \
+    --advertise-address=#MASTER_IP# \
+    --service-cluster-ip-range=#SRV_NETWORK_CIDR#  \
+    --service-node-port-range=30000-32767  \
+    --etcd-servers=https://#MASTER_IP_0#:2379,https://#MASTER_IP_1#:2379,https://#MASTER_IP_2#:2379 \
+    --etcd-cafile=#ETCD_CERT_PATH#/etcd-ca.pem  \
+    --etcd-certfile=#ETCD_CERT_PATH#/etcd.pem  \
+    --etcd-keyfile=#ETCD_CERT_PATH#/etcd-key.pem  \
+    --client-ca-file=#KUBE_CERT_PATH#/ca.pem  \
+    --tls-cert-file=#KUBE_CERT_PATH#/apiserver.pem  \
+    --tls-private-key-file=#KUBE_CERT_PATH#/apiserver-key.pem  \
+    --kubelet-client-certificate=#KUBE_CERT_PATH#/apiserver.pem  \
+    --kubelet-client-key=#KUBE_CERT_PATH#/apiserver-key.pem  \
+    --service-account-key-file=#KUBE_CERT_PATH#/sa.pub  \
+    --service-account-signing-key-file=#KUBE_CERT_PATH#/sa.key  \
+    --service-account-issuer=https://kubernetes.default.svc.cluster.local \
+    --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname  \
+    --enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,ResourceQuota  \
+    --authorization-mode=Node,RBAC  \
+    --enable-bootstrap-token-auth=true  \
+    --requestheader-client-ca-file=#KUBE_CERT_PATH#/front-proxy-ca.pem  \
+    --proxy-client-cert-file=#KUBE_CERT_PATH#/front-proxy-client.pem  \
+    --proxy-client-key-file=#KUBE_CERT_PATH#/front-proxy-client-key.pem  \
+    --requestheader-allowed-names=aggregator  \
+    --requestheader-group-headers=X-Remote-Group  \
+    --requestheader-extra-headers-prefix=X-Remote-Extra-  \
+    --requestheader-username-headers=X-Remote-User
+    # --token-auth-file=/etc/kubernetes/token.csv
+
+Restart=on-failure
+RestartSec=10s
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
