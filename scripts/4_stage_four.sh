@@ -1,32 +1,51 @@
 #!/usr/bin/env bash
 
 function 1_copy_binary_package_and_create_dir {
-    # 1、将 kubernetes 二进制软件包、etcd 二进制软件包、cfssl 工具包拷贝到所有的 master 节点上
-    # 2、将 Kubernetes 二进制软件包拷贝到所有的 worker 节点上
+    # 1. 解压 k8s 二进制文件
+    # 2. 将 kubernetes 二进制文件、etcd 二进制文件、cfssl 工具包拷贝到所有的 master 节点
+    # 3. 将 Kubernetes 二进制文件拷贝到所有的 worker 节点
+    # 4. k8s 所有节点创建所需目录
     MSG2 "1. Copy Binary Package and Create Dir"
 
-    # 将二进制软件包拷贝到 k8s 节点上
-    tar -xvf ${PKG_PATH}/kube-apiserver.tgz -C bin/
-    tar -xvf ${PKG_PATH}/kube-controller-manager.tgz -C bin/
-    tar -xvf ${PKG_PATH}/kube-scheduler.tgz -C bin/
-    tar -xvf ${PKG_PATH}/kubelet.tgz -C bin/
-    tar -xvf ${PKG_PATH}/kube-proxy.tgz -C bin/
-    tar -xvf ${PKG_PATH}/kubectl.tgz -C bin/
-    # 将二进制软件包拷贝到 master 节点
+    # 1. 解压 k8s 二进制文件
+    mkdir -p ${K8S_DEPLOY_LOG_PATH}/bin
+    tar -xvf ${PKG_PATH}/${K8S_VERSION}/kube-apiserver.tar.xz           -C ${K8S_DEPLOY_LOG_PATH}/bin/
+    tar -xvf ${PKG_PATH}/${K8S_VERSION}/kube-controller-manager.tar.xz  -C ${K8S_DEPLOY_LOG_PATH}/bin/
+    tar -xvf ${PKG_PATH}/${K8S_VERSION}/kube-scheduler.tar.xz           -C ${K8S_DEPLOY_LOG_PATH}/bin/
+    tar -xvf ${PKG_PATH}/${K8S_VERSION}/kube-proxy.tar.xz               -C ${K8S_DEPLOY_LOG_PATH}/bin/
+    tar -xvf ${PKG_PATH}/${K8S_VERSION}/kubelet.tar.xz                  -C ${K8S_DEPLOY_LOG_PATH}/bin/
+    tar -xvf ${PKG_PATH}/${K8S_VERSION}/kubectl.tar.xz                  -C ${K8S_DEPLOY_LOG_PATH}/bin/
+
+    # 2. 将 k8s 二进制文件拷贝到所有 master 节点
     for NODE in "${MASTER[@]}"; do
-        for PKG in etcd etcdctl \
-            kube-apiserver kube-controller-manager kube-scheduler \
-            kube-proxy kubelet kubectl \
-            cfssl cfssl-json cfssl-certinfo \
-            helm; do
-            scp ${PKG_PATH}/${PKG} ${NODE}:/usr/local/bin/${PKG}; done; done
-    # 将二进制软件包拷贝到 worker 节点
+        for PKG in \
+            ${PKG_PATH}/etcd \
+            ${PKG_PATH}/etcdctl \
+            ${PKG_PATH}/helm \
+            ${PKG_PATH}/cfssl \
+            ${PKG_PATH}/cfssl-json \
+            ${PKG_PATH}/cfssl-certinfo \
+            ${K8S_DEPLOY_LOG_PATH}/bin/kube-apiserver \
+            ${K8S_DEPLOY_LOG_PATH}/bin/kube-controller-manager \
+            ${K8S_DEPLOY_LOG_PATH}/bin/kube-scheduler \
+            ${K8S_DEPLOY_LOG_PATH}/bin/kube-proxy \
+            ${K8S_DEPLOY_LOG_PATH}/bin/kubelet \
+            ${K8S_DEPLOY_LOG_PATH}/bin/kubectl; do
+            scp ${PKG} ${NODE}:/usr/local/bin/
+        done
+    done
+
+    # 3. 将 k8s 二进制文件拷贝到所有 worker 节点
     for NODE in "${WORKER[@]}"; do
-        for PKG in kube-proxy kubelet kubectl; do
-            scp ${PKG_PATH}/${PKG} ${NODE}:/usr/local/bin/${PKG}; done; done
+        for PKG in \
+            ${K8S_DEPLOY_LOG_PATH}/bin/kube-proxy \
+            ${K8S_DEPLOY_LOG_PATH}/bin/kubelet \
+            ${K8S_DEPLOY_LOG_PATH}/bin/kubectl; do
+            scp ${PKG} ${NODE}:/usr/local/bin/
+        done
+    done
 
-
-    # k8s 所有节点创建所需目录
+    # 4. k8s 所有节点创建所需目录
     for NODE in "${ALL_NODE[@]}"; do
         for DIR_PATH in \
             ${K8S_PATH} \
@@ -34,32 +53,109 @@ function 1_copy_binary_package_and_create_dir {
             ${ETCD_CERT_PATH} \
             "/etc/kubernetes/manifests" \
             "/etc/systemd/system/kubelet.service.d" \
-            "/opt/cni/bin" \
             "/var/lib/kubelet" \
-            "/var/log/kubernetes" \
-            "/tmp/k8s-install-log"; do
+            "/var/lib/kube-proxy" \
+            "/var/log/kubernetes"; do
             ssh ${NODE} "mkdir -p ${DIR_PATH}"; done; done
 }
 
 
 
 function 2_install_keepalived_and_haproxy {
-    # 检测 master 节点是否安装了 keepalived, haproxy
+    #  master 节点安装 keepalived, haproxy
     MSG2 "2. Installed Keepalived and Haproxy for Master Node"
+
     for NODE in "${MASTER[@]}"; do
         ssh ${NODE} "ls /usr/sbin/keepalived" &> /dev/null
-        if [[ "$?" -ne 0 ]]; then
-            ssh ${NODE} "${INSTALL_MANAGER} install -y keepalived"; fi
+        if [[ $? -ne 0 ]]; then ssh ${NODE} "${INSTALL_MANAGER} install -y keepalived"; fi
         ssh ${NODE} "ls /usr/sbin/haproxy" &> /dev/null
-        if [[ "$?" -ne 0 ]]; then
-            ssh ${NODE} "${INSTALL_MANAGER} install -y haproxy"; fi
+        if [[ $? -ne 0 ]]; then ssh ${NODE} "${INSTALL_MANAGER} install -y haproxy"; fi
     done
 }
 
 
 
-function 3_generate_etcd_certs {
-    MSG2 "3. Generate certs for etcd"
+function 3_setup_haproxy {
+    MSG2 "3. Setup haproxy"
+
+    local OLD_IFS
+    local CONTROL_PLANE_ENDPOINT_PORT
+    OLD_IFS=${IFS}
+    IFS=":"
+    temp_arr=(${CONTROL_PLANE_ENDPOINT})
+    IFS=${OLD_IFS}
+    CONTROL_PLANE_ENDPOINT_PORT=${temp_arr[1]}
+
+    # 为 master 节点生成 haproxy.cfg 配置文件
+    mkdir -p ${K8S_DEPLOY_LOG_PATH}/conf/haproxy
+    local HAPROXY_CONF_PATH="${K8S_DEPLOY_LOG_PATH}/conf/haproxy"
+    for (( i=0; i<${#MASTER[@]}; i++ )); do
+        cp conf/haproxy/haproxy.cfg                         ${HAPROXY_CONF_PATH}/haproxy.cfg-$i
+        sed -i "s/#PORT#/${CONTROL_PLANE_ENDPOINT_PORT}/"   ${HAPROXY_CONF_PATH}/haproxy.cfg-$i
+        for (( j=0; j<${#MASTER[@]}; j++ )); do
+            sed -i "s/#MASTER_HOSTNAME_$j#/${MASTER_HOST[$j]}/" ${HAPROXY_CONF_PATH}/haproxy.cfg-$i
+            sed -i "s/#MASTER_IP_$j#/${MASTER_IP[$j]}/"         ${HAPROXY_CONF_PATH}/haproxy.cfg-$i
+        done
+    done
+
+    # 将生成好的配置文件 haproxy.cfg 复制到所有 master 节点
+    for (( i=0; i<${#MASTER[@]}; i++ )); do
+        scp ${HAPROXY_CONF_PATH}/haproxy.cfg-$i ${MASTER[$i]}:/etc/haproxy/haproxy.cfg
+        ssh ${MASTER[$i]} "systemctl enable haproxy"
+        ssh ${MASTER[$i]} "systemctl restart haproxy"
+    done
+}
+
+
+
+function 4_setup_keepalived {
+    MSG2 "4. Setup Keepalived"
+
+    local OLD_IFS
+    local CONTROL_PLANE_ENDPOINT_IP
+    local STATE
+    local INTERFACE
+    local PRIORITY
+    local VIRTUAL_IPADDRESS
+    OLD_IFS=${IFS}
+    IFS=":"
+    temp_arr=(${CONTROL_PLANE_ENDPOINT})
+    IFS=${OLD_IFS}
+    CONTROL_PLANE_ENDPOINT_IP=${temp_arr[0]}
+    INTERFACE=$(ip route show | grep default | awk '{print $5}' | sed -n '1,1p')
+    VIRTUAL_IPADDRESS=${CONTROL_PLANE_ENDPOINT_IP}
+
+    # 为 master 节点生成 keepalived 配置文件
+    mkdir -p ${K8S_DEPLOY_LOG_PATH}/conf/keepalived
+    local KEEPALIVED_CONF_PATH="${K8S_DEPLOY_LOG_PATH}/conf/keepalived"
+    for (( i=0; i<${#MASTER[@]}; i++ )); do
+        if [[ $i -eq 0 ]]; then
+            STATE="MASTER"
+            PRIORITY=101
+        else
+            STATE="BACKUP"
+            PRIORITY=100; fi
+        cp conf/keepalived/keepalived.conf                   ${KEEPALIVED_CONF_PATH}/keepalived.conf-$i
+        sed -i "s/#STATE#/${STATE}/"                         ${KEEPALIVED_CONF_PATH}/keepalived.conf-$i
+        sed -i "s/#INTERFACE#/${INTERFACE}/"                 ${KEEPALIVED_CONF_PATH}/keepalived.conf-$i
+        sed -i "s/#PRIORITY#/${PRIORITY}/"                   ${KEEPALIVED_CONF_PATH}/keepalived.conf-$i
+        sed -i "s/#MASTER_IP#/${MASTER_IP[$i]}/"             ${KEEPALIVED_CONF_PATH}/keepalived.conf-$i
+        sed -i "s/#VIRTUAL_IPADDRESS#/${VIRTUAL_IPADDRESS}/" ${KEEPALIVED_CONF_PATH}/keepalived.conf-$i
+    done
+
+    # 将生成好的配置文件keepalived.cfg 复制到 master 节点
+    for (( i=0; i<${#MASTER[@]}; i++ )); do
+        scp ${KEEPALIVED_CONF_PATH}/keepalived.conf-$i ${MASTER[$i]}:/etc/keepalived/keepalived.conf
+        scp conf/keepalived/check_apiserver.sh ${MASTER[$i]}:/etc/keepalived/check_apiserver.sh
+        ssh ${MASTER[i]} "chmod 755 /etc/keepalived/check_apiserver.sh"
+        ssh ${MASTER[i]} "systemctl enable keepalived"
+        ssh ${MASTER[i]} "systemctl restart keepalived"; done
+}
+
+
+
+function 5_generate_etcd_certs {
+    MSG2 "5. Generate certs for etcd"
 
     # 如果 kubernetees 在部署成功，就不重新生成 etcd 证书
     if kubectl get node; then
@@ -96,12 +192,12 @@ function 3_generate_etcd_certs {
 
 
 
-function 4_generate_kubernetes_certs() {
+function 6_generate_kubernetes_certs() {
     # 1、分别为 apiserver、front-proxy、controller-manager、scheduler、kubernetes-admin 创建证书
     # 2、分别为 controller-manager、scheduler、kubernetes-admin 创建 kubeconfig 文件
     # 3、将 kubernetes 相关的所有证书和 kubeconfig 文件拷贝到所有的 master 节点上
     # 4、创建 ServiceAccount Key
-    MSG2 "4. Generate certs for Kubernetes"
+    MSG2 "6. Generate certs for Kubernetes"
 
     # 如果 kubernetees 在正常运行，就不重新生成 kubernetes 证书
     if kubectl get node; then 
@@ -293,11 +389,11 @@ function 4_generate_kubernetes_certs() {
 
 
 
-function 5_copy_etcd_and_k8s_certs {
+function 7_copy_etcd_and_k8s_certs {
     # calico 插件以 daemonset 方式部署在每一个 k8s 节点上
     # calico 插件需要 etcd-ca.pem, etcd.pem, etcd-key.pem 三个文件
     # worker 节点比 master 节点少一个 etcd-ca-key.pem
-    MSG2 "5. Copy etcd and k8s certs and config file"
+    MSG2 "7. Copy etcd and k8s certs and config file"
 
     # 将 etcd 证书拷贝到所有的 master 节点上
     for NODE in "${MASTER[@]}"; do
@@ -332,14 +428,14 @@ function 5_copy_etcd_and_k8s_certs {
 
 
 
-function 6_setup_etcd() {
+function 8_setup_etcd() {
     # 1、通过 etcd.config.yaml 模版文件，分别为3个 etcd 节点生成 etcd.config.yaml 配置文件
     #   （3个 master 节点分别对应3个 etcd 节点）
     # 2、将配置文件 etcd.config.yaml 和 etcd.service 配置文件拷贝到所有的 etcd 节点上
     #   （etcd.config.yaml 为 etcd 的配置文件
     #     etcd.service 为 etcd 的自启动文件）
     # 3、所有 etcd 节点设置 etcd 服务自启动
-    MSG2 "6. Setup etcd"
+    MSG2 "8. Setup etcd"
 
     for NODE in "${MASTER[@]}"; do
         ssh ${NODE} "mkdir ${KUBE_CERT_PATH}/etcd/"
@@ -367,81 +463,6 @@ function 6_setup_etcd() {
         ssh ${MASTER[$i]} "systemctl enable etcd"
         ssh ${MASTER[$i]} "systemctl restart etcd" &
     done
-}
-
-
-
-function 7_setup_keepalived {
-    MSG2 "7. Setup Keepalived"
-
-    local OLD_IFS=""
-    local CONTROL_PLANE_ENDPOINT_IP=""
-    local STATE=""
-    local INTERFACE=""
-    local PRIORITY=""
-    local VIRTUAL_IPADDRESS=""
-    OLD_IFS=${IFS}
-    IFS=":"
-    temp_arr=(${CONTROL_PLANE_ENDPOINT})
-    IFS=${OLD_IFS}
-    CONTROL_PLANE_ENDPOINT_IP=${temp_arr[0]}
-    INTERFACE=$(ip route show | grep default | awk '{print $5}')
-    VIRTUAL_IPADDRESS=${CONTROL_PLANE_ENDPOINT_IP}
-
-
-    # 为 master 节点生成 keepalived 配置文件
-    for (( i=0; i<${#MASTER[@]}; i++ )); do
-        if [[ $i == "0" ]]; then
-            STATE="MASTER"
-            PRIORITY=101
-        else
-            STATE="BACKUP"
-            PRIORITY=100; fi
-        cp conf/keepalived.conf /tmp/keepalived.conf-$i
-        sed -i "s/#STATE#/${STATE}/" /tmp/keepalived.conf-$i
-        sed -i "s/#INTERFACE#/${INTERFACE}/" /tmp/keepalived.conf-$i
-        sed -i "s/#PRIORITY#/${PRIORITY}/" /tmp/keepalived.conf-$i
-        sed -i "s/#MASTER_IP#/${MASTER_IP[$i]}/" /tmp/keepalived.conf-$i
-        sed -i "s/#VIRTUAL_IPADDRESS#/${VIRTUAL_IPADDRESS}/" /tmp/keepalived.conf-$i; done
-    
-
-    # 将生成好的配置文件keepalived.cfg 复制到 master 节点
-    for (( i=0; i<${#MASTER[@]}; i++ )); do
-        scp /tmp/keepalived.conf-$i ${MASTER[$i]}:/etc/keepalived/keepalived.conf
-        scp conf/check_apiserver.sh ${MASTER[$i]}:/etc/keepalived/check_apiserver.sh
-        ssh ${MASTER[$i]} "systemctl enable keepalived"
-        ssh ${MASTER[$i]} "systemctl restart keepalived"; done
-}
-
-
-
-function 8_setup_haproxy() {
-    MSG2 "8. Setup haproxy"
-
-    local OLD_IFS=""
-    local CONTROL_PLANE_ENDPOINT_PORT=""
-    OLD_IFS=${IFS}
-    IFS=":"
-    temp_arr=(${CONTROL_PLANE_ENDPOINT})
-    IFS=${OLD_IFS}
-    CONTROL_PLANE_ENDPOINT_PORT=${temp_arr[1]}
-
-
-    # 为 master 节点生成 haproxy.cfg 配置文件
-    for (( i=0; i<${#MASTER[@]}; i++ )); do
-        cp conf/haproxy.cfg /tmp/haproxy.cfg-$i
-        sed -i "s/#PORT#/${CONTROL_PLANE_ENDPOINT_PORT}/" /tmp/haproxy.cfg-$i
-        for (( j=0; j<${#MASTER[@]}; j++ )); do
-            sed -i "s/#MASTER_HOSTNAME_$j#/${MASTER_HOST[$j]}/" /tmp/haproxy.cfg-$i
-            sed -i "s/#MASTER_IP_$j#/${MASTER_IP[$j]}/" /tmp/haproxy.cfg-$i; done; done
-
-
-    # 将生成好的配置文件 haproxy.cfg 复制到所有 master 节点
-    for (( i=0; i<${#MASTER[@]}; i++ )); do
-        scp /tmp/haproxy.cfg-$i ${MASTER[$i]}:/etc/haproxy/haproxy.cfg
-        #rsync -avzH /tmp/haproxy.cfg-$i ${MASTER[$i]}:/etc/haproxy/haproxy.cfg
-        ssh ${MASTER[$i]} "systemctl enable haproxy"
-        ssh ${MASTER[$i]} "systemctl restart haproxy"; done
 }
 
 
@@ -695,22 +716,23 @@ function 18_label_and_taint_master_node {
 
 
 function stage_four {
-    1_copy_binary_package_and_create_dir
+    #1_copy_binary_package_and_create_dir
     2_install_keepalived_and_haproxy
-    3_generate_etcd_certs
-    4_generate_kubernetes_certs
-    5_copy_etcd_and_k8s_certs
-    6_setup_etcd
-    7_setup_keepalived
-    8_setup_haproxy
-    9_setup_apiserver
-    10_setup_controller_manager
-    11_setup_scheduler
-    12_setup_k8s_admin
-    13_setup_kubelet
-    14_setup_kube_proxy
-    15_deploy_calico
-    16_deploy_coredns
-    17_deploy_metrics_server
-    18_label_and_taint_master_node
+    3_setup_haproxy
+    4_setup_keepalived
+    #4_generate_kubernetes_certs
+    #5_copy_etcd_and_k8s_certs
+    #6_setup_etcd
+    #7_setup_keepalived
+    #8_setup_haproxy
+    #9_setup_apiserver
+    #10_setup_controller_manager
+    #11_setup_scheduler
+    #12_setup_k8s_admin
+    #13_setup_kubelet
+    #14_setup_kube_proxy
+    #15_deploy_calico
+    #16_deploy_coredns
+    #17_deploy_metrics_server
+    #18_label_and_taint_master_node
 }
