@@ -15,31 +15,24 @@ function 1_install_docker {
 
     apt-get remove -y docker docker-engine docker.io containerd runc
     apt-get update -y
-    apt-get install -y \
-        apt-transport-https \
-        ca-certificates \
-        curl \
-        gnupg \
-        lsb-release
+    apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release software-properties-common
+
+    docker_url="https://mirrors.ustc.edu.cn/docker-ce"
+    #docker_url="https://mirrors.aliyun.com/docker-ce"
+    #docker_url="https://download.docker.com"
+
     while true; do
-        #if curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg; then
-        if curl -fsSL http://mirrors.ustc.edu.cn/docker-ce/linux/ubuntu/gpg | sudo gpg --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg; then
+        if curl -fsSL ${docker_url}/linux/ubuntu/gpg | sudo gpg --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg; then
             break; fi
         sleep 1
     done
-    echo \
-      "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
-      $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-    sed -i s%download.docker.com%mirrors.ustc.edu.cn/docker-ce% /etc/apt/sources.list.d/docker.list                 # mirror.ustc.edu.cn for docker-ce
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] ${docker_url}/linux/ubuntu $(lsb_release -cs) stable" | \
+        sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
     apt-get update -y
-    local VERSION_STRING=""
-    local RELEASE=""
-    RELEASE=$(cat /etc/os-release | grep VERSION= | awk -F'.' '{print $1}' | awk -F \" '{print $2}')
-    if [[ ${RELEASE} -eq 18 ]]; then
-        VERSION_STRING="5:19.03.15~3-0~ubuntu-bionic"
-    elif [[ ${RELEASE} -eq 20 ]]; then
-        VERSION_STRING="5:19.03.15~3-0~ubuntu-focal"; fi
-    apt-get install -y --allow-downgrades docker-ce=${VERSION_STRING} docker-ce-cli=${VERSION_STRING} containerd.io
+    local docker_version="5:19.03.15~3-0~ubuntu-$(lsb_release -sc)"
+    apt-mark unhold docker-ce docker-ce-cli
+    apt-get install -y --allow-downgrades docker-ce=${docker_version} docker-ce-cli=${docker_version} containerd.io
     apt-mark hold docker-ce docker-ce-cli
     systemctl enable --now docker
 }
@@ -48,7 +41,7 @@ function 1_install_docker {
 function 2_configure_docker {
     MSG2 "2. [`hostname`] Configure docker"
 
-cat > /etc/docker/daemon.json <<-EOF
+cat > /etc/docker/daemon.json <<-\EOF
 {
   "exec-opts": ["native.cgroupdriver=systemd"],
   "registry-mirrors": ["https://f4kfbhwb.mirror.aliyuncs.com"],
