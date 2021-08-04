@@ -1,4 +1,4 @@
-#!/bin/bash
+#/usr/bin/env bash
 
 err=0
 for k in $(seq 1 3)
@@ -16,7 +16,7 @@ done
 
 if [[ $err != "0" ]]; then
     echo "systemctl stop keepalived"
-    /usr/bin/systemctl stop keepalived
+    systemctl stop keepalived
     exit 1
 else
     exit 0
