@@ -10,7 +10,12 @@ MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 function 1_install_necessary_package_for_k8s {
     MSG2 "1. [`hostname`] Install package for k8s"
 
-    yum install -y conntrack-tools ipvsadm ipset jq iptables iptables-services bridge-utils sysstat libseccomp gcc gcc-c++ make cmake autoconf automake libxml2-devel openssl-deve curl-devel libaio-devel ncurses-devel zlib-devel ceph-common
+    yum install -y \
+        conntrack-tools ipvsadm ipset iptables iptables-services \
+        bridge-utils sysstat libseccomp \
+        ceph-common jq \
+        gcc gcc-c++ make cmake autoconf automake \
+        libxml2-devel openssl-deve curl-devel libaio-devel ncurses-devel zlib-devel
 }
 
 
@@ -26,6 +31,7 @@ function 3_upgrade_kernel {
     MSG2 "3. [`hostname`] Upgrade kernel"
 
     yum install -y kernel-lt
+    # set default kernel
 	grub2-set-default "$(cat /boot/grub2/grub.cfg  | grep '^menuentry' | sed -n '1,1p' | awk -F "'" '{print $2}')"
 }
 
