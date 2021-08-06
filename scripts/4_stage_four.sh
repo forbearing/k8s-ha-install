@@ -777,22 +777,22 @@ function 18_label_and_taint_master_node {
 
 
 function stage_four {
-    #1_copy_binary_package_and_create_dir
-    #2_install_keepalived_and_haproxy
-    #3_setup_haproxy
-    #4_setup_keepalived
-    #5_generate_etcd_certs
-    #6_generate_kubernetes_certs
-    #7_copy_etcd_and_k8s_certs
-    #8_setup_etcd
-    #9_setup_apiserver
-    #10_setup_controller_manager
-    #11_setup_scheduler
-    #12_setup_k8s_admin
-    #13_setup_kubelet
+    1_copy_binary_package_and_create_dir
+    2_install_keepalived_and_haproxy
+    3_setup_haproxy
+    4_setup_keepalived
+    5_generate_etcd_certs
+    6_generate_kubernetes_certs
+    7_copy_etcd_and_k8s_certs
+    8_setup_etcd
+    9_setup_apiserver
+    10_setup_controller_manager
+    11_setup_scheduler
+    12_setup_k8s_admin
+    13_setup_kubelet
     14_setup_kube_proxy
-    #15_deploy_calico
-    #16_deploy_coredns
-    #17_deploy_metrics_server
-    #18_label_and_taint_master_node
+    15_deploy_calico
+    16_deploy_coredns
+    17_deploy_metrics_server
+    18_label_and_taint_master_node
 }
