@@ -9,10 +9,11 @@ MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 
 function 1_import_repo {
     MSG2 "1. [`hostname`] Imort yum repo"
-    cp /tmp/yum.repos.d/elrepo.repo /etc/yum.repos.d/elrepo.repo
+
+    cp /tmp/yum.repos.d/CentOS-Base.repo-aliyun     /etc/yum.repos.d/CentOS-Base.repo
+    cp /tmp/yum.repos.d/elrepo.repo-ustc            /etc/yum.repos.d/elrepo.repo
     cp /tmp/yum.repos.d/ceph-nautilus.repo-tsinghua /etc/yum.repos.d/ceph.repo
-    cp /tmp/yum.repos.d/docker-ce.repo-aliyun /etc/yum.repos.d/docker-ce.repo
-    #cp /tmp/yum.repos.d/CentOS-Base.repo-tsinghua /etc/yum.repos.d/CentOS-Base.repo
+    cp /tmp/yum.repos.d/docker-ce.repo-aliyun       /etc/yum.repos.d/docker-ce.repo
     #cp /tmp/yum.repos.d/epel.repo-tsinghua /etc/yum.repos.d/epel.repo
     yum makecache
 }
@@ -21,8 +22,12 @@ function 1_import_repo {
 function 2_install_necessary_package {
     MSG2 "2. [`hostname`] Install necessary package"
 
+    yum clean all
     yum install -y epel-release
-    yum install -y coreutils bash-completion iputils wget curl zip unzip bzip2 vim net-tools git zsh fish rsync psmisc procps-ng bind-utils yum-utils device-mapper-persistent-data lvm2 ntp ntpdate jq sysstat nc tree lsof virt-what audit iscsi-initiator-utils socat
+    yum install -y coreutils bash-completion iputils wget curl zip unzip bzip2 vim net-tools \
+        git zsh fish rsync psmisc procps-ng bind-utils yum-utils device-mapper-persistent-data \
+        lvm2 ntp ntpdate jq sysstat nc tree lsof virt-what audit iscsi-initiator-utils socat
+    cp /tmp/yum.repos.d/epel.repo-aliyun /etc/yum.repos.d/epel.repo
     if [[ $(virt-what) == "vmware" ]]; then
         yum install -y open-vm-tools
         systemctl enable --now vmtoolsd
