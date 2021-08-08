@@ -54,6 +54,11 @@ ERR(){ echo -e "\033[31m\033[01m$1\033[0m"; }
 MSG1(){ echo -e "\n\n\033[32m\033[01m$1\033[0m\n"; }
 MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 
+# k8s node array
+MASTER=("${MASTER_HOST[@]}")
+WORKER=("${WORKER_HOST[@]}")
+ALL_NODE=("${MASTER[@]}" "${WORKER[@]}")
+
 # k8s and etcd path
 K8S_PATH="/etc/kubernetes"
 KUBE_CERT_PATH="/etc/kubernetes/pki"
