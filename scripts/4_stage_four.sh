@@ -781,7 +781,7 @@ function stage_four {
     5_generate_etcd_certs
     6_generate_kubernetes_certs
     7_copy_etcd_and_k8s_certs
-    #8_setup_etcd
+    8_setup_etcd
     9_setup_apiserver
     10_setup_controller_manager
     11_setup_scheduler
