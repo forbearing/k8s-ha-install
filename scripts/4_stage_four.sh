@@ -395,9 +395,6 @@ function 6_generate_kubernetes_certs() {
 
 
 function 7_copy_etcd_and_k8s_certs {
-    # calico 插件以 daemonset 方式部署在每一个 k8s 节点上
-    # calico 插件需要 etcd-ca.pem, etcd.pem, etcd-key.pem 三个文件
-    # worker 节点比 master 节点少一个 etcd-ca-key.pem
     MSG2 "7. Copy etcd and k8s certs and config file"
 
 
