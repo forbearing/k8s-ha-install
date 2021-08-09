@@ -3,6 +3,7 @@
 二进制部署 k8s
 
 系统支持 Centos7、Ubuntu18、Ubuntu20
+
 K8S 版本支持：v1.20.x v1.21.x
 
 
