@@ -54,11 +54,6 @@ ERR(){ echo -e "\033[31m\033[01m$1\033[0m"; }
 MSG1(){ echo -e "\n\n\033[32m\033[01m$1\033[0m\n"; }
 MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 
-# k8s node array
-MASTER=("${MASTER_HOST[@]}")
-WORKER=("${WORKER_HOST[@]}")
-ALL_NODE=("${MASTER[@]}" "${WORKER[@]}")
-
 # k8s and etcd path
 K8S_PATH="/etc/kubernetes"
 KUBE_CERT_PATH="/etc/kubernetes/pki"
@@ -77,6 +72,11 @@ done
 #[ -z $environment_file ] && ERR "$(basename $0) -e environment_file" && exit $EXIT_FAILURE
 [ -z $environment_file ] && environment_file="k8s.env"
 source "$environment_file"
+
+# k8s node array
+MASTER=("${MASTER_HOST[@]}")
+WORKER=("${WORKER_HOST[@]}")
+ALL_NODE=("${MASTER[@]}" "${WORKER[@]}")
 
 
 function print_environment {
@@ -131,6 +131,6 @@ MSG1 "=============  Stage Prepare: Setup SSH Public Key Authentication ========
 MSG1 "=================== Stage 1: Prepare for Linux Server ========================="; stage_one
 MSG1 "====================== Stage 2: Prepare for Kubernetes ========================"; stage_two
 MSG1 "========================= Stage 3: Install Docker ============================="; stage_three
-MSG1 "============ Stage 4: Deployment Kubernetes Cluster from Binary ==============="; stage_four
-MSG1 "==================== Stage 5: Deployment Kubernetes Addon ====================="; stage_five
-MSG1 "NOT Forget Restart All Kubernetes Node !!!"
+#MSG1 "============ Stage 4: Deployment Kubernetes Cluster from Binary ==============="; stage_four
+#MSG1 "==================== Stage 5: Deployment Kubernetes Addon ====================="; stage_five
+#MSG1 "NOT Forget Restart All Kubernetes Node !!!"
