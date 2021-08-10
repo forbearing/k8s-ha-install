@@ -131,6 +131,6 @@ MSG1 "=============  Stage Prepare: Setup SSH Public Key Authentication ========
 MSG1 "=================== Stage 1: Prepare for Linux Server ========================="; stage_one
 MSG1 "====================== Stage 2: Prepare for Kubernetes ========================"; stage_two
 MSG1 "========================= Stage 3: Install Docker ============================="; stage_three
-#MSG1 "============ Stage 4: Deployment Kubernetes Cluster from Binary ==============="; stage_four
-#MSG1 "==================== Stage 5: Deployment Kubernetes Addon ====================="; stage_five
-#MSG1 "NOT Forget Restart All Kubernetes Node !!!"
+MSG1 "============ Stage 4: Deployment Kubernetes Cluster from Binary ==============="; stage_four
+MSG1 "==================== Stage 5: Deployment Kubernetes Addon ====================="; stage_five
+MSG1 "NOT Forget Restart All Kubernetes Node !!!"
