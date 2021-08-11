@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-case "$ID" in
+case ${ID} in
     centos|rhel)
         stage_one_script_path="centos/1_prepare_for_server.sh"
         stage_two_script_path="centos/2_prepare_for_k8s.sh"
@@ -19,6 +19,9 @@ esac
 
 function stage_one {
     for NODE in "${ALL_NODE[@]}"; do
-        ssh "${NODE}" "bash -s" < "${stage_one_script_path}"
+        MSG2 "*** ${NODE} *** is Preparing for Linux Server"
+        ssh "${NODE}" "bash -s" < "${stage_one_script_path}" &> /dev/null &
     done
+    MSG2 "Please Waiting ..."
+    wait
 }
