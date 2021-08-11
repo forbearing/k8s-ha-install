@@ -97,20 +97,22 @@ function 3_setup_haproxy {
     # 为 master 节点生成 haproxy.cfg 配置文件
     mkdir -p ${K8S_DEPLOY_LOG_PATH}/conf/haproxy
     local HAPROXY_CONF_PATH="${K8S_DEPLOY_LOG_PATH}/conf/haproxy"
-    for (( i=0; i<${#MASTER[@]}; i++ )); do
-        cp conf/haproxy/haproxy.cfg                         ${HAPROXY_CONF_PATH}/haproxy.cfg-$i
-        sed -i "s/#PORT#/${CONTROL_PLANE_ENDPOINT_PORT}/"   ${HAPROXY_CONF_PATH}/haproxy.cfg-$i
-        for (( j=0; j<${#MASTER[@]}; j++ )); do
-            sed -i "s/#MASTER_HOSTNAME_$j#/${MASTER_HOST[$j]}/" ${HAPROXY_CONF_PATH}/haproxy.cfg-$i
-            sed -i "s/#MASTER_IP_$j#/${MASTER_IP[$j]}/"         ${HAPROXY_CONF_PATH}/haproxy.cfg-$i
-        done
+    local count=0
+    cp conf/haproxy/haproxy.cfg                         ${HAPROXY_CONF_PATH}/haproxy.cfg
+    sed -i "s/#PORT#/${CONTROL_PLANE_ENDPOINT_PORT}/"   ${HAPROXY_CONF_PATH}/haproxy.cfg
+    for HOST in "${!MASTER[@]}"; do
+        local IP=${MASTER[$HOST]}
+        sed -i "s/#MASTER_HOSTNAME_$count#/${HOST}/"    ${HAPROXY_CONF_PATH}/haproxy.cfg
+        sed -i "s/#MASTER_IP_$count#/${IP}/"            ${HAPROXY_CONF_PATH}/haproxy.cfg
+        (( count++ ))
     done
 
     # 将生成好的配置文件 haproxy.cfg 复制到所有 master 节点
-    for (( i=0; i<${#MASTER[@]}; i++ )); do
-        scp ${HAPROXY_CONF_PATH}/haproxy.cfg-$i ${MASTER[$i]}:/etc/haproxy/haproxy.cfg
-        ssh ${MASTER[$i]} "systemctl enable haproxy"
-        ssh ${MASTER[$i]} "systemctl restart haproxy"
+    #for (( i=0; i<${#MASTER[@]}; i++ )); do
+    for NODE in "${MASTER[@]}"; do
+        scp ${HAPROXY_CONF_PATH}/haproxy.cfg ${NODE}:/etc/haproxy/haproxy.cfg
+        ssh ${NODE} "systemctl enable haproxy"
+        ssh ${NODE} "systemctl restart haproxy"
     done
 }
 
@@ -124,40 +126,44 @@ function 4_setup_keepalived {
     local STATE
     local INTERFACE
     local PRIORITY
-    local VIRTUAL_IPADDRESS
+    local VIRTUAL_IP
     OLD_IFS=${IFS}
     IFS=":"
     temp_arr=(${CONTROL_PLANE_ENDPOINT})
     IFS=${OLD_IFS}
     CONTROL_PLANE_ENDPOINT_IP=${temp_arr[0]}
     INTERFACE=$(ip route show | grep default | awk '{print $5}' | sed -n '1,1p')
-    VIRTUAL_IPADDRESS=${CONTROL_PLANE_ENDPOINT_IP}
+    VIRTUAL_IP=${CONTROL_PLANE_ENDPOINT_IP}
 
     # 为 master 节点生成 keepalived 配置文件
     mkdir -p ${K8S_DEPLOY_LOG_PATH}/conf/keepalived
     local KEEPALIVED_CONF_PATH="${K8S_DEPLOY_LOG_PATH}/conf/keepalived"
-    for (( i=0; i<${#MASTER[@]}; i++ )); do
-        if [[ $i -eq 0 ]]; then
+    local count=0
+    for HOST in "${!MASTER[@]}"; do
+        local IP=${MASTER[$HOST]}
+        if [[ $count -eq 0 ]]; then
             STATE="MASTER"
             PRIORITY=101
         else
             STATE="BACKUP"
             PRIORITY=100; fi
-        cp conf/keepalived/keepalived.conf                   ${KEEPALIVED_CONF_PATH}/keepalived.conf-$i
-        sed -i "s/#STATE#/${STATE}/"                         ${KEEPALIVED_CONF_PATH}/keepalived.conf-$i
-        sed -i "s/#INTERFACE#/${INTERFACE}/"                 ${KEEPALIVED_CONF_PATH}/keepalived.conf-$i
-        sed -i "s/#PRIORITY#/${PRIORITY}/"                   ${KEEPALIVED_CONF_PATH}/keepalived.conf-$i
-        sed -i "s/#MASTER_IP#/${MASTER_IP[$i]}/"             ${KEEPALIVED_CONF_PATH}/keepalived.conf-$i
-        sed -i "s/#VIRTUAL_IPADDRESS#/${VIRTUAL_IPADDRESS}/" ${KEEPALIVED_CONF_PATH}/keepalived.conf-$i
+        cp conf/keepalived/keepalived.conf              ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
+        sed -i "s/#STATE#/${STATE}/"                    ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
+        sed -i "s/#INTERFACE#/${INTERFACE}/"            ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
+        sed -i "s/#PRIORITY#/${PRIORITY}/"              ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
+        sed -i "s/#MASTER_IP#/${IP}/"                   ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
+        sed -i "s/#VIRTUAL_IPADDRESS#/${VIRTUAL_IP}/"   ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
+        (( count++ ))
     done
 
     # 将生成好的配置文件keepalived.cfg 复制到 master 节点
-    for (( i=0; i<${#MASTER[@]}; i++ )); do
-        scp ${KEEPALIVED_CONF_PATH}/keepalived.conf-$i ${MASTER[i]}:/etc/keepalived/keepalived.conf
-        scp conf/keepalived/check_apiserver.sh ${MASTER[i]}:/etc/keepalived/check_apiserver.sh
-        ssh ${MASTER[i]} "chmod 755 /etc/keepalived/check_apiserver.sh"
-        ssh ${MASTER[i]} "systemctl enable keepalived"
-        ssh ${MASTER[i]} "systemctl restart keepalived"; done
+    for HOST in "${!MASTER[@]}"; do
+        scp ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST} ${HOST}:/etc/keepalived/keepalived.conf
+        scp conf/keepalived/check_apiserver.sh ${HOST}:/etc/keepalived/check_apiserver.sh
+        ssh ${HOST} "chmod 755 /etc/keepalived/check_apiserver.sh"
+        ssh ${HOST} "systemctl enable keepalived"
+        ssh ${HOST} "systemctl restart haproxy"
+        ssh ${HOST} "systemctl restart keepalived"; done
 }
 
 
@@ -172,14 +178,14 @@ function 5_generate_etcd_certs {
 
 
     # 在 EXTRA_MASTER_HOST 和 EXTRA_MASTER_IP 中多预留一些 hostname 和 IP 地址
-    local HOSTNAME=
-    for NODE in "${MASTER_HOST[@]}"; do
+    local HOSTNAME
+    for NODE in "${!MASTER[@]}"; do
         HOSTNAME="${HOSTNAME}","${NODE}"; done
-    for NODE in "${MASTER_IP[@]}"; do
+    for NODE in "${!EXTRA_MASTER[@]}"; do
         HOSTNAME="${HOSTNAME}","${NODE}"; done
-    for NODE in "${EXTRA_MASTER_HOST[@]}"; do
+    for NODE in "${MASTER[@]}"; do
         HOSTNAME="${HOSTNAME}","${NODE}"; done
-    for NODE in "${EXTRA_MASTER_IP[@]}"; do
+    for NODE in "${EXTRA_MASTER[@]}"; do
         HOSTNAME="${HOSTNAME}","${NODE}"; done
     HOSTNAME=${HOSTNAME},"127.0.0.1"
     HOSTNAME=${HOSTNAME/,}
@@ -214,8 +220,8 @@ function 6_generate_kubernetes_certs() {
     [[ ! -d ${KUBE_CERT_PATH} ]] && rm -rf "${KUBE_CERT_PATH}"; mkdir -p "${KUBE_CERT_PATH}"
 
     # 获取 control plane endpoint ip 地址
-    local OLD_IFS=
-    local CONTROL_PLANE_ENDPOINT_IP=
+    local OLD_IFS
+    local CONTROL_PLANE_ENDPOINT_IP
     OLD_IFS=${IFS}
     IFS=":"
     temp_arr=(${CONTROL_PLANE_ENDPOINT})
@@ -223,18 +229,18 @@ function 6_generate_kubernetes_certs() {
     CONTROL_PLANE_ENDPOINT_IP=${temp_arr[0]}
 
     # 在这里设置，可以为 master 节点和 worker 节点多预留几个主机名和IP地址，方便集群扩展
-    local HOSTNAME=
-    for NODE in "${MASTER_HOST[@]}"; do
+    local HOSTNAME
+    for NODE in "${!MASTER[@]}"; do
         HOSTNAME="${HOSTNAME}","${NODE}"; done
-    for NODE in "${MASTER_IP[@]}"; do
+    for NODE in "${!EXTRA_MASTER[@]}"; do
         HOSTNAME="${HOSTNAME}","${NODE}"; done
-    for NODE in "${EXTRA_MASTER_HOST[@]}"; do
+    for NODE in "${MASTER[@]}"; do
         HOSTNAME="${HOSTNAME}","${NODE}"; done
-    for NODE in "${EXTRA_MASTER_IP[@]}"; do
+    for NODE in "${EXTRA_MASTER[@]}"; do
         HOSTNAME="${HOSTNAME}","${NODE}"; done
-    HOSTNAME="${HOSTNAME}","127.0.0.1"
-    HOSTNAME="${HOSTNAME}","${SRV_NETWORK_IP}"
     HOSTNAME="${HOSTNAME}","${CONTROL_PLANE_ENDPOINT_IP}"
+    HOSTNAME="${HOSTNAME}","${SRV_NETWORK_IP}"
+    HOSTNAME="${HOSTNAME}","127.0.0.1"
     HOSTNAME="${HOSTNAME}","kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster,kubernetes.default.svc.cluster.local"
     HOSTNAME=${HOSTNAME/,}
     MSG2 "kubernetes hostname string: ${HOSTNAME}"
@@ -410,8 +416,16 @@ function 7_copy_etcd_and_k8s_certs {
     # 将生成的 kubernetes 各个组件的证书和 kubeconfig 文件分别拷贝到 master 节点
     for NODE in "${MASTER[@]}"; do
         ssh ${NODE} "mkdir -p ${KUBE_CERT_PATH}"
-        for FILE in $(ls ${KUBE_CERT_PATH} | grep -v etcd); do
-            scp ${KUBE_CERT_PATH}/${FILE} ${NODE}:${KUBE_CERT_PATH}/${FILE}; 
+        for FILE in \
+            ca.pem ca-key.pem \
+            front-proxy-ca.pem front-proxy-ca-key.pem \
+            admin.pem admin-key.pem \
+            sa.key sa.pub \
+            apiserver.pem apiserver-key.pem \
+            controller-manager.pem controller-manager-key.pem \
+            scheduler.pem scheduler-key.pem \
+            front-proxy-client.pem front-proxy-client-key.pem ; do
+            scp ${KUBE_CERT_PATH}/${FILE} ${NODE}:${KUBE_CERT_PATH}/${FILE}
         done
         for FILE in \
             controller-manager.kubeconfig \
@@ -443,36 +457,42 @@ function 8_setup_etcd() {
     # 3、所有 etcd 节点设置 etcd 服务自启动
     MSG2 "8. Setup etcd"
 
+    # 在所有 master 节点上 创建所需目录
+    # 链接 /etc/etcd/ssl 目录到 /etc/kubernetes/pki/etcd/
     for NODE in "${MASTER[@]}"; do
         ssh ${NODE} "mkdir ${KUBE_CERT_PATH}/etcd/"
         ssh ${NODE} "ln -sf ${ETCD_CERT_PATH}/* ${KUBE_CERT_PATH}/etcd/"; done
 
 
+    # 将生成的 etcd 组件相关配置文件保存到指定位置
+    mkdir -p ${K8S_DEPLOY_LOG_PATH}/conf/etcd
+    local ETCD_CONF_PATH="${K8S_DEPLOY_LOG_PATH}/conf/etcd"
+
+    local INITIAL_CLUSTER
+    for HOST in "${!MASTER[@]}"; do
+        local IP=${MASTER[$HOST]}
+        INITIAL_CLUSTER="${INITIAL_CLUSTER}","${HOST}=https://${IP}:2380"; done
+    INITIAL_CLUSTER=${INITIAL_CLUSTER/,}
+    MSG2 "INITIAL_CLUSTER: ${INITIAL_CLUSTER}"
+
+
     # 生成配置文件
     #   /lib/systemd/system/etcd.service
     #   /etc/etcd/etcd.config.yaml
-    mkdir -p ${K8S_DEPLOY_LOG_PATH}/conf/etcd
-    local ETCD_CONF_PATH="${K8S_DEPLOY_LOG_PATH}/conf/etcd/"
-    for (( i=0; i<${#MASTER[@]}; i++ )); do
-        cp conf/etcd/etcd.service                       ${ETCD_CONF_PATH}/etcd.service
-        cp conf/etcd/etcd.config.yaml                   ${ETCD_CONF_PATH}/etcd.config.yaml-$i
-        sed -i "s/#MASTER_HOSTNAME#/${MASTER_HOST[i]}/" ${ETCD_CONF_PATH}/etcd.config.yaml-$i
-        sed -i "s/#MASTER_IP#/${MASTER_IP[i]}/"         ${ETCD_CONF_PATH}/etcd.config.yaml-$i
-        sed -i "s%#KUBE_CERT_PATH#%${KUBE_CERT_PATH}%"  ${ETCD_CONF_PATH}/etcd.config.yaml-$i
-        for (( j=0; j<${#MASTER[@]}; j++ )); do
-            sed -i "s/#MASTER_HOSTNAME_$j#/${MASTER_HOST[j]}/"  ${ETCD_CONF_PATH}/etcd.config.yaml-$i
-            sed -i "s/#MASTER_IP_$j#/${MASTER_IP[j]}/"          ${ETCD_CONF_PATH}/etcd.config.yaml-$i
-        done
-    done
-
-
     # 将配置文件 etcd.config.yaml 和 etcd 服务自启动文件 etcd.service 复制到远程服务器上
-    for (( i=0; i<${#MASTER[@]}; i++ )); do
-        scp ${ETCD_CONF_PATH}/etcd.service ${MASTER[i]}:/lib/systemd/system/etcd.service
-        scp ${ETCD_CONF_PATH}/etcd.config.yaml-$i ${MASTER[i]}:/etc/etcd/etcd.config.yaml
-        ssh ${MASTER[i]} "systemctl daemon-reload"
-        ssh ${MASTER[i]} "systemctl enable etcd"
-        ssh ${MASTER[i]} "systemctl restart etcd" &
+    for HOST in "${!MASTER[@]}"; do
+        local IP=${MASTER[$HOST]}
+        cp conf/etcd/etcd.service                       ${ETCD_CONF_PATH}/etcd.service
+        cp conf/etcd/etcd.config.yaml                   ${ETCD_CONF_PATH}/etcd.config.yaml_${HOST}
+        sed -i "s/#MASTER_HOSTNAME#/${HOST}/"           ${ETCD_CONF_PATH}/etcd.config.yaml_${HOST}
+        sed -i "s/#MASTER_IP#/${IP}/"                   ${ETCD_CONF_PATH}/etcd.config.yaml_${HOST}
+        sed -i "s%#KUBE_CERT_PATH#%${KUBE_CERT_PATH}%"  ${ETCD_CONF_PATH}/etcd.config.yaml_${HOST}
+        sed -i -r "s%initial-cluster:(.*)%initial-cluster: '${INITIAL_CLUSTER}'%"  ${ETCD_CONF_PATH}/etcd.config.yaml_${HOST}
+        scp ${ETCD_CONF_PATH}/etcd.service              ${HOST}:/lib/systemd/system/etcd.service
+        scp ${ETCD_CONF_PATH}/etcd.config.yaml_${HOST} ${HOST}:/etc/etcd/etcd.config.yaml
+        ssh ${HOST} "systemctl daemon-reload
+                     systemctl enable etcd
+                     systemctl restart etcd" &
     done
 }
 
@@ -486,25 +506,28 @@ function 9_setup_apiserver() {
     local APISERVER_CONF_PATH="${K8S_DEPLOY_LOG_PATH}/conf/kube-apiserver"
 
     # 为 master 节点生成 kube-apiserver.service 文件
-    for (( i=0; i<${#MASTER[@]}; i++ )); do
-        cp conf/${K8S_VERSION}/kube-apiserver.service       ${APISERVER_CONF_PATH}/kube-apiserver.service-$i
-        sed -i "s/#MASTER_IP#/${MASTER_IP[i]}/"             ${APISERVER_CONF_PATH}/kube-apiserver.service-$i
-        sed -i "s%#KUBE_CERT_PATH#%${KUBE_CERT_PATH}%"      ${APISERVER_CONF_PATH}/kube-apiserver.service-$i
-        sed -i "s%#ETCD_CERT_PATH#%${ETCD_CERT_PATH}%"      ${APISERVER_CONF_PATH}/kube-apiserver.service-$i
-        sed -i "s%#SRV_NETWORK_CIDR#%${SRV_NETWORK_CIDR}%"  ${APISERVER_CONF_PATH}/kube-apiserver.service-$i
-        sed -i "s%#POD_NETWORK_CIDR#%${POD_NETWORK_CIDR}%"  ${APISERVER_CONF_PATH}/kube-apiserver.service-$i
-        for (( j=0; j<${#MASTER[@]}; j++ )); do
-            sed -i "s/#MASTER_IP_$j#/${MASTER_IP[j]}/"      ${APISERVER_CONF_PATH}/kube-apiserver.service-$i
-        done
+    local ETCD_SERVERS
+    for HOST in "${!MASTER[@]}"; do
+        local IP=${MASTER[$HOST]}
+        ETCD_SERVERS="${ETCD_SERVERS}","https://${IP}:2379"
     done
-
-    # 将生成好的配置文件 kube-apiserver.service 复制到所有 master 节点
-    for (( i=0; i<${#MASTER[@]}; i++ )); do
-        scp ${APISERVER_CONF_PATH}/kube-apiserver.service-$i \
-            ${MASTER[i]}:/lib/systemd/system/kube-apiserver.service
-        ssh ${MASTER[i]} "systemctl daemon-reload"
-        ssh ${MASTER[i]} "systemctl enable kube-apiserver"
-        ssh ${MASTER[i]} "systemctl restart kube-apiserver"
+    ETCD_SERVERS=${ETCD_SERVERS/,}
+    ETCD_SERVERS=${ETCD_SERVERS}" \\"
+    echo "ETCD_SERVERS: ${ETCD_SERVERS[*]}"
+    for HOST in "${!MASTER[@]}"; do
+        local IP=${MASTER[$HOST]}
+        cp conf/${K8S_VERSION}/kube-apiserver.service       ${APISERVER_CONF_PATH}/kube-apiserver.service_${HOST}
+        sed -i "s/#MASTER_IP#/${IP}/"                       ${APISERVER_CONF_PATH}/kube-apiserver.service_${HOST}
+        sed -i "s%#KUBE_CERT_PATH#%${KUBE_CERT_PATH}%"      ${APISERVER_CONF_PATH}/kube-apiserver.service_${HOST}
+        sed -i "s%#ETCD_CERT_PATH#%${ETCD_CERT_PATH}%"      ${APISERVER_CONF_PATH}/kube-apiserver.service_${HOST}
+        sed -i "s%#SRV_NETWORK_CIDR#%${SRV_NETWORK_CIDR}%"  ${APISERVER_CONF_PATH}/kube-apiserver.service_${HOST}
+        sed -i "s%#POD_NETWORK_CIDR#%${POD_NETWORK_CIDR}%"  ${APISERVER_CONF_PATH}/kube-apiserver.service_${HOST}
+        sed -r -i "s%(.*)--etcd-servers(.*)%\1--etcd-servers=${ETCD_SERVERS}\\%" ${APISERVER_CONF_PATH}/kube-apiserver.service_${HOST}
+        scp ${APISERVER_CONF_PATH}/kube-apiserver.service_${HOST} ${HOST}:/lib/systemd/system/kube-apiserver.service
+        # 将生成好的配置文件 kube-apiserver.service 复制到所有 master 节点
+        ssh ${HOST} "systemctl daemon-reload
+                     systemctl enable kube-apiserver
+                     systemctl restart kube-apiserver"
     done
 }
 
@@ -526,12 +549,13 @@ function 10_setup_controller_manager {
 
 
     # 将生成的配置文件 kube-controller-manager.service 复制到所有 master 节点
-    for (( i=0; i<${#MASTER[@]}; i++ )); do
+    #for (( i=0; i<${#MASTER[@]}; i++ )); do
+    for NODE in "${MASTER[@]}"; do
         scp ${CONTROLLER_MANAGER_CONF_PATH}/kube-controller-manager.service \
-            ${MASTER[i]}:/lib/systemd/system/kube-controller-manager.service
-        ssh ${MASTER[i]} "systemctl daemon-reload"
-        ssh ${MASTER[i]} "systemctl enable kube-controller-manager"
-        ssh ${MASTER[i]} "systemctl restart kube-controller-manager"
+            ${NODE}:/lib/systemd/system/kube-controller-manager.service
+        ssh ${NODE} "systemctl daemon-reload"
+        ssh ${NODE} "systemctl enable kube-controller-manager"
+        ssh ${NODE} "systemctl restart kube-controller-manager"
     done
 }
 
@@ -550,12 +574,12 @@ function 11_setup_scheduler {
 
 
     # 将生成的配置文件 kube-scheduler.service 复制到所有 master 节点
-    for (( i=0; i<${#MASTER[@]}; i++ )); do
+    for NODE in "${MASTER[@]}"; do
         scp ${SCHEDULER_CONF_PATH}/kube-scheduler.service \
-            ${MASTER[i]}:/lib/systemd/system/kube-scheduler.service
-        ssh ${MASTER[i]} "systemctl daemon-reload"
-        ssh ${MASTER[i]} "systemctl enable kube-scheduler"
-        ssh ${MASTER[i]} "systemctl restart kube-scheduler"
+            ${NODE}:/lib/systemd/system/kube-scheduler.service
+        ssh ${NODE} "systemctl daemon-reload"
+        ssh ${NODE} "systemctl enable kube-scheduler"
+        ssh ${NODE} "systemctl restart kube-scheduler"
     done
 }
 
@@ -696,12 +720,14 @@ function 14_setup_kube_proxy {
 function 15_deploy_calico {
     MSG2 "15. Deploy calico"
 
-    local ETCD_ENDPOINTS=""
-    local ETCD_CA=""
-    local ETCD_CERT=""
-    local ETCD_KEY=""
-    for (( i=0; i<${#MASTER_IP[@]}; i++ )); do
-        ETCD_ENDPOINTS="${ETCD_ENDPOINTS},https://${MASTER_IP[$i]}:2379"; done
+    local ETCD_ENDPOINTS
+    local ETCD_CA
+    local ETCD_CERT
+    local ETCD_KEY
+    #for (( i=0; i<${#MASTER_IP[@]}; i++ )); do
+    for HOST in "${!MASTER[@]}"; do
+        local IP="${MASTER[$HOST]}"
+        ETCD_ENDPOINTS="${ETCD_ENDPOINTS},https://${IP}:2379"; done
     ETCD_ENDPOINTS=${ETCD_ENDPOINTS/,}
     ETCD_CA=$(cat ${KUBE_CERT_PATH}/etcd/etcd-ca.pem | base64 | tr -d '\n')
     ETCD_CERT=$(cat ${KUBE_CERT_PATH}/etcd/etcd.pem | base64 | tr -d '\n')
@@ -713,7 +739,7 @@ function 15_deploy_calico {
     #curl https://docs.projectcalico.org/manifests/calico-etcd.yaml -o calico-etcd.yaml     # latest version
     mkdir -p "${K8S_DEPLOY_LOG_PATH}/addons/calico"
     local CALICO_CONF_PATH="${K8S_DEPLOY_LOG_PATH}/addons/calico"
-    curl https://docs.projectcalico.org/manifests/calico-etcd.yaml -o            ${CALICO_CONF_PATH}/calico-etcd.yaml
+    cp addons/calico/calico_3.18/calico-etcd.yaml                                ${CALICO_CONF_PATH}/calico-etcd.yaml
     sed -i -r "s%(.*)http://<ETCD_IP>:<ETCD_PORT>(.*)%\1${ETCD_ENDPOINTS}\2%"    ${CALICO_CONF_PATH}/calico-etcd.yaml
     sed -i "s%# etcd-key: null%etcd-key: ${ETCD_KEY}%g"                          ${CALICO_CONF_PATH}/calico-etcd.yaml
     sed -i "s%# etcd-cert: null%etcd-cert: ${ETCD_CERT}%g"                       ${CALICO_CONF_PATH}/calico-etcd.yaml
@@ -760,11 +786,11 @@ function 18_label_and_taint_master_node {
     sleep 5
     while true; do
         if kubectl get node | grep Ready; then
-            for NODE in "${MASTER[@]}"; do
-                kubectl label nodes ${NODE} node-role.kubernetes.io/master= --overwrite  
-                kubectl label nodes ${NODE} node-role.kubernetes.io/control-plane= --overwrite
-                kubectl taint nodes ${NODE} node-role.kubernetes.io/master:NoSchedule --overwrite; done
-                #kubectl taint nodes ${NODE} node-role.kubernetes.io/master:PreferNoSchedule --overwrite
+            for HOST in "${!MASTER[@]}"; do
+                kubectl label nodes ${HOST} node-role.kubernetes.io/master= --overwrite  
+                kubectl label nodes ${HOST} node-role.kubernetes.io/control-plane= --overwrite
+                kubectl taint nodes ${HOST} node-role.kubernetes.io/master:NoSchedule --overwrite; done
+                #kubectl taint nodes ${HOST} node-role.kubernetes.io/master:PreferNoSchedule --overwrite
             break
         else
             sleep 1; 
