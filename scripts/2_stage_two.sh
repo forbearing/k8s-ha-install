@@ -21,6 +21,9 @@ esac
 
 function stage_two {
     for NODE in "${ALL_NODE[@]}"; do
-        ssh "${NODE}" "bash -s" < "${stage_two_script_path}"
+        MSG2 "*** ${NODE} *** is Preparing for Kubernetes"
+        ssh "${NODE}" "bash -s" < "${stage_two_script_path}" &> /dev/null &
     done
+    MSG2 "Please Waiting ..."
+    wait
 }
