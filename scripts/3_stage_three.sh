@@ -20,6 +20,9 @@ esac
 
 function stage_three {
     for NODE in "${ALL_NODE[@]}"; do
-        ssh "${NODE}" "bash -s" < "${stage_three_script_path}"
+        MSG2 "*** ${NODE} *** is Installing Docker"
+        ssh "${NODE}" "bash -s" < "${stage_three_script_path}" &> /dev/null &
     done
+    MSG2 "Please Waiting ..."
+    wait
 }
