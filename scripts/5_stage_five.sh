@@ -9,8 +9,8 @@ function deploy_dashboard {
 
 function deploy_kuboard {
     MSG2 "Deploy Kuboard"
-    #kubectl apply -f kuboard/kuboard.yaml
-    kubectl apply -f https://addons.kuboard.cn/kuboard/kuboard-v3.yaml
+    kubectl apply -f addons-3rd/kuboard/kuboard-v2.yaml                         # v2
+    #kubectl apply -f https://addons.kuboard.cn/kuboard/kuboard-v3.yaml          # v3
 }
 
 
@@ -23,9 +23,11 @@ function deploy_ingress {
             sleep 5; 
         else
             echo "All Node is Ready, Start Installing Ingress-nginx ..."
-            for (( i=0; i<${#WORKER[@]}; i++ )); do
-                if [[ $i -eq 3 ]]; then break; fi
-                kubectl label node ${WORKER[$i]} ingress-nginx="enabled" --overwrite;
+            local count=0
+            for HOST in "${!WORKER[@]}"; do
+                kubectl label node ${HOST} ingress-nginx="enabled" --overwrite;
+                if [[ $count -eq 2 ]]; then break; fi
+                (( count++ ))
             done
             helm install --create-namespace -n ingress-nginx ingress-nginx addons-3rd/ingress-nginx/ 
             break
