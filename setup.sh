@@ -72,28 +72,41 @@ done
 #[ -z $environment_file ] && ERR "$(basename $0) -e environment_file" && exit $EXIT_FAILURE
 [ -z $environment_file ] && environment_file="k8s.env"
 source "$environment_file"
-
-# k8s node array
-MASTER=("${MASTER_HOST[@]}")
-WORKER=("${WORKER_HOST[@]}")
-ALL_NODE=("${MASTER[@]}" "${WORKER[@]}")
+ALL_NODE=( ${!MASTER[@]} ${!WORKER[@]} )
 
 
 function print_environment {
     MSG1 "=================================== Environment ==================================="
-    echo "MASTER_HOST:              ${MASTER_HOST[*]}"
-    echo "WORKER_HOST:              ${WORKER_HOST[*]}"
-    echo "EXTRA_MASTER_HOST:        ${EXTRA_MASTER_HOST[*]}"
-    echo "MASTER_IP:                ${MASTER_IP[*]}"
-    echo "WORKER_IP:                ${WORKER_IP[*]}"
-    echo "EXTRA_MASTER_IP:          ${EXTRA_MASTER_IP[*]}"
+    MSG2 "master node"
+    for HOST in "${!MASTER[@]}"; do
+        local IP=${MASTER[$HOST]}
+        printf "%-20s%s\n" ${HOST} ${IP}; done
+
+    MSG2 "worker node"
+    for HOST in "${!WORKER[@]}"; do
+        local IP=${WORKER[$HOST]}
+        printf "%-20s%s\n" ${HOST} ${IP}; done
+
+    MSG2 "all k8s node"
+    for HOST in "${ALL_NODE[@]}"; do
+        echo ${HOST}; done
+
+    MSG2 "extra master node"
+    for HOST in "${!EXTRA_MASTER[@]}"; do
+        local IP=${EXTRA_MASTER[$HOST]}
+        printf "%-20s%s\n" ${HOST} ${IP}; done
+
+    MSG2 "add worker node"
+    for HOST in "${!ADD_WORKER[@]}"; do
+        local IP=${ADD_WORKER[$HOST]}
+        printf "%-20s%s\n" ${HOST} ${IP}; done
+
+    MSG2 "others environment"
     echo "CONTROL_PLANE_ENDPOINT:   ${CONTROL_PLANE_ENDPOINT}"
-    echo "ALL_NODE:                 ${ALL_NODE[*]}"
     echo "SRV_NETWORK_CIDR:         ${SRV_NETWORK_CIDR[*]}"
     echo "SRV_NETWORK_IP:           ${SRV_NETWORK_IP}"
     echo "SRV_NETWORK_DNS_IP:       ${SRV_NETWORK_DNS_IP[*]}"
     echo "POD_NETWORK_CIDR:         ${POD_NETWORK_CIDR[*]}"
-    #echo "ROOT_PASS:                ${K8S_ROOT_PASS}"
     echo "K8S_PATH                  ${K8S_PATH}"
     echo "KUBE_CERT_PATH:           ${KUBE_CERT_PATH}"
     echo "ETCD_CERT_PATH:           ${ETCD_CERT_PATH}"
