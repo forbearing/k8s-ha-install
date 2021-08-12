@@ -800,6 +800,7 @@ function 18_label_and_taint_master_node {
 
 
 function stage_four {
+    MSG1 "============ Stage 4: Deployment Kubernetes Cluster from Binary ===============";
     1_copy_binary_package_and_create_dir
     2_install_keepalived_and_haproxy
     3_setup_haproxy
