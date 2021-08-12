@@ -1,27 +1,6 @@
 #!/usr/bin/env bash
+
 #url :https://github.com/chadoe/docker-cleanup-volumes/blob/master/docker-cleanup-volumes.sh
-
-EXIT_SUCCESS=0
-EXIT_FAILURE=1
-ERR(){ echo -e "\033[31m\033[01m$1\033[0m"; }
-MSG1(){ echo -e "\n\n\033[32m\033[01m$1\033[0m\n"; }
-MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
-
-DEL_WORKER=""
-
-
-while getopts "H:h" opt; do
-    case "${opt}" in
-        "H" )
-            DEL_WORKER=${OPTARG} ;;
-        "h")
-            MSG1 "Usage: $(basename $0) -H [del_worker]" && exit $EXIT_SUCCESS ;;
-        *)
-            ERR "Usage: $(basename $0) -H [del_worker]" && exit $EXIT_FAILURE
-    esac
-done
-[ -z ${DEL_WORKER} ] && ERR "Usage: $(basename $0) -H [del_worker]" && exit $EXIT_FAILURE
-
 
 function 1_drain_and_delete_k8s_node {
     MSG1 "1. drain and delete k8s node"
@@ -47,8 +26,9 @@ function 2_delete_k8s_service_and_file {
         /etc/etcd/
         /etc/cni/
         /opt/cni/
-        /var/lib/etcd/
         /var/lib/kubelet/
+        /var/lib/kube-proxy/
+        /var/lib/etcd/
         /var/lib/calico/
         /lib/systemd/system/kube-apiserver.service
         /lib/systemd/system/kube-controller-manager.service
@@ -113,6 +93,7 @@ function 3_remove_docker_and_file {
                 ssh root@${DEL_WORKER} "rm -rf ${FILE}"
             done
             ssh root@${DEL_WORKER} reboot
+            return
             ;;
         "centos"|"rhel")
             ssh root@${DEL_WORKER} "systemctl disable --now containerd docker"
@@ -121,11 +102,20 @@ function 3_remove_docker_and_file {
             for FILE in "${DOCKER_CONTAINERD_FILE_LIST[@]}"; do
                 ssh root@${DEL_WORKER} "rm -rf ${FILE}"
             done
+            ssh root@${DEL_WORKER} reboot
+            return
             ;;
     esac
 }
 
 
-1_drain_and_delete_k8s_node
-2_delete_k8s_service_and_file
-3_remove_docker_and_file
+function del_k8s_node {
+    MSG1 "Deleting k8s worker node ..."
+    1_drain_and_delete_k8s_node
+    2_delete_k8s_service_and_file
+    3_remove_docker_and_file
+}
+
+# 确认是否是 k8s 管理员
+# 确认是否包含该主机
+# 确认是否能 ssh 过去
