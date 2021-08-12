@@ -237,6 +237,7 @@ function deploy_harbor { :; }
 
 
 function stage_five {
+    MSG1 "==================== Stage 5: Deployment Kubernetes Addon =====================";
     [ ${INSTALL_KUBOARD} ]   && deploy_kuboard
     [ ${INSTALL_INGRESS} ]   && deploy_ingress
     [ ${INSTALL_TRAEFIK} ]   && deploy_traefik
