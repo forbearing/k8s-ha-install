@@ -9,8 +9,8 @@ function usage {
     echo -e "Example: "
     echo -e "    ./setup.sh                     使用默认的 k8s.env 变量文件部署 k8s 集群"
     echo -e "    ./setup.sh -a                  使用默认的 k8s.env 变量文件添加 k8s worker 节点"
-    echo -e "    ./setup.sh -e k8s-t1.env       使用自定义的 k8s.env 变量文件部署 k8s 集群"
-    echo -e "    ./setup.sh -e k8s-t1.env -a    使用自定义的 k8s.env 变量文件添加 k8s worker 节点"
+    echo -e "    ./setup.sh -e k8s-t1.env       使用自定义的 k8s-t1.env 变量文件部署 k8s 集群"
+    echo -e "    ./setup.sh -e k8s-t1.env -a    使用自定义的 k8s-t1.env 变量文件添加 k8s worker 节点"
     echo -e "    ./setup.sh -d worker4          删除 k8s worker 节点"
 }
 
