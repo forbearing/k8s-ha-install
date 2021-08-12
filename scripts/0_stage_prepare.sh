@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 
 function stage_prepare {
+    MSG1 "=============  Stage Prepare: Setup SSH Public Key Authentication ============="
+
     # 将 k8s 节点的主机名与 IP 对应关系写入 /etc/hosts 文件
     for HOST in "${!MASTER[@]}"; do
         local IP=${MASTER[$HOST]}
-        sed -r -i "/(.*)${HOST}(.*)/d" /etc/hosts
+        sed -r -i "/(.*)${IP}(.*)${HOST}(.*)/d" /etc/hosts
         echo "${IP} ${HOST}" >> /etc/hosts; done
     for HOST in "${!WORKER[@]}"; do
         local IP=${WORKER[$HOST]}
-        sed -r -i "/(.*)${HOST}(.*)/d" /etc/hosts
+        sed -r -i "/(.*)${IP}(.*)${HOST}(.*)/d" /etc/hosts
         echo "${IP} ${HOST}" >> /etc/hosts; done
 
 
