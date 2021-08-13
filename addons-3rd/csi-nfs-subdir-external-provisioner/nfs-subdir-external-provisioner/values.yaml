@@ -2,16 +2,16 @@ replicaCount: 1
 strategyType: Recreate
 
 image:
-  #repository: k8s.gcr.io/sig-storage/nfs-subdir-external-provisioner
-  repository: registry.cn-shanghai.aliyuncs.com/hybfkuf/nfs-subdir-external-provisioner
+  repository: k8s.gcr.io/sig-storage/nfs-subdir-external-provisioner
   tag: v4.0.2
   pullPolicy: IfNotPresent
 imagePullSecrets: []
 
 nfs:
-  server: 10.250.11.11
+  server:
   path: /nfs-storage
   mountOptions:
+  volumeName: nfs-subdir-external-provisioner-root
 
 # For creating the StorageClass automatically:
 storageClass:
