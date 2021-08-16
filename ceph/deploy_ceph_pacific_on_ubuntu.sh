@@ -356,9 +356,9 @@ function 7_deploy_cephfs {
 }
 
 
-#1_configure_ssh_authentication
-#2_all_ceph_upgrade
-#3_optimizate_system
-#4_install_docker
-#5_install_cephadm
+1_configure_ssh_authentication
+2_all_ceph_upgrade
+3_optimizate_system
+4_install_docker
+5_install_cephadm
 6_deploy_ceph_cluster
