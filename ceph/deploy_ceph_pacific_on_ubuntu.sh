@@ -244,8 +244,7 @@ function 6_deploy_ceph_cluster {
     cephadm bootstrap \
         --mon-ip ${CURRENT_NODE_IP} \
         --cluster-network ${CEPH_CLUSTER_NETWORK} \
-        --initial-dashboard-password ${CEPH_DASHBOARD_PASS} \
-        --allow-overwrite
+        --initial-dashboard-password ${CEPH_DASHBOARD_PASS}
     
     # Enable ceph cli
     #   You can install the ceph-common package, which contains all of the ceph commands, 
@@ -268,57 +267,84 @@ function 6_deploy_ceph_cluster {
     for HOST in "${CEPH_NODE[@]}"; do
         ssh-copy-id -f -i /etc/ceph/ceph.pub root@${HOST}   # Install the cluster’s public SSH key in the new host’s root user’s authorized_keys file
     done
-    for HOST in "${!CEPH_MGR[@]}"; do
-        local IP=${CEPH_MGR[$HOST]}
-        if [[ ${!CEPH_MON[*]} =~ ${HOST} ]]; then
-            ceph orch host add ${HOST} ${IP} --labels _admin
-        else
-            ceph orch host add ${HOST} ${IP}
-        fi
-    done
-    for HOST in "${!CEPH_OSD[@]}"; do
-        local IP=${CEPH_OSD[$HOST]}
-        if [[ ${!CEPH_MON[*]} =~ ${HOST} ]]; then
-            ceph orch host add ${HOST} ${IP} --labels _admin
-        else
-            ceph orch host add ${HOST} ${IP}
-        fi
-    done
-    for HOST in "${!CEPH_MDS[@]}"; do
-        local IP=${CEPH_MDS[$HOST]}
-        if [[ ${!CEPH_MON[*]} =~ ${HOST} ]]; then
-            ceph orch host add ${HOST} ${IP} --labels _admin
-        else
-            ceph orch host add ${HOST} ${IP}
-        fi
-    done
+
     for HOST in "${!CEPH_MON[@]}"; do
         local IP=${CEPH_MON[$HOST]}
         ceph orch host add ${HOST} ${IP} --labels _admin
-    done
+        ceph orch host label add ${HOST} mon; done
     ceph orch host ls
 
+    for HOST in "${!CEPH_MGR[@]}"; do
+        local IP=${CEPH_MGR[$HOST]}
+        if [[ ${!CEPH_MON[*]} =~ ${HOST} ]]; then :
+        else
+            ceph orch host add ${HOST} ${IP}; fi
+        ceph orch host label add ${HOST} mgr; done
+    ceph orch host ls
 
+    for HOST in "${!CEPH_OSD[@]}"; do
+        local IP=${CEPH_OSD[$HOST]}
+        if [[ ${!CEPH_MON[*]} =~ ${HOST} ]]; then :
+        else
+            ceph orch host add ${HOST} ${IP}; fi
+        ceph orch host label add ${HOST} osd; done
+    ceph orch host ls
+
+    for HOST in "${!CEPH_MDS[@]}"; do
+        local IP=${CEPH_MDS[$HOST]}
+        if [[ ${!CEPH_MON[*]} =~ ${HOST} ]]; then :
+        else
+            ceph orch host add ${HOST} ${IP}; fi
+        ceph orch host label add ${HOST} mds; done
+    ceph orch host ls
+}
+
+
+function 7_placement_mons {
     # Adding Additional Mons
     #   A typical Ceph cluster has three or five monitor daemons spread across different 
     #   hosts. We recommend deploying five monitors if there are five or more nodes in your cluster.
-    MSG2 "6.4 Adding additional mons"
-    ceph config set mon public_network ${CEPH_PUBLIC_NETWORK}   # designating a particular subnet for monitors
-    ceph orch apply mon --unmanaged                             # disable automated monitor deployment
-    for HOST in "${!CEPH_MON[@]}"; do
-        local IP=${CEPH_MON[$HOST]}
-        ceph orch daemon add mon ${HOST}:${IP}
+
+    #MSG1 "7 Adding additional mons"
+    #ceph config set mon public_network ${CEPH_PUBLIC_NETWORK}   # designating a particular subnet for monitors
+    #ceph orch apply mon --unmanaged                             # disable automated monitor deployment
+    #for HOST in "${!CEPH_MON[@]}"; do
+        #local IP=${CEPH_MON[$HOST]}
+        #ceph orch daemon add mon ${HOST}:${IP}
+    #done
+
+    MSG1 "7. Placement mons"
+    local ceph_mons
+    for mon in "${!CEPH_MON[@]}"; do
+        ceph_mons="${ceph_mons}","${mon}"
     done
+    ceph_mons="${ceph_mons[@]/,}"
+    echo ${ceph_mons}
+    ceph orch apply mon --placement="${ceph_mons}"
+}
+    
 
 
-    # Addding additional 
-    MSG2 "6.5 Adding additional mgrs"
-    for HOST in "${!CEPH_MGR[@]}"; do
-        local IP=${CEPH_MGR[$HOST]}
-        ceph orch daemon add mgr ${HOST}:${IP}
+function 8_placement_mgrs {
+    ## Addding additional 
+    #MSG1 "8 Adding additional mgrs"
+    #for HOST in "${!CEPH_MGR[@]}"; do
+        #local IP=${CEPH_MGR[$HOST]}
+        #ceph orch daemon add mgr ${HOST}:${IP}
+    #done
+
+    MSG1 "8. Placement mgrs"
+    local ceph_mgrs
+    for mgr in "${!CEPH_MGR[@]}"; do
+        ceph_mgrs="${ceph_mgrs}","${mgr}"
     done
+    ceph_mgrs=${ceph_mgrs[@]/,}
+    echo ${ceph_mgrs}
+    ceph orch apply mgr --placement="${ceph_mgrs}"
+}
 
 
+function 9_placement_osd {
     # Adding Storage
     #   ceph orch device ls [--hostname=...] [--wide] [--refresh]       # To print a list of devices discovered by cephadm, run this command:
     # A storage device is considered available if all of the following conditions are met: 
@@ -334,26 +360,38 @@ function 6_deploy_ceph_cluster {
     #   ceph orch apply osd --all-available-devices --dry-run
     # Create an OSD from a specific device on a specific host:
     #   ceph orch daemon add osd host1:/dev/sdb
-    MSG2 "6.6 Adding storage"
+    MSG1 "9. Placement osd"
     for HOST in "${!CEPH_OSD[@]}"; do
         ceph orch daemon add osd ${HOST}:${CEPH_OSD_DISK}
     done
 
+    #MSG1 "9. Placement osd"
+    #ceph orch apply osd --all-available-devices --unmanaged=true    # use all device, but not auto add osd
+    #ceph orch apply osd --all-available-devices                     # use all device, and auto add osd
 
-    MSG2 "6.7 Adding mds"
-    local count=0
-    local MDS_HOSTS
-    for HOST in "${!CEPH_MDS[@]}"; do
-        MDS_HOSTS="${MDS_HOSTS}"" ${HOST}"
-        (( count++ ))
+}
+
+
+function 10_placement_mds {
+    #MSG1 "10. Adding mds"
+    #local count=0
+    #local MDS_HOSTS
+    #for HOST in "${!CEPH_MDS[@]}"; do
+        #MDS_HOSTS="${MDS_HOSTS}"" ${HOST}"
+        #(( count++ ))
+    #done
+    #ceph orch apply mds fs-cluster --placement="${count} ${MDS_HOSTS}"
+
+    MSG1 "10. Placement mds"
+    local ceph_mds
+    for mds in "${!CEPH_MDS[@]}"; do
+        ceph_mds="${ceph_mds}","${mds}"
     done
-    ceph orch apply mds fs-cluster --placement="${count} ${MDS_HOSTS}"
+    ceph_mds=${ceph_mds[@]/,}
+    echo ${ceph_mds}
+    ceph orch apply mds cephfs --placement="${ceph_mds}"
 }
 
-
-function 7_deploy_cephfs {
- :   
-}
 
 
 1_configure_ssh_authentication
@@ -362,3 +400,7 @@ function 7_deploy_cephfs {
 4_install_docker
 5_install_cephadm
 6_deploy_ceph_cluster
+7_placement_mons
+8_placement_mgrs
+9_placement_osd
+10_placement_mds
