@@ -58,7 +58,7 @@ K8S_PATH="/etc/kubernetes"                              # k8s config path
 KUBE_CERT_PATH="/etc/kubernetes/pki"                    # k8s cert path
 ETCD_CERT_PATH="/etc/etcd/ssl"                          # etcd cert path
 K8S_DEPLOY_LOG_PATH="/root/k8s-deploy-log"              # k8s install log dir path
-INSTALL_MANAGER=""                                      # like apt-get yum, setting by script, not set here
+INSTALL_MANAGER=""                                      # like apt-get yum, set by script, not set here
 environment_file=""                                     # default k8s environment file is k8s.env
 
 source scripts/function.sh                              # base function script
@@ -102,4 +102,5 @@ function main {
     stage_four
     stage_five
     MSG1 "NOT Forget Restart All Kubernetes Node !!!"
-}; main
+}
+main
