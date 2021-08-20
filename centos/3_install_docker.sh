@@ -9,12 +9,28 @@ MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 
 function 1_install_docker {
     MSG2 "1. [`hostname`] Install docker"
+
+    yum remove -y docker \
+                  docker-client \
+                  docker-client-latest \
+                  docker-common \
+                  docker-latest \
+                  docker-latest-logrotate \
+                  docker-logrotate \
+                  docker-engine
+    if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
+        echo y | cp /etc/yum.repos.d/docker.repo /etc/yum.repos.d/docker.repo.$(date +%Y%m%d%H%M)
+        echo y | cp /tmp/yum.repos.d/yum.repos.d/docker-ce.repo-aliyun /etc/yum.repos.d/docker.repo
+    else
+        yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo; fi
     yum install -y docker-ce-19.03.15-3.el7
     systemctl enable --now docker
 }
 
+
 function 2_configure_docker {
     MSG2 "2. [`hostname`] Configure docker"
+
 cat > /etc/docker/daemon.json <<-EOF
 {
   "exec-opts": ["native.cgroupdriver=systemd"],
