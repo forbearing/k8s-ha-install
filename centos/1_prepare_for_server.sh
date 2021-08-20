@@ -12,16 +12,14 @@ function 1_import_repo {
 
     if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
         echo y | cp /etc/yum.repos.d/CentOS-Base.repo               /etc/yum.repos.d/CentOS-Base.repo.$(date +%Y%m%d%H%M)
-        echo y | cp /etc/yum.repos.d/elrepo.repo                    /etc/yum.repos.d/elrepo.repo.$(date +%Y%m%d%H%M)
-        echo y | cp /etc/yum.repos.d/ceph.repo                      /etc/yum.repos.d/ceph.repo.$(date +%Y%m%d%H%M)
         echo y | cp /tmp/yum.repos.d/CentOS-Base.repo-ustc          /etc/yum.repos.d/CentOS-Base.repo
         echo y | cp /tmp/yum.repos.d/elrepo.repo-ustc               /etc/yum.repos.d/elrepo.repo
         echo y | cp /tmp/yum.repos.d/ceph-nautilus.repo-tsinghua    /etc/yum.repos.d/ceph.repo
     else
-        echo y | cp /etc/yum.repos.d/elrepo.repo                    /etc/yum.repos.d/elrepo.repo.$(date +%Y%m%d%H%M)
-        echo y | cp /etc/yum.repos.d/ceph.repo                      /etc/yum.repos.d/ceph.repo.$(date +%Y%m%d%H%M)
-        echo y | cp /tmp/yum.repos.d/elrepo.repo-rockspace          /etc/yum.repos.d/elrepo.repo
-        echo y | cp /tmp/yum.repos.d/ceph-nautilus.repo-official    /etc/yum.repos.d/ceph.repo; fi
+        echo y | cp /tmp/yum.repos.d/ceph-nautilus.repo-official    /etc/yum.repos.d/ceph.repo
+        rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+        yum install -y https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm
+    fi
 
     yum makecache
 }
