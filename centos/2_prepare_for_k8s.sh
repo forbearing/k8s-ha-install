@@ -1,14 +1,7 @@
 #!/usr/bin/env bash
 
-EXIT_SUCCESS=0
-EXIT_FAILURE=1
-ERR(){ echo -e "\033[31m\033[01m$1\033[0m"; }
-MSG1(){ echo -e "\n\n\033[32m\033[01m$1\033[0m\n"; }
-MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
-
-
 function 1_install_necessary_package_for_k8s {
-    MSG2 "1. [`hostname`] Install package for k8s"
+    echo "1. [`hostname`] Install package for k8s"
 
     yum install -y \
         conntrack-tools ipvsadm ipset iptables iptables-services \
@@ -20,7 +13,7 @@ function 1_install_necessary_package_for_k8s {
 
 
 function 2_disable_swap {
-    MSG2 "2. [`hostname`] Disable swap"
+    echo "2. [`hostname`] Disable swap"
 
     sed -i -r "/(.*)swap(.*)swap(.*)/d" /etc/fstab
     swapoff -a
@@ -28,7 +21,7 @@ function 2_disable_swap {
 
 
 function 3_upgrade_kernel {
-    MSG2 "3. [`hostname`] Upgrade kernel"
+    echo "3. [`hostname`] Upgrade kernel"
 
     yum install -y kernel-lt
     # set default kernel
@@ -37,7 +30,7 @@ function 3_upgrade_kernel {
 
 
 function 4_load_kernel_module {
-    MSG2 "4. [`hostname`] Load kernel module"
+    echo "4. [`hostname`] Load kernel module"
 
     k8s_modules=(
         "#!/usr/bin/env bash"
@@ -74,7 +67,7 @@ function 4_load_kernel_module {
 
 
 function 5_configure_kernel_parameter {
-    MSG2 "5. [`hostname`] Configure kernel parameter"
+    echo "5. [`hostname`] Configure kernel parameter"
 
     k8s_sysctl=(
         "net.ipv4.ip_forward = 1"
@@ -113,9 +106,10 @@ function 5_configure_kernel_parameter {
 }
 
 
-MSG1 "*** `hostname` *** Prepare for Kubernetes"
-1_install_necessary_package_for_k8s
-2_disable_swap
-3_upgrade_kernel
-4_load_kernel_module
-5_configure_kernel_parameter
+function main {
+    1_install_necessary_package_for_k8s
+    2_disable_swap
+    3_upgrade_kernel
+    4_load_kernel_module
+    5_configure_kernel_parameter
+}

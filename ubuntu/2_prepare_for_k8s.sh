@@ -1,14 +1,7 @@
 #!/usr/bin/env bash
 
-EXIT_SUCCESS=0
-EXIT_FAILURE=1
-ERR(){ echo -e "\033[31m\033[01m$1\033[0m"; }
-MSG1(){ echo -e "\n\n\033[32m\033[01m$1\033[0m\n"; }
-MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
-
-
 function 1_disable_swap {
-    MSG2 "1. [`hostname`] Disable swap"
+    echo "1. [`hostname`] Disable swap"
 
     sed -i -r "/(.*)swap(.*)swap(.*)/d" /etc/fstab
     swapoff -a
@@ -16,7 +9,7 @@ function 1_disable_swap {
 
 
 function 2_load_kernel_module {
-    MSG2 "2. [`hostname`] Load kernel module"
+    echo "2. [`hostname`] Load kernel module"
 
     k8s_modules=(
         "overlay"
@@ -51,7 +44,7 @@ function 2_load_kernel_module {
 
 
 function 3_configure_kernel_parameter {
-    MSG2 "3. [`hostname`] Configure kernel parameter"
+    echo "3. [`hostname`] Configure kernel parameter"
 
     k8s_sysctl=(
         "net.ipv4.ip_forward = 1"
@@ -89,8 +82,9 @@ function 3_configure_kernel_parameter {
 }
 
 
-MSG1 "*** `hostname` *** Prepare for Kubernetes"
 
-1_disable_swap
-2_load_kernel_module
-3_configure_kernel_parameter
+function main {
+    1_disable_swap
+    2_load_kernel_module
+    3_configure_kernel_parameter
+}
