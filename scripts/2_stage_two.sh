@@ -4,28 +4,52 @@ function stage_two {
     MSG1 "====================== Stage 2: Prepare for Kubernetes ========================";
 
     source /etc/os-release
-    case "$ID" in
-        centos|rhel)
-            stage_one_script_path="centos/1_prepare_for_server.sh"
-            stage_two_script_path="centos/2_prepare_for_k8s.sh"
-            stage_three_script_path="centos/3_install_docker.sh" ;;
-        ubuntu)
-            stage_one_script_path="ubuntu/1_prepare_for_server.sh"
-            stage_two_script_path="ubuntu/2_prepare_for_k8s.sh"
-            stage_three_script_path="ubuntu/3_install_docker.sh" ;;
-        debian)
-            stage_one_script_path="debian/1_prepare_for_server.sh"
-            stage_two_script_path="debian/2_prepare_for_k8s.sh"
-            stage_three_script_path="debian/3_install_docker.sh" ;;
-        *)
-            ERR "Not Support Linux !" && exit $EXIT_FAILURE ;;
+    mkdir -p "${K8S_DEPLOY_LOG_PATH}/logs/stage-two"
+    case ${ID} in
+    centos|rhel)
+        # Linux centos/rhel
+        source centos/2_prepare_for_k8s.sh
+        for NODE in "${ALL_NODE[@]}"; do
+            MSG2 "*** ${NODE} *** is Preparing for Kubernetes"
+            ssh root@${NODE} \
+                "$(typeset -f 1_install_necessary_package_for_k8s)
+                 $(typeset -f 2_disable_swap)
+                 $(typeset -f 3_upgrade_kernel)
+                 $(typeset -f 4_load_kernel_module)
+                 $(typeset -f 5_configure_kernel_parameter)
+                 1_install_necessary_package_for_k8s
+                 2_disable_swap
+                 3_upgrade_kernel
+                 4_load_kernel_module
+                 5_configure_kernel_parameter" \
+                 &> ${K8S_DEPLOY_LOG_PATH}/logs/stage-two/${NODE}.log &
+        done
+        MSG2 "Please Waiting... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-two/*.log)"
+        wait
+        ;;
+    ubuntu)
+        # Linux: ubuntu
+        source ubuntu/2_prepare_for_k8s.sh
+        for NODE in "${ALL_NODE[@]}"; do
+            MSG2 "*** ${NODE} *** is Preparing for Kubernetes"
+            ssh root@${NODE} \
+                "$(typeset -f 1_disable_swap)
+                 $(typeset -f 2_load_kernel_module)
+                 $(typeset -f 3_configure_kernel_parameter)
+                 1_disable_swap
+                 2_load_kernel_module
+                 3_configure_kernel_parameter" \
+                 &> ${K8S_DEPLOY_LOG_PATH}/logs/stage-two/${NODE}.log &
+
+        done
+        MSG2 "Please Waiting... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-two/*.log)"
+        wait
+        ;;
+    debian)
+        # Linux: debian
+        :
+        ;;
+    *)
+        ERR "Not Support Linux !" && exit $EXIT_FAILURE ;;
     esac
-
-
-    for NODE in "${ALL_NODE[@]}"; do
-        MSG2 "*** ${NODE} *** is Preparing for Kubernetes"
-        ssh "${NODE}" "bash -s" < "${stage_two_script_path}" &> /dev/null &
-    done
-    MSG2 "Please Waiting ..."
-    wait
 }
