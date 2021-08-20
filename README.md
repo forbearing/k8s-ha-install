@@ -1,6 +1,6 @@
 # 1. 介绍
 
-**注意事项 **
+#### 注意事项 
 
 - 默认 3 个 etcd 部署在 3 个 master 节点上。
 - 必须以 root 身份运行 setup.sh 脚本。
@@ -8,14 +8,14 @@
 - 用来部署 k8s 高可用集群的 Linux Server 必须都是同一 Linux 发行版本，要么都是 Debian 系列，要么都是 RHEL 系列。
 - 用来部署 k8s 高可用集群的 Linux Server 口令必须相同，把 k8s 节点的 root 口令设置在这个变量中 ````K8S_ROOT_PASS````
 
-##### Linux 系统支持:
+#### Linux 系统支持:
 
 - Centos7
 - Ubuntu18
 - Ubuntu20 (未严格测试)
 - (后续支持 debian)
 
-##### K8S 版本支持
+#### K8S 版本支持
 
 - v1.20.x
 - v1.21.x
