@@ -47,6 +47,12 @@ function stage_prepare {
     done
 
 
+    # 所有节点设置默认 shell 为 bash
+    for NODE in "${ALL_NODE[@]}"; do
+        chsh -s $(which bash)
+    done
+
+
     # 如果操作系统为 RHEL/CentOS，则将 yum.repos.d 复制到所有 k8s 节点上的 /tmp 目录下
     source /etc/os-release
     if [[ ${ID} == centos || ${ID} == rhel ]]; then
