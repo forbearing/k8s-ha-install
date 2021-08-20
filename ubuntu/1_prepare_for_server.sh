@@ -12,9 +12,12 @@ function 1_upgrade_system {
 
     local mirrors
     local release
-    #mirrors="https://mirrors.ustc.edu.cn/ubuntu"
-    mirrors="https://mirrors.aliyun.com/ubuntu"
-    release=$(lsb_release -sc)
+    local release=$(lsb_release -sc)
+    if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
+        #mirrors="https://mirrors.ustc.edu.cn/ubuntu"
+        mirrors="https://mirrors.aliyun.com/ubuntu"
+    else
+        mirrors="http://archive.ubuntu.com/ubuntu"; fi
     source_list=(
         "deb ${mirrors} ${release} main restricted universe multiverse"
         "deb ${mirrors} ${release}-security main restricted universe multiverse"
@@ -26,7 +29,7 @@ function 1_upgrade_system {
         "deb-src ${mirrors} ${release}-updates main restricted universe multiverse"
         "deb-src ${mirrors} ${release}-proposed main restricted universe multiverse"
         "deb-src ${mirrors} ${release}-backports main restricted universe multiverse")
-    if ! ls /etc/apt/sources.list.bak; then cp /etc/apt/sources.list /etc/apt/sources.list.bak; fi
+    echo y | cp /etc/apt/sources.list /etc/apt/sources.list.$(date +%Y%m%d%H%M)
     printf "%s\n" "${source_list[@]}" > /etc/apt/sources.list
 
     export DEBIAN_FRONTEND=noninteractive
@@ -41,10 +44,14 @@ function 1_upgrade_system {
 function 2_install_necessary_package {
     MSG2 "2. [`hostname`] Install necessary package"
 
-    apt-get install -y coreutils apt-file apt-transport-https software-properties-common iputils-ping bash-completion wget curl zip unzip bzip2 vim net-tools git zsh fish rsync psmisc procps dnsutils lvm2 ntp ntpdate jq sysstat tree lsof virt-what conntrack ipset open-iscsi ipvsadm auditd socat
-    if [[ $(virt-what) == "vmware" ]]; then
-        apt-get install -y open-vm-tools
-        systemctl enable --now open-vm-tools; fi
+    apt-get install -y coreutils apt-file apt-transport-https software-properties-common \
+        iputils-ping bash-completion wget curl zip unzip bzip2 vim net-tools \
+        git zsh fish rsync psmisc procps dnsutils lvm2 ntp ntpdate jq sysstat tree \
+        lsof virt-what conntrack ipset open-iscsi ipvsadm auditd socat multitail
+
+    #if [[ $(virt-what) == "vmware" ]]; then
+        #apt-get install -y open-vm-tools
+        #systemctl enable --now open-vm-tools; fi
 }
 
 
@@ -58,7 +65,7 @@ function 3_disable_firewald_and_selinux {
 function 4_set_timezone_and_ntp_client {
     MSG2 "4. [`hostname`] Set timezone and ntp"
 
-    timedatectl set-timezone Asia/Shanghai
+    timedatectl set-timezone ${TIMEZONE}
     timedatectl set-ntp true
     systemctl restart rsyslog
     systemctl restart cron
