@@ -4,28 +4,45 @@ function stage_three {
     MSG1 "========================= Stage 3: Install Docker =============================";
 
     source /etc/os-release
-    case "$ID" in
-        centos|rhel)
-            stage_one_script_path="centos/1_prepare_for_server.sh"
-            stage_two_script_path="centos/2_prepare_for_k8s.sh"
-            stage_three_script_path="centos/3_install_docker.sh" ;;
-        ubuntu)
-            stage_one_script_path="ubuntu/1_prepare_for_server.sh"
-            stage_two_script_path="ubuntu/2_prepare_for_k8s.sh"
-            stage_three_script_path="ubuntu/3_install_docker.sh" ;;
-        debian)
-            stage_one_script_path="debian/1_prepare_for_server.sh"
-            stage_two_script_path="debian/2_prepare_for_k8s.sh"
-            stage_three_script_path="debian/3_install_docker.sh" ;;
-        *)
-            ERR "Not Support Linux !" && exit $EXIT_FAILURE ;;
+    mkdir -p "${K8S_DEPLOY_LOG_PATH}/logs/stage-three"
+    case ${ID} in
+    centos|rhel)
+        # Linux: centos/rhel
+        source centos/3_install_docker.sh
+        for NODE in "${ALL_NODE[@]}"; do
+            MSG2 "*** ${NODE} *** is Installing Docker"
+            ssh root@${NODE} \
+                "$(typeset -f 1_install_docker)
+                 $(typeset -f 2_configure_docker)
+                 1_install_docker
+                 2_configure_docker" \
+                 &> ${K8S_DEPLOY_LOG_PATH}/logs/stage-three/${NODE}.log &
+        done
+        MSG2 "Please Waiting... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-three/*.log)"
+        wait
+            ;;
+    ubuntu)
+        # Linux: ubuntu
+        source ubuntu/3_install_docker.sh
+        for NODE in "${ALL_NODE[@]}"; do
+            MSG2 "*** ${NODE} *** is Installing Docker"
+            ssh root@${NODE} \
+                "$(typeset -f 1_install_docker)
+                 $(typeset -f 2_configure_docker)
+                 $(typeset -f 3_audit_for_docker)
+                 1_install_docker
+                 2_configure_docker
+                 3_audit_for_docker" \
+                 &> ${K8S_DEPLOY_LOG_PATH}/logs/stage-three/${NODE}.log &
+        done
+        MSG2 "Please Waiting... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-three/*.log)"
+        wait
+        ;;
+    debian)
+        # Linux: debian
+        :
+        ;;
+    *)
+        ERR "Not Support Linux !" && exit $EXIT_FAILURE ;;
     esac
-
-
-    for NODE in "${ALL_NODE[@]}"; do
-        MSG2 "*** ${NODE} *** is Installing Docker"
-        ssh "${NODE}" "bash -s" < "${stage_three_script_path}" &> /dev/null &
-    done
-    MSG2 "Please Waiting ..."
-    wait
 }
