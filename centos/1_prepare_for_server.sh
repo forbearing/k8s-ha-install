@@ -10,11 +10,19 @@ MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 function 1_import_repo {
     MSG2 "1. [`hostname`] Imort yum repo"
 
-    cp /tmp/yum.repos.d/CentOS-Base.repo-aliyun     /etc/yum.repos.d/CentOS-Base.repo
-    cp /tmp/yum.repos.d/elrepo.repo-ustc            /etc/yum.repos.d/elrepo.repo
-    cp /tmp/yum.repos.d/ceph-nautilus.repo-tsinghua /etc/yum.repos.d/ceph.repo
-    cp /tmp/yum.repos.d/docker-ce.repo-aliyun       /etc/yum.repos.d/docker-ce.repo
-    #cp /tmp/yum.repos.d/epel.repo-tsinghua /etc/yum.repos.d/epel.repo
+    if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
+        echo y | cp /etc/yum.repos.d/CentOS-Base.repo               /etc/yum.repos.d/CentOS-Base.repo.$(date +%Y%m%d%H%M)
+        echo y | cp /etc/yum.repos.d/elrepo.repo                    /etc/yum.repos.d/elrepo.repo.$(date +%Y%m%d%H%M)
+        echo y | cp /etc/yum.repos.d/ceph.repo                      /etc/yum.repos.d/ceph.repo.$(date +%Y%m%d%H%M)
+        echo y | cp /tmp/yum.repos.d/CentOS-Base.repo-ustc          /etc/yum.repos.d/CentOS-Base.repo
+        echo y | cp /tmp/yum.repos.d/elrepo.repo-ustc               /etc/yum.repos.d/elrepo.repo
+        echo y | cp /tmp/yum.repos.d/ceph-nautilus.repo-tsinghua    /etc/yum.repos.d/ceph.repo
+    else
+        echo y | cp /etc/yum.repos.d/elrepo.repo                    /etc/yum.repos.d/elrepo.repo.$(date +%Y%m%d%H%M)
+        echo y | cp /etc/yum.repos.d/ceph.repo                      /etc/yum.repos.d/ceph.repo.$(date +%Y%m%d%H%M)
+        echo y | cp /tmp/yum.repos.d/elrepo.repo-rockspace          /etc/yum.repos.d/elrepo.repo
+        echo y | cp /tmp/yum.repos.d/ceph-nautilus.repo-official    /etc/yum.repos.d/ceph.repo; fi
+
     yum makecache
 }
 
@@ -24,14 +32,19 @@ function 2_install_necessary_package {
 
     yum clean all
     yum install -y epel-release
+
+    if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
+        echo y | cp /etc/yum.repos.d/epel.repo /etc/yum.repos.d/epel.repo.$(date +%Y%m%d%H%M)
+        echo y | cp /tmp/yum.repos.d/epel.repo-ustc /etc/yum.repos.d/epel.repo; fi
+
     yum install -y coreutils bash-completion iputils wget curl zip unzip bzip2 vim net-tools \
         git zsh fish rsync psmisc procps-ng bind-utils yum-utils device-mapper-persistent-data \
-        lvm2 ntp ntpdate jq sysstat nc tree lsof virt-what audit iscsi-initiator-utils socat
-    cp /tmp/yum.repos.d/epel.repo-aliyun /etc/yum.repos.d/epel.repo
-    if [[ $(virt-what) == "vmware" ]]; then
-        yum install -y open-vm-tools
-        systemctl enable --now vmtoolsd
-    fi
+        lvm2 ntp ntpdate jq sysstat nc tree lsof virt-what audit iscsi-initiator-utils socat multitail
+
+    #if [[ $(virt-what) == "vmware" ]]; then
+        #yum install -y open-vm-tools
+        #systemctl enable --now vmtoolsd
+    #fi
 }
 
 
@@ -55,7 +68,7 @@ function 4_disable_firewald_and_selinux {
 function 5_set_timezone_and_ntp_client {
     MSG2 "5. [`hostname`] Set timezone and ntp"
 
-    timedatectl set-timezone 'Asia/Shanghai'
+    timedatectl set-timezone ${TIMEZONE}
     timedatectl set-ntp 1
     systemctl restart rsyslog
     systemctl restart crond
