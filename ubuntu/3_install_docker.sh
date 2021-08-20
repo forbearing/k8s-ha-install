@@ -17,9 +17,12 @@ function 1_install_docker {
     apt-get update -y
     apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release software-properties-common
 
-    docker_url="https://mirrors.ustc.edu.cn/docker-ce"
-    #docker_url="https://mirrors.aliyun.com/docker-ce"
-    #docker_url="https://download.docker.com"
+    local docker_url
+    if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
+        docker_url="https://mirrors.ustc.edu.cn/docker-ce"
+        #docker_url="https://mirrors.aliyun.com/docker-ce"
+    else
+        docker_url="https://download.docker.com"; fi
 
     while true; do
         if curl -fsSL ${docker_url}/linux/ubuntu/gpg | sudo gpg --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg; then
