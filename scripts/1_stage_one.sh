@@ -22,10 +22,11 @@ function stage_one {
     esac
 
 
+    mkdir -p "${K8S_DEPLOY_LOG_PATH}/logs-stage-one"
     for NODE in "${ALL_NODE[@]}"; do
         MSG2 "*** ${NODE} *** is Preparing for Linux Server"
-        ssh "${NODE}" "bash -s" < "${stage_one_script_path}" &> /dev/null &
+        ssh "${NODE}" "bash -s" < "${stage_one_script_path}" | tee ${K8S_DEPLOY_LOG_PATH}/logs-stage-one/${NODE}.log &> /dev/null &
     done
-    MSG2 "Please Waiting ..."
+    MSG2 "Please Waiting... (multitail -f ${K8S_DEPLOY_LOG_PATH}/logs-stage-one/*.log)"
     wait
 }
