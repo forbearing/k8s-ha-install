@@ -86,7 +86,9 @@ source ${environment_file}
 ALL_NODE=( ${!MASTER[@]} ${!WORKER[@]} )
 
 
-[[ ${K8S_VERSION} ]] || K8S_VERSION="v1.21"
+[[ ${K8S_VERSION} ]]    || K8S_VERSION="v1.21"
+[[ ${TIMEZONE} ]]       || TIMEZONE="Asia/Shanghai"
+[[ ${K8S_PROXY_MODE} ]] || K8S_PROXY_MODE="ipvs"
 [[ ${i_want_add_k8s_node} ]] && add_k8s_node && exit ${EXIT_SUCCESS}
 [[ ${i_want_del_k8s_node} ]] && del_k8s_node && exit ${EXIT_SUCCESS}
 
