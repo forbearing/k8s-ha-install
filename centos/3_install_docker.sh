@@ -1,14 +1,7 @@
 #!/usr/bin/env bash
 
-EXIT_SUCCESS=0
-EXIT_FAILURE=1
-ERR(){ echo -e "\033[31m\033[01m$1\033[0m"; }
-MSG1(){ echo -e "\n\n\033[32m\033[01m$1\033[0m\n"; }
-MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
-
-
 function 1_install_docker {
-    MSG2 "1. [`hostname`] Install docker"
+    echo "1. [`hostname`] Install docker"
 
     yum remove -y docker \
                   docker-client \
@@ -28,7 +21,7 @@ function 1_install_docker {
 
 
 function 2_configure_docker {
-    MSG2 "2. [`hostname`] Configure docker"
+    echo "2. [`hostname`] Configure docker"
 
 cat > /etc/docker/daemon.json <<-EOF
 {
@@ -54,6 +47,7 @@ EOF
 }
 
 
-MSG1 "*** `hostname` *** Install Docker"
-1_install_docker
-2_configure_docker
+function main {
+    1_install_docker
+    2_configure_docker
+}
