@@ -17,6 +17,7 @@ function stage_prepare {
     # 安装 sshpass ssh-keyscan
     # 生成 ssh 密钥对
     if ! command -v sshpass; then ${INSTALL_MANAGER} install -y sshpass; fi
+    if ! command -v multitail; then ${INSTALL_MANAGER} install -y multitail; fi
     [[ ! -d ${K8S_PATH} ]] && rm -rf "${K8S_PATH}"; mkdir -p "${K8S_PATH}"
     [[ ! -d ${KUBE_CERT_PATH} ]] && rm -rf "${KUBE_CERT_PATH}"; mkdir -p "${KUBE_CERT_PATH}"
     [[ ! -d ${ETCD_CERT_PATH} ]] && rm -rf "${ETCD_CERT_PATH}"; mkdir -p "${ETCD_CERT_PATH}"
