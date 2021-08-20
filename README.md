@@ -33,8 +33,7 @@
 
 #### 你需要修改的地方
 
-* 修改 ````k8s.env```` 或者 ````k8s-t1.env ````变量文件
-
++ 修改 ````k8s.env```` 或者 ````k8s-t1.env ````变量文件
 + 在任何一台 k8s master 节点上执行```` setup.sh````
 + 必须以 root 身份运行
 
@@ -46,19 +45,19 @@
 
 #### MASTER 变量
 
-> master 节点的主机名和 IP 地址，格式为```` [Master_Hostname]=[Master_IP]````，写入 shell dict 中
+> master 节点的主机名和 IP 地址，格式为```` [Master_Hostname]=Master_IP````，写入 shell dict 中
 
 #### WORKER 变量
 
-> worker 节点的主机名和 IP 地址，格式为 ````[Worker_Hostname]=[Worker_IP]````，写入 shell dict 中
+> worker 节点的主机名和 IP 地址，格式为 ````[Worker_Hostname]=Worker_IP````，写入 shell dict 中
 
 #### EXTRA_MASTER 变量
 
-> 用来扩展 master 节点的（可选），格式为```` [Master_Hostname]=[Master_IP]````，写入 shell dict 中
+> 用来扩展 master 节点的（可选），格式为```` [Master_Hostname]=Master_IP````，写入 shell dict 中
 
 #### ADD_WORKER 变量
 
-> 你要添加的 worker 节点的主机名和 IP地址，格式为  ````[Worker_Hostname]=[Worker_IP]````，写入 shell dict 中
+> 你要添加的 worker 节点的主机名和 IP地址，格式为  ````[Worker_Hostname]=Worker_IP````，写入 shell dict 中
 >
 > 这个变量只会在 ````./setup.sh -a 或者 ./setup.sh -e k8s-t1.env -a ```` 的时候才会被```` -a ````选项读取
 
