@@ -57,5 +57,5 @@ function stage_prepare {
     source /etc/os-release
     if [[ ${ID} == centos || ${ID} == rhel ]]; then
         for NODE in "${ALL_NODE[@]}"; do
-            scp -r centos/yum.repos.d ${NODE}:/tmp/; done; fi
+            scp -r centos/yum.repos.d ${NODE}:/tmp/; done; fi 
 }
