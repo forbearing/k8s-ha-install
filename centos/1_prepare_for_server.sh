@@ -1,14 +1,7 @@
 #!/usr/bin/env bash
 
-EXIT_SUCCESS=0
-EXIT_FAILURE=1
-ERR(){ echo -e "\033[31m\033[01m$1\033[0m"; }
-MSG1(){ echo -e "\n\n\033[32m\033[01m$1\033[0m\n"; }
-MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
-
-
 function 1_import_repo {
-    MSG2 "1. [`hostname`] Imort yum repo"
+    echo "1. [`hostname`] Imort yum repo"
 
     if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
         echo y | cp /etc/yum.repos.d/CentOS-Base.repo               /etc/yum.repos.d/CentOS-Base.repo.$(date +%Y%m%d%H%M)
@@ -26,7 +19,7 @@ function 1_import_repo {
 
 
 function 2_install_necessary_package {
-    MSG2 "2. [`hostname`] Install necessary package"
+    echo "2. [`hostname`] Install necessary package"
 
     yum clean all
     yum install -y epel-release
@@ -47,14 +40,14 @@ function 2_install_necessary_package {
 
 
 function 3_upgrade_system {
-    MSG2 "3. [`hostname`] Upgrade system"
+    echo "3. [`hostname`] Upgrade system"
 
     yum update -y --exclude="docker-ce,kernel-lt"
 }
 
 
 function 4_disable_firewald_and_selinux {
-    MSG2 "4. [`hostname`] Disable firewalld and selinux"
+    echo "4. [`hostname`] Disable firewalld and selinux"
 
     systemctl disable --now firewalld
     setenforce 0
@@ -64,9 +57,11 @@ function 4_disable_firewald_and_selinux {
 
 
 function 5_set_timezone_and_ntp_client {
-    MSG2 "5. [`hostname`] Set timezone and ntp"
+    echo "5. [`hostname`] Set timezone and ntp"
 
-    timedatectl set-timezone ${TIMEZONE}
+
+    echo "timezone: ${TIMEZONE}"
+    timedatectl set-timezone "${TIMEZONE}"
     timedatectl set-ntp 1
     systemctl restart rsyslog
     systemctl restart crond
@@ -74,7 +69,7 @@ function 5_set_timezone_and_ntp_client {
 
 
 function 6_configure_sshd {
-    MSG2 "6. [`hostname`] Configure ssh"
+    echo "6. [`hostname`] Configure ssh"
     local SSH_CONF_PATH="/etc/ssh/sshd_config"
 
     sed -i "/^UseDNS/d" ${SSH_CONF_PATH}
@@ -104,7 +99,7 @@ function 6_configure_sshd {
 
 
 function 7_configure_ulimit {
-    MSG2 "7. [`hostname`] Configure ulimit"
+    echo "7. [`hostname`] Configure ulimit"
     local ULIMITS_CONF_PATH="/etc/security/limits.conf"
 
     sed -i -r "/^\*(.*)soft(.*)nofile(.*)/d" ${ULIMITS_CONF_PATH}
@@ -123,12 +118,12 @@ function 7_configure_ulimit {
 }
 
 
-
-MSG1 "*** `hostname` *** Prepare for Linux Server"
-1_import_repo
-2_install_necessary_package
-3_upgrade_system
-4_disable_firewald_and_selinux
-5_set_timezone_and_ntp_client
-6_configure_sshd
-7_configure_ulimit
+function main {
+    1_import_repo
+    2_install_necessary_package
+    3_upgrade_system
+    4_disable_firewald_and_selinux
+    5_set_timezone_and_ntp_client
+    6_configure_sshd
+    7_configure_ulimit
+}

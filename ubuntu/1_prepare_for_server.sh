@@ -1,14 +1,7 @@
 #!/usr/bin/env bash
 
-EXIT_SUCCESS=0
-EXIT_FAILURE=1
-ERR(){ echo -e "\033[31m\033[01m$1\033[0m"; }
-MSG1(){ echo -e "\n\n\033[32m\033[01m$1\033[0m\n"; }
-MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
-
-
 function 1_upgrade_system {
-    MSG2 "1. [`hostname`] Upgrade system"
+    echo "1. [`hostname`] Upgrade system"
 
     local mirrors
     local release
@@ -16,21 +9,20 @@ function 1_upgrade_system {
     if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
         #mirrors="https://mirrors.ustc.edu.cn/ubuntu"
         mirrors="https://mirrors.aliyun.com/ubuntu"
-    else
-        mirrors="http://archive.ubuntu.com/ubuntu"; fi
-    source_list=(
-        "deb ${mirrors} ${release} main restricted universe multiverse"
-        "deb ${mirrors} ${release}-security main restricted universe multiverse"
-        "deb ${mirrors} ${release}-updates main restricted universe multiverse"
-        "deb ${mirrors} ${release}-proposed main restricted universe multiverse"
-        "deb ${mirrors} ${release}-backports main restricted universe multiverse"
-        "deb-src ${mirrors} ${release} main restricted universe multiverse"
-        "deb-src ${mirrors} ${release}-security main restricted universe multiverse"
-        "deb-src ${mirrors} ${release}-updates main restricted universe multiverse"
-        "deb-src ${mirrors} ${release}-proposed main restricted universe multiverse"
-        "deb-src ${mirrors} ${release}-backports main restricted universe multiverse")
-    echo y | cp /etc/apt/sources.list /etc/apt/sources.list.$(date +%Y%m%d%H%M)
-    printf "%s\n" "${source_list[@]}" > /etc/apt/sources.list
+        source_list=(
+            "deb ${mirrors} ${release} main restricted universe multiverse"
+            "deb ${mirrors} ${release}-security main restricted universe multiverse"
+            "deb ${mirrors} ${release}-updates main restricted universe multiverse"
+            "deb ${mirrors} ${release}-proposed main restricted universe multiverse"
+            "deb ${mirrors} ${release}-backports main restricted universe multiverse"
+            "deb-src ${mirrors} ${release} main restricted universe multiverse"
+            "deb-src ${mirrors} ${release}-security main restricted universe multiverse"
+            "deb-src ${mirrors} ${release}-updates main restricted universe multiverse"
+            "deb-src ${mirrors} ${release}-proposed main restricted universe multiverse"
+            "deb-src ${mirrors} ${release}-backports main restricted universe multiverse")
+        echo y | cp /etc/apt/sources.list /etc/apt/sources.list.$(date +%Y%m%d%H%M)
+        printf "%s\n" "${source_list[@]}" > /etc/apt/sources.list
+    fi
 
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -y
@@ -42,7 +34,7 @@ function 1_upgrade_system {
 
 
 function 2_install_necessary_package {
-    MSG2 "2. [`hostname`] Install necessary package"
+    echo "2. [`hostname`] Install necessary package"
 
     apt-get install -y coreutils apt-file apt-transport-https software-properties-common \
         iputils-ping bash-completion wget curl zip unzip bzip2 vim net-tools \
@@ -56,15 +48,16 @@ function 2_install_necessary_package {
 
 
 function 3_disable_firewald_and_selinux {
-    MSG2 "3. [`hostname`] Disable firewalld and selinux"
+    echo "3. [`hostname`] Disable firewalld and selinux"
 
     ufw --force disable
 }
 
 
 function 4_set_timezone_and_ntp_client {
-    MSG2 "4. [`hostname`] Set timezone and ntp"
+    echo "4. [`hostname`] Set timezone and ntp"
 
+    echo "timezone: ${TIMEZONE}"
     timedatectl set-timezone ${TIMEZONE}
     timedatectl set-ntp true
     systemctl restart rsyslog
@@ -73,7 +66,7 @@ function 4_set_timezone_and_ntp_client {
 
 
 function 5_configure_sshd {
-    MSG2 "5. [`hostname`] Configure ssh"
+    echo "5. [`hostname`] Configure ssh"
     local SSH_CONF_PATH="/etc/ssh/sshd_config"
 
     sed -i "/^UseDNS/d" ${SSH_CONF_PATH}
@@ -103,7 +96,7 @@ function 5_configure_sshd {
 
 
 function 6_configure_ulimit {
-    MSG2 "6. [`hostname`] Configure ulimit"
+    echo "6. [`hostname`] Configure ulimit"
     local ULIMITS_CONF_PATH="/etc/security/limits.conf"
 
     sed -i -r "/^\*(.*)soft(.*)nofile(.*)/d" ${ULIMITS_CONF_PATH}
@@ -123,10 +116,11 @@ function 6_configure_ulimit {
 
 
 
-MSG1 "*** `hostname` *** Prepare for Linux Server"
-1_upgrade_system
-2_install_necessary_package
-3_disable_firewald_and_selinux
-4_set_timezone_and_ntp_client
-5_configure_sshd
-6_configure_ulimit
+function main {
+    1_upgrade_system
+    2_install_necessary_package
+    3_disable_firewald_and_selinux
+    4_set_timezone_and_ntp_client
+    5_configure_sshd
+    6_configure_ulimit
+}
