@@ -92,7 +92,7 @@ function 3_remove_docker_and_file {
             for FILE in "${DOCKER_CONTAINERD_FILE_LIST[@]}"; do
                 ssh root@${DEL_WORKER} "rm -rf ${FILE}"
             done
-            ssh root@${DEL_WORKER} reboot
+            #ssh root@${DEL_WORKER} reboot
             return
             ;;
         "centos"|"rhel")
@@ -102,7 +102,7 @@ function 3_remove_docker_and_file {
             for FILE in "${DOCKER_CONTAINERD_FILE_LIST[@]}"; do
                 ssh root@${DEL_WORKER} "rm -rf ${FILE}"
             done
-            ssh root@${DEL_WORKER} reboot
+            #ssh root@${DEL_WORKER} reboot
             return
             ;;
     esac
@@ -114,6 +114,7 @@ function del_k8s_node {
     1_drain_and_delete_k8s_node
     2_delete_k8s_service_and_file
     3_remove_docker_and_file
+    exit ${EXIT_FAILURE}
 }
 
 # 确认是否是 k8s 管理员
