@@ -229,7 +229,8 @@ function 6_run_stage_three {
         for NODE in "${ADD_WORKER[@]}"; do
             MSG2 "*** ${NODE} *** is Installing Docker"
             ssh root@${NODE} \
-                "$(typeset -f 1_install_docker)
+                "export TIMEZONE=${TIMEZONE}
+                 $(typeset -f 1_install_docker)
                  $(typeset -f 2_configure_docker)
                  1_install_docker
                  2_configure_docker" \
@@ -244,7 +245,8 @@ function 6_run_stage_three {
         for NODE in "${ADD_WORKER[@]}"; do
             MSG2 "*** ${NODE} *** is Installing Docker"
             ssh root@${NODE} \
-                "$(typeset -f 1_install_docker)
+                "export TIMEZONE=${TIMEZONE}
+                 $(typeset -f 1_install_docker)
                  $(typeset -f 2_configure_docker)
                  $(typeset -f 3_audit_for_docker)
                  1_install_docker
