@@ -20,7 +20,7 @@ function stage_three {
         done
         MSG2 "Please Waiting... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-three/*.log)"
         wait
-            ;;
+        ;;
     ubuntu)
         # Linux: ubuntu
         source ubuntu/3_install_docker.sh
