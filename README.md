@@ -94,7 +94,7 @@
 
 ![avatar](images/k8s.env.png)
 
-# 4. 部署截图
+# 4. k8s 部署过程截图
 
 ![k8s-stage-one-two-three](images/k8s-stage-one-two-three.png)
 
@@ -117,6 +117,3 @@
 ![k8s-stage-five](images/k8s-stage-five.png)
 
 ![k8s-finished](images/k8s-finished.png)
-
-
-
