@@ -52,68 +52,222 @@ function 2_copy_hosts_file_to_all_k8s_node {
 
     # 设置新添加的 worker 节点主机名
     for NODE in "${!ADD_WORKER[@]}"; do
+        echo ${NODE}
         ssh ${NODE} "hostnamectl set-hostname ${NODE}"; done
 
     # 将新的 hosts 文件复制到所有 k8s 节点上
     for NODE in "${ALL_NODE[@]}"; do
+        echo ${NODE}
         scp /etc/hosts ${NODE}:/etc/hosts; done
 
     # 将新的 hosts 文件复制到所有新添加的 worker 节点上
-    for NODE in "${ADD_WORKER[@]}"; do
+    for NODE in "${!ADD_WORKER[@]}"; do
+        echo ${NODE}
         scp /etc/hosts ${NODE}:/etc/hosts; done
 }
 
 
-# 初始化新添加的节点
-function 3_run_stage_one_two_three {
-    MSG1 "3. run stage [one,two,three]"
 
-    local stage_one_script_path
-    local stage_two_script_path
-    local stage_three_script_path
+# 检查节点是否已经存在集群中，如果存在集群中，则去除该节点
+function 3_deduplicate_add_worker {
+    MSG1 "3. deduplicate add worker"
+    ADD_WORKER_HOST=( ${!ADD_WORKER[@]} )
+    ADD_WORKER_IP=( ${ADD_WORKER[@]} )
+    echo ${ADD_WORKER_HOST[@]}
+    echo ${ADD_WORKER_IP[@]}
+    echo 
+    for NODE in "${!ADD_WORKER[@]}"; do
+        IP=${ADD_WORKER[$NODE]}
+        if kubectl get node ${NODE} &> /dev/null; then
+            ADD_WORKER_HOST=( ${ADD_WORKER_HOST[@]/${NODE}} )
+            ADD_WORKER_IP=( ${ADD_WORKER_IP[@]/${IP}} )
+        fi
+    done
+    echo ${ADD_WORKER_HOST[@]}
+    echo ${ADD_WORKER_IP[@]}
+    echo
+    unset ADD_WORKER
+    ADD_WORKER=( ${ADD_WORKER_HOST[@]} )
+    echo ${ADD_WORKER[@]}
+    echo ${ADD_WORKER_IP[@]}
+    echo
+}
+
+
+# stage one
+function 4_run_stage_one {
+    MSG1 "4. run stage one"
+
     source /etc/os-release
-    case "$ID" in
-        "centos" | "rhel")
-            stage_one_script_path="centos/1_prepare_for_server.sh"
-            stage_two_script_path="centos/2_prepare_for_k8s.sh"
-            stage_three_script_path="centos/3_install_docker.sh" ;;
-        "ubuntu")
-            stage_one_script_path="ubuntu/1_prepare_for_server.sh"
-            stage_two_script_path="ubuntu/2_prepare_for_k8s.sh" 
-            stage_three_script_path="ubuntu/3_install_docker.sh" ;;
-        "debian" )
-            stage_one_script_path="debian/1_prepare_for_server"
-            stage_two_script_path="debian/2_prepare_for_k8s.sh"
-            stage_three_script_path="debian/3_install_docker" ;;
+    mkdir -p "${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-one"
+    case ${ID} in
+    centos|rhel)
+        # Linux: centos/rhel
+        source centos/1_prepare_for_server.sh
+        for NODE in "${ADD_WORKER[@]}"; do
+            MSG2 "*** ${NODE} *** is Preparing for Linux Server"
+            ssh root@${NODE} \
+                "export TIMEZONE=${TIMEZONE}
+                 $(typeset -f 1_import_repo)
+                 $(typeset -f 2_install_necessary_package)
+                 $(typeset -f 3_upgrade_system)
+                 $(typeset -f 4_disable_firewald_and_selinux)
+                 $(typeset -f 5_set_timezone_and_ntp_client)
+                 $(typeset -f 6_configure_sshd)
+                 $(typeset -f 7_configure_ulimit)
+                 1_import_repo
+                 2_install_necessary_package
+                 3_upgrade_system
+                 4_disable_firewald_and_selinux
+                 5_set_timezone_and_ntp_client
+                 6_configure_sshd
+                 7_configure_ulimit" \
+                 &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-one/${NODE}.log &
+        done
+        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-one/*.log)"
+        wait
+        ;;
+    ubuntu)
+        # Linux: ubuntu
+        source ubuntu/1_prepare_for_server.sh
+        for NODE in "${ADD_WORKER[@]}"; do
+            MSG2 "*** ${NODE} *** is Preparing for Linux Server"
+            ssh root@${NODE} \
+                "export TIMEZONE=${TIMEZONE}
+                 $(typeset -f 1_upgrade_system)
+                 $(typeset -f 2_install_necessary_package)
+                 $(typeset -f 3_disable_firewald_and_selinux)
+                 $(typeset -f 4_set_timezone_and_ntp_client)
+                 $(typeset -f 5_configure_sshd)
+                 $(typeset -f 6_configure_ulimit)
+                 1_upgrade_system
+                 2_install_necessary_package
+                 3_disable_firewald_and_selinux
+                 4_set_timezone_and_ntp_client
+                 5_configure_sshd
+                 6_configure_ulimit" \
+                 &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-one/${NODE}.log &
+        done
+        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-one/*.log)"
+        wait
+        ;;
+    debian)
+        # Linux: debian
+        :
+        ;;
+    *)
+        ERR "Not Support Linux !" && exit $EXIT_FAILURE ;;
     esac
-
-    for NODE in "${!ADD_WORKER[@]}"; do
-        MSG2 "*** ${NODE} *** is Preparing for Linux Server"
-        ssh ${NODE} "bash -s" < "${stage_one_script_path}" &> /dev/null &
-    done
-    MSG2 "Please Waiting ..."
-    wait
-
-    for NODE in "${!ADD_WORKER[@]}"; do
-        MSG2 "*** ${NODE} *** is Preparing for Kubernetes"
-        ssh ${NODE} "bash -s" < "${stage_two_script_path}" &> /dev/null &
-    done
-    MSG2 "Please Waiting ..."
-    wait
+}
 
 
-    for NODE in "${!ADD_WORKER[@]}"; do
-        MSG2 "*** ${NODE} *** is Installing Docker"
-        ssh ${NODE} "bash -s" < "${stage_three_script_path}" &> /dev/null &
-    done
-    MSG2 "Please Waiting ..."
-    wait
+# stage two
+function 5_run_stage_two {
+    MSG1 "5. run stage two"
+
+    source /etc/os-release
+    mkdir -p "${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-two"
+    case ${ID} in
+    centos|rhel)
+        # Linux centos/rhel
+        source centos/2_prepare_for_k8s.sh
+        for NODE in "${ADD_WORKER[@]}"; do
+            MSG2 "*** ${NODE} *** is Preparing for Kubernetes"
+            ssh root@${NODE} \
+                "$(typeset -f 1_install_necessary_package_for_k8s)
+                 $(typeset -f 2_disable_swap)
+                 $(typeset -f 3_upgrade_kernel)
+                 $(typeset -f 4_load_kernel_module)
+                 $(typeset -f 5_configure_kernel_parameter)
+                 1_install_necessary_package_for_k8s
+                 2_disable_swap
+                 3_upgrade_kernel
+                 4_load_kernel_module
+                 5_configure_kernel_parameter" \
+                 &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-two/${NODE}.log &
+        done
+        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-two/*.log)"
+        wait
+        ;;
+    ubuntu)
+        # Linux: ubuntu
+        source ubuntu/2_prepare_for_k8s.sh
+        for NODE in "${ADD_WORKER[@]}"; do
+            MSG2 "*** ${NODE} *** is Preparing for Kubernetes"
+            ssh root@${NODE} \
+                "$(typeset -f 1_disable_swap)
+                 $(typeset -f 2_load_kernel_module)
+                 $(typeset -f 3_configure_kernel_parameter)
+                 1_disable_swap
+                 2_load_kernel_module
+                 3_configure_kernel_parameter" \
+                 &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-two/${NODE}.log &
+        done
+        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-two/*.log)"
+        wait
+        ;;
+    debian)
+        # Linux: debian
+        :
+        ;;
+    *)
+        ERR "Not Support Linux !" && exit $EXIT_FAILURE ;;
+    esac
+}
+
+
+# stage three
+function 6_run_stage_three {
+    MSG1 "6. run stage three"
+
+    source /etc/os-release
+    mkdir -p "${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-three"
+    case ${ID} in
+    centos|rhel)
+        # Linux: centos/rhel
+        source centos/3_install_docker.sh
+        for NODE in "${ADD_WORKER[@]}"; do
+            MSG2 "*** ${NODE} *** is Installing Docker"
+            ssh root@${NODE} \
+                "$(typeset -f 1_install_docker)
+                 $(typeset -f 2_configure_docker)
+                 1_install_docker
+                 2_configure_docker" \
+                 &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-three/${NODE}.log &
+        done
+        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-three/*.log)"
+        wait
+        ;;
+    ubuntu)
+        # Linux: ubuntu
+        source ubuntu/3_install_docker.sh
+        for NODE in "${ADD_WORKER[@]}"; do
+            MSG2 "*** ${NODE} *** is Installing Docker"
+            ssh root@${NODE} \
+                "$(typeset -f 1_install_docker)
+                 $(typeset -f 2_configure_docker)
+                 $(typeset -f 3_audit_for_docker)
+                 1_install_docker
+                 2_configure_docker
+                 3_audit_for_docker" \
+                 &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-three/${NODE}.log &
+        done
+        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-three/*.log)"
+        wait
+        ;;
+    debian)
+        # Linux: debian
+        :
+        ;;
+    *)
+        ERR "Not Support Linux !" && exit $EXIT_FAILURE ;;
+    esac
 }
 
 
 # 复制二进制文件 kubelet kube-proxy kubectl
-function 4_copy_bnary_file_to_new_worker_node {
-    MSG1 "4. copy binary file to new worker node"
+function 7_copy_bnary_file_to_new_worker_node {
+    MSG1 "7. copy binary file to new worker node"
 
     # 1. 解压二进制文件
     mkdir -p ${K8S_DEPLOY_LOG_PATH}/bin
@@ -138,11 +292,11 @@ function 4_copy_bnary_file_to_new_worker_node {
 #   2、kubelet 和 kube-proxy 自启动文件
 #   3、kublet 和 kube-proxy 配置文件
 # 拷贝到新的 worker 节点上
-function 5_copy_certs_and_config_file_to_new_worker_noe {
-    MSG1 "5. copy certs and config file to new worker node"
+function 8_copy_certs_and_config_file_to_new_worker_noe {
+    MSG1 "8. copy certs and config file to new worker node"
     
     local WORKER_IP
-    local ADD_NODE_PATH="/root/add_node"
+    local ADD_NODE_PATH="${K8S_DEPLOY_LOG_PATH}/conf_add-worker"
     mkdir -p ${ADD_NODE_PATH}
 
     # 获取任何一个 worker 节点的 ip 地址
@@ -177,8 +331,8 @@ function 5_copy_certs_and_config_file_to_new_worker_noe {
 
 
 # enabled kublet, kube-proxy service
-function 6_enable_kube_service {
-    MSG1 "6. Enbled kubelet kube-proxy service"
+function 9_enable_kube_service {
+    MSG1 "9. Enbled kubelet kube-proxy service"
 
     for NODE in "${ADD_WORKER[@]}"; do
         ssh root@${NODE} "systemctl daemon-reload"
@@ -195,8 +349,12 @@ function add_k8s_node {
     0_add_k8s_node_script_prepare
     1_configure_ssh_public_key_authentication
     2_copy_hosts_file_to_all_k8s_node
-    3_run_stage_one_two_three
-    4_copy_bnary_file_to_new_worker_node
-    5_copy_certs_and_config_file_to_new_worker_noe
-    6_enable_kube_service
+    3_deduplicate_add_worker
+    4_run_stage_one
+    5_run_stage_two
+    6_run_stage_three
+    7_copy_bnary_file_to_new_worker_node
+    8_copy_certs_and_config_file_to_new_worker_noe
+    9_enable_kube_service
+    exit ${EXIT_SUCCES}
 }
