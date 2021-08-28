@@ -93,3 +93,28 @@
 
 
 ![avatar](images/k8s.env.png)
+
+# 4. 部署截图
+
+![k8s-stage-one-two-three](images/k8s-stage-one-two-three.png)
+
+![k8s-stage-four-1](images/k8s-stage-four-1.png)
+
+![k8s-stage-four-2](images/k8s-stage-four-2.png)
+
+![k8s-stage-four-3-4-5](images/k8s-stage-four-3-4-5.png)
+
+![k8s-stage-four-6](images/k8s-stage-four-6.png)
+
+![k8s-stage-four-7](images/k8s-stage-four-7.png)
+
+![k8s-stage-four-8-9-10-11-12](images/k8s-stage-four-8-9-10-11-12.png)
+
+![k8s-stage-four-13-14](images/k8s-stage-four-13-14.png)
+
+![k8s-stage-four-15-16-17-18](images/k8s-stage-four-15-16-17-18.png)
+
+![k8s-stage-five](images/k8s-stage-five.png)
+
+![k8s-finished](images/k8s-finished.png)
+
