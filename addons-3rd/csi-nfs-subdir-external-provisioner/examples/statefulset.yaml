@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-nfs-sc
+  labels:
+    app: nginx-nfs-sc
+spec:
+  clusterIP: None
+  selector:
+    app: nginx-nfs-sc
+  ports:
+  - name: web
+    port: 80
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nginx-nfs-sc
+spec:
+  serviceName: "nginx-nfs-sc"
+  selector:
+    matchLabels:
+      app: nginx-nfs-sc
+  replicas: 6
+  template:
+    metadata:
+      labels:
+        app: nginx-nfs-sc
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      tolerations:
+      - key: node-role.kubernetes.io/master
+      containers:
+      - name: nginx
+        image: nginx
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+          name: web
+        volumeMounts:
+        - name: www
+          mountPath: /usr/share/nginx/html
+  volumeClaimTemplates:
+  - metadata:
+      name: www
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: "nfs-sc"
+      resources:
+        requests:
+          storage: 20Gi
