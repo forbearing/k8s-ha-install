@@ -14,9 +14,10 @@ kubectl apply -f deploy/csi-nfs-node.yaml
 kubectl apply -f deploy/example/nfs-provisioner/nfs-server.yaml                         # install nfs server
 kubectl apply -f deploy/example/nfs-provisioner/nginx-pod.yaml                          # To check if the NFS server is working
 kubectl exec nginx-nfs-example -- bash -c "findmnt /var/www -o TARGET,SOURCE,FSTYPE"    # Verify if the NFS server is functional
-```
+````
 
-#### 方法二：自己搭建 nfs server
+####  方法二：自己搭建 nfs server
+
 ````bash
 apt-get install -y nfs-kernel-server
 cat /etc/exports
@@ -28,7 +29,12 @@ chmod 777 /src/nfs/kubedata
 systemctl restart nfs-server
 ````
 
+
+
+
+
 ### 3. 部署 storageclass
+
 ````bash
 kubectl apply -f deploy/example/storageclass-nfs.yaml           # 先修改 server 和 share 参数
 kubectl apply -f deploy/example/pvc-nfs-csi-dynamic.yaml        # 测试 storageclass 是否部署成功
