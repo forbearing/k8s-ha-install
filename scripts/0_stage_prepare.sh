@@ -31,15 +31,15 @@ function stage_prepare {
     # 收集 master 节点和 worker 节点的主机指纹
     # 在当前 master 节点上配置好 ssh 公钥认证
     for NODE in "${ALL_NODE[@]}"; do 
-        ssh-keyscan "${NODE}" >> /root/.ssh/known_hosts 2> /dev/null; done
-    for NODE in "${!MASTER[@]}"; do
-        ssh-keyscan "${NODE}" >> /root/.ssh/known_hosts 2> /dev/null; done
-    for NODE in "${!WORKER[@]}"; do
-        ssh-keyscan "${NODE}" >> /root/.ssh/known_hosts 2> /dev/null; done
+        ssh-keyscan "${NODE}" >> /root/.ssh/known_hosts; done
+    for NODE in "${MASTER[@]}"; do
+        ssh-keyscan "${NODE}" >> /root/.ssh/known_hosts; done
+    for NODE in "${WORKER[@]}"; do
+        ssh-keyscan "${NODE}" >> /root/.ssh/known_hosts; done
     for NODE in "${ALL_NODE[@]}"; do
-        sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_rsa.pub root@"${NODE}"
-        sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ecdsa.pub root@"${NODE}"
-        sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ed25519.pub root@"${NODE}"; done
+        sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_rsa.pub root@"${NODE}" > /dev/null
+        sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ecdsa.pub root@"${NODE}" > /dev/null
+        sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ed25519.pub root@"${NODE}" > /dev/null ; done
         #sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_xmss.pub root@"${NODE}"
 
 
