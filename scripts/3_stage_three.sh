@@ -29,7 +29,7 @@ function stage_three {
             MSG2 "*** ${NODE} *** is Installing Docker"
             ssh root@${NODE} \
                 "export TIMEZONE=${TIMEZONE}
-                $(typeset -f 1_install_docker)
+                 $(typeset -f 1_install_docker)
                  $(typeset -f 2_configure_docker)
                  $(typeset -f 3_audit_for_docker)
                  1_install_docker
