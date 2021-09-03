@@ -32,6 +32,10 @@ function stage_prepare {
     # 在当前 master 节点上配置好 ssh 公钥认证
     for NODE in "${ALL_NODE[@]}"; do 
         ssh-keyscan "${NODE}" >> /root/.ssh/known_hosts 2> /dev/null; done
+    for NODE in "${!MASTER[@]}"; do
+        ssh-keyscan "${NODE}" >> /root/.ssh/known_hosts 2> /dev/null; done
+    for NODE in "${!WORKER[@]}"; do
+        ssh-keyscan "${NODE}" >> /root/.ssh/known_hosts 2> /dev/null; done
     for NODE in "${ALL_NODE[@]}"; do
         sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_rsa.pub root@"${NODE}"
         sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ecdsa.pub root@"${NODE}"
@@ -49,7 +53,7 @@ function stage_prepare {
 
     # 所有节点设置默认 shell 为 bash
     for NODE in "${ALL_NODE[@]}"; do
-        chsh -s $(which bash)
+        chsh -s "$(which bash)"
     done
 
 
