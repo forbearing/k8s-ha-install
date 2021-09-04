@@ -152,7 +152,7 @@ function 4_setup_keepalived {
         cp conf/keepalived/keepalived.conf              ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
         sed -i "s/#STATE#/${STATE}/"                    ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
         sed -i "s/#INTERFACE#/${INTERFACE}/"            ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
-        sed -i "s/#ROUTE_ID#${ROUTE_ID}"                ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
+        sed -i "s/#ROUTE_ID#/${ROUTE_ID}/"              ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
         sed -i "s/#PRIORITY#/${PRIORITY}/"              ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
         sed -i "s/#MASTER_IP#/${IP}/"                   ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
         sed -i "s/#VIRTUAL_IPADDRESS#/${VIRTUAL_IP}/"   ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
