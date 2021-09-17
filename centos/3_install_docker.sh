@@ -12,7 +12,7 @@ function 1_install_docker {
                   docker-logrotate \
                   docker-engine
     if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
-        echo y | cp /tmp/yum.repos.d/yum.repos.d/docker-ce.repo-aliyun /etc/yum.repos.d/docker.repo
+        echo y | cp /tmp/yum.repos.d/docker-ce.repo-aliyun /etc/yum.repos.d/docker.repo
     else
         yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo; fi
     yum install -y docker-ce-19.03.15-3.el7
