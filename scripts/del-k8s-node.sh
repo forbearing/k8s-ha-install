@@ -4,13 +4,13 @@
 
 function 1_drain_and_delete_k8s_node {
     MSG1 "1. drain and delete k8s node"
-    kubectl drain ${DEL_WORKER} --force --ignore-daemonsets --delete-emptydir-data --delete-local-data
+    kubectl drain ${DEL_WORKER} --force --ignore-daemonsets --delete-emptydir-data
     kubectl delete node ${DEL_WORKER}
 }
 
 
-function 2_delete_k8s_service_and_file {
-    MSG1 "2. delete k8s service and file"
+function 2_delete_k8s_and_file {
+    MSG1 "2. delete k8s and file"
     # k8s service list
     local K8S_SERVICE_LIST=(
         kube-apiserver
@@ -65,8 +65,8 @@ function 2_delete_k8s_service_and_file {
 }
 
 
-function 3_remove_docker_and_file {
-    MSG1 "3. remove docker-ce containerd"
+function 3_delete_docker_and_file {
+    MSG1 "3. delete docker-ce containerd"
 
     DOCKER_CONTAINERD_FILE_LIST=(
         /var/lib/docker/
@@ -85,35 +85,48 @@ function 3_remove_docker_and_file {
     rm -rf /tmp/os-release
     case $ID in
         "ubuntu")
-            ssh root@${DEL_WORKER} "systemctl disable --now containerd docker"
-            ssh root@${DEL_WORKER} "apt-mark unhold docker-ce docker-ce-cli"
-            ssh root@${DEL_WORKER} "apt-get purge -y docker-ce docker-ce-cli containerd.io; apt-get autoremove -y"
-            ssh root@${DEL_WORKER} "groupdel docker"
+            ssh root@${DEL_WORKER} "
+                systemctl disable --now containerd docker
+                apt-mark unhold docker-ce docker-ce-cli
+                apt-get purge -y docker-ce docker-ce-cli containerd.io
+                apt-get autoremove -y
+                apt-get autoclean -y
+                groupdel docker"
             for FILE in "${DOCKER_CONTAINERD_FILE_LIST[@]}"; do
                 ssh root@${DEL_WORKER} "rm -rf ${FILE}"
             done
-            #ssh root@${DEL_WORKER} reboot
-            return
+            return 0
             ;;
         "centos"|"rhel")
-            ssh root@${DEL_WORKER} "systemctl disable --now containerd docker"
-            ssh root@${DEL_WORKER} "yum remove -y docker-ce docker-ce-cli containerd.io"
-            ssh root@${DEL_WORKER} "groupdel docker"
+            ssh root@${DEL_WORKER} "
+                systemctl disable --now containerd docker
+                yum remove -y docker-ce docker-ce-cli containerd.io
+                groupdel docker"
             for FILE in "${DOCKER_CONTAINERD_FILE_LIST[@]}"; do
                 ssh root@${DEL_WORKER} "rm -rf ${FILE}"
             done
-            #ssh root@${DEL_WORKER} reboot
-            return
+            return 0
             ;;
     esac
+}
+
+
+function 4_delete_etcd_and_file {
+    MSG1 "4. delete etcd"
+    ssh root@${DEL_WORKER} "
+        rm -rf /var/lib/etcd
+        rm -rf /etc/systemd/system/etcd.service
+        rm -rf /usr/local/bin/etcd
+        rm -rf /usr/local/bin/etcdctl"
 }
 
 
 function del_k8s_node {
     MSG1 "Deleting k8s worker node ..."
     1_drain_and_delete_k8s_node
-    2_delete_k8s_service_and_file
-    3_remove_docker_and_file
+    2_delete_k8s_and_file
+    3_delete_docker_and_file
+    4_delete_etcd_and_file
     exit ${EXIT_FAILURE}
 }
 
