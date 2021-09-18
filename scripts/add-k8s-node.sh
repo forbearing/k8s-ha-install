@@ -19,7 +19,7 @@ function 0_add_k8s_node_script_prepare {
     # 检查网络是否可用，否则退出脚本
     # 检查新增节点是否可达，否则退出脚本
     if ! timeout 2 ping -c 2 -i 1 114.114.114.114 &> /dev/null; then ERR "no network" && exit $EXIT_FAILURE; fi
-    for NODE in "${ADD_WORKER_IP[@]}"; do
+    for NODE in "${ADD_WORKER[@]}"; do
         if ! timeout 2 ping -c 1 -i 1 ${NODE}; then
             ERR "worker node ${NODE} can't access"
             exit $EXIT_FAILURE; fi; done
@@ -38,11 +38,13 @@ function 1_configure_ssh_public_key_authentication {
 
     # ssh 免密钥登录
     for NODE in "${!ADD_WORKER[@]}"; do
-        ssh-keyscan "${NODE}" >> /root/.ssh/known_hosts 2> /dev/null; done
+        local IP=${ADD_WORKER[$NODE]}
+        ssh-keyscan "${NODE}" >> /root/.ssh/known_hosts
+        ssh-keyscan "${IP}" >> /root/.ssh/known_hosts; done
     for NODE in "${!ADD_WORKER[@]}"; do
-        sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_rsa.pub root@"${NODE}"
-        sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ecdsa.pub root@"${NODE}"
-        sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ed25519.pub root@"${NODE}"; done
+        sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_rsa.pub root@"${NODE}" > /dev/null
+        sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ecdsa.pub root@"${NODE}" > /dev/null
+        sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ed25519.pub root@"${NODE}" > /dev/null; done
 }
 
 
@@ -73,8 +75,8 @@ function 3_deduplicate_add_worker {
     MSG1 "3. deduplicate add worker"
     ADD_WORKER_HOST=( ${!ADD_WORKER[@]} )
     ADD_WORKER_IP=( ${ADD_WORKER[@]} )
-    echo ${ADD_WORKER_HOST[@]}
-    echo ${ADD_WORKER_IP[@]}
+    echo "${ADD_WORKER_HOST[@]}"
+    echo "${ADD_WORKER_IP[@]}"
     echo 
     for NODE in "${!ADD_WORKER[@]}"; do
         IP=${ADD_WORKER[$NODE]}
@@ -83,14 +85,22 @@ function 3_deduplicate_add_worker {
             ADD_WORKER_IP=( ${ADD_WORKER_IP[@]/${IP}} )
         fi
     done
-    echo ${ADD_WORKER_HOST[@]}
-    echo ${ADD_WORKER_IP[@]}
+    echo "${ADD_WORKER_HOST[@]}"
+    echo "${ADD_WORKER_IP[@]}"
     echo
     unset ADD_WORKER
     ADD_WORKER=( ${ADD_WORKER_HOST[@]} )
-    echo ${ADD_WORKER[@]}
-    echo ${ADD_WORKER_IP[@]}
+    echo "${ADD_WORKER[@]}"
+    echo "${ADD_WORKER_IP[@]}"
     echo
+    if [[ -z ${ADD_WORKER_HOST} ]]; then
+        echo "Nothing need to do !!!"
+        exit 0
+    fi
+    if [[ -z ${ADD_WORKER_IP} ]]; then
+        echo "Nothing need to do !!!"
+        exit 0
+    fi
 }
 
 
@@ -294,32 +304,39 @@ function 7_copy_bnary_file_to_new_worker_node {
 #   2、kubelet 和 kube-proxy 自启动文件
 #   3、kublet 和 kube-proxy 配置文件
 # 拷贝到新的 worker 节点上
-function 8_copy_certs_and_config_file_to_new_worker_noe {
-    MSG1 "8. copy certs and config file to new worker node"
+function 8_copy_certs_config_binary_to_new_worker_node {
+    MSG1 "8. copy certs config and binary to new worker node"
     
     local WORKER_IP
-    local ADD_NODE_PATH="${K8S_DEPLOY_LOG_PATH}/conf_add-worker"
+    local ADD_NODE_PATH="${K8S_DEPLOY_LOG_PATH}/add-worker"
     mkdir -p ${ADD_NODE_PATH}
 
     # 获取任何一个 worker 节点的 ip 地址
-    for IP in "${WORKER[@]}"; do
-        WORKER_IP=${IP}
-        break; done
+    WORKER_IP=$(kubectl get node -l '!node-role.kubernetes.io/master' | grep -i Ready | sed -n '2,$p' | awk '{print $1}')
+    echo "${WORKER_IP}"
 
     # 将 worker 节点的 k8s 证书和配置文件先拷贝到当前主机上
-    scp -r root@${WORKER_IP}:/etc/kubernetes/ ${ADD_NODE_PATH}
-    scp -r root@${WORKER_IP}:/etc/etcd/ ${ADD_NODE_PATH}
+    scp -r root@${WORKER_IP}:/etc/kubernetes/                       ${ADD_NODE_PATH}
+    scp -r root@${WORKER_IP}:/etc/etcd/                             ${ADD_NODE_PATH}
     scp -r root@${WORKER_IP}:/etc/systemd/system/kubelet.service.d/ ${ADD_NODE_PATH}
-    scp root@${WORKER_IP}:/lib/systemd/system/kubelet.service ${ADD_NODE_PATH}
-    scp root@${WORKER_IP}:/lib/systemd/system/kube-proxy.service ${ADD_NODE_PATH}
+    scp root@${WORKER_IP}:/lib/systemd/system/kubelet.service       ${ADD_NODE_PATH}
+    scp root@${WORKER_IP}:/lib/systemd/system/kube-proxy.service    ${ADD_NODE_PATH}
+    # 将 worker 节点的二进制文件拷贝到当前主机上
+    scp -r root@${WORKER_IP}:/usr/local/bin/kubelet                 ${ADD_NODE_PATH}
+    scp -r root@${WORKER_IP}:/usr/local/bin/kube-proxy              ${ADD_NODE_PATH}
 
     for NODE in "${ADD_WORKER[@]}"; do
         # 将复制过来的 k8s 证书和配置文件拷贝到新添加的 worker 节点上
-        scp -r ${ADD_NODE_PATH}/kubernetes root@${NODE}:/etc/
-        scp -r ${ADD_NODE_PATH}/etcd root@${NODE}:/etc/
-        scp -r ${ADD_NODE_PATH}/kubelet.service.d root@${NODE}:/etc/systemd/system/
-        scp ${ADD_NODE_PATH}/kubelet.service root@${NODE}:/lib/systemd/system/
-        scp ${ADD_NODE_PATH}/kube-proxy.service root@${NODE}:/lib/systemd/system/
+        scp -r ${ADD_NODE_PATH}/kubernetes          root@${NODE}:/etc/
+        scp -r ${ADD_NODE_PATH}/etcd                root@${NODE}:/etc/
+        scp -r ${ADD_NODE_PATH}/kubelet.service.d   root@${NODE}:/etc/systemd/system/
+        scp ${ADD_NODE_PATH}/kubelet.service        root@${NODE}:/lib/systemd/system/
+        scp ${ADD_NODE_PATH}/kube-proxy.service     root@${NODE}:/lib/systemd/system/
+        # 将复制过来的 kubectl kube-proxy 二进制文件拷贝到新添加的 worker 节点上
+        scp ${ADD_NODE_PATH}/kubelet                root@${NODE}:/usr/local/bin/
+        scp ${ADD_NODE_PATH}/kube-proxy             root@${NODE}:/usr/local/bin/
+        # 给 kubectl kube-proxy 添加可执行权限
+        ssh root@${NODE} "chmod u+x /usr/local/bin/kubelet /usr/local/bin/kube-proxy"
 
         #ssh root@${NODE} "mkdir -p /etc/cni/bin /var/lib/kubelet /var/log/kubernetes"
         # 为新添加的 worker 节点创建所需目录
@@ -337,12 +354,9 @@ function 9_enable_kube_service {
     MSG1 "9. Enbled kubelet kube-proxy service"
 
     for NODE in "${ADD_WORKER[@]}"; do
-        ssh root@${NODE} "systemctl daemon-reload"
-        ssh root@${NODE} "systemctl enable --now docker"
-        ssh root@${NODE} "systemctl enable kubelet"
-        ssh root@${NODE} "systemctl restart kubelet"
-        ssh root@${NODE} "systemctl enable kube-proxy"
-        ssh root@${NODE} "systemctl restart kube-proxy" 
+        ssh root@${NODE} "
+            systemctl enable docker kubelet kube-proxy
+            systemctl restart docker kubelet kube-proxy"
     done
 }
 
@@ -355,8 +369,8 @@ function add_k8s_node {
     4_run_stage_one
     5_run_stage_two
     6_run_stage_three
-    7_copy_bnary_file_to_new_worker_node
-    8_copy_certs_and_config_file_to_new_worker_noe
+    #7_copy_bnary_file_to_new_worker_node
+    8_copy_certs_config_binary_to_new_worker_node
     9_enable_kube_service
     exit ${EXIT_SUCCES}
 }
