@@ -7,7 +7,7 @@ function stage_two {
     mkdir -p "${K8S_DEPLOY_LOG_PATH}/logs/stage-two"
     case ${ID} in
     centos|rhel)
-        # Linux centos/rhel
+        # Linux: centos/rhel
         source centos/2_prepare_for_k8s.sh
         for NODE in "${ALL_NODE[@]}"; do
             MSG2 "*** ${NODE} *** is Preparing for Kubernetes"
