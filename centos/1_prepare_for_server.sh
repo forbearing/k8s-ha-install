@@ -14,6 +14,7 @@ function 1_import_repo {
         yum install -y https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm
     fi
 
+    yum clean metadata
     yum makecache
 }
 
@@ -21,7 +22,8 @@ function 1_import_repo {
 function 2_install_necessary_package {
     echo "2. [`hostname`] Install necessary package"
 
-    yum clean all
+    yum clean metadata
+    yum makecache
     yum install -y epel-release
 
     if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
