@@ -3,6 +3,10 @@
 function 1_import_repo {
     echo "1. [`hostname`] Imort yum repo"
 
+    # Disable IPv6
+    sysctl -w net.ipv6.conf.all.disable_ipv6=1
+    sysctl -w net.ipv6.conf.default.disable_ipv6=1
+
     if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
         echo y | cp /etc/yum.repos.d/CentOS-Base.repo               /etc/yum.repos.d/CentOS-Base.repo.$(date +%Y%m%d%H%M)
         echo y | cp /tmp/yum.repos.d/CentOS-Base.repo-ustc          /etc/yum.repos.d/CentOS-Base.repo
@@ -21,6 +25,10 @@ function 1_import_repo {
 
 function 2_install_necessary_package {
     echo "2. [`hostname`] Install necessary package"
+
+    # Disable IPv6
+    sysctl -w net.ipv6.conf.all.disable_ipv6=1
+    sysctl -w net.ipv6.conf.default.disable_ipv6=1
 
     yum clean metadata
     yum makecache
@@ -44,6 +52,9 @@ function 2_install_necessary_package {
 function 3_upgrade_system {
     echo "3. [`hostname`] Upgrade system"
 
+    # Disable IPv6
+    sysctl -w net.ipv6.conf.all.disable_ipv6=1
+    sysctl -w net.ipv6.conf.default.disable_ipv6=1
     yum update -y --exclude="docker-ce,kernel-lt"
 }
 
