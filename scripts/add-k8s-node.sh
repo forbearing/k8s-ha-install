@@ -312,12 +312,13 @@ function 8_copy_certs_config_binary_to_new_worker_node {
     mkdir -p ${ADD_NODE_PATH}
 
     # 获取任何一个 worker 节点的 ip 地址
-    WORKER_IP=$(kubectl get node -l '!node-role.kubernetes.io/master' | grep -i Ready | sed -n '2,$p' | awk '{print $1}')
-    echo "${WORKER_IP}"
+    WORKER_HOST=$(kubectl get node -o wide -l '!node-role.kubernetes.io/master' | grep -i Ready | sed -n '1,1p' | awk '{print $1}')
+    WORKER_IP=$(kubectl get node -o wide -l '!node-role.kubernetes.io/master' | grep -i Ready | sed -n '1,1p' | awk '{print $6}')
+    MSG2 "copy from ${WORKER_HOST}(${WORKER_IP})"
 
     # 将 worker 节点的 k8s 证书和配置文件先拷贝到当前主机上
+    # master 节点还需要拷贝 /etc/etcd/ 目录
     scp -r root@${WORKER_IP}:/etc/kubernetes/                       ${ADD_NODE_PATH}
-    scp -r root@${WORKER_IP}:/etc/etcd/                             ${ADD_NODE_PATH}
     scp -r root@${WORKER_IP}:/etc/systemd/system/kubelet.service.d/ ${ADD_NODE_PATH}
     scp root@${WORKER_IP}:/lib/systemd/system/kubelet.service       ${ADD_NODE_PATH}
     scp root@${WORKER_IP}:/lib/systemd/system/kube-proxy.service    ${ADD_NODE_PATH}
@@ -328,7 +329,6 @@ function 8_copy_certs_config_binary_to_new_worker_node {
     for NODE in "${ADD_WORKER[@]}"; do
         # 将复制过来的 k8s 证书和配置文件拷贝到新添加的 worker 节点上
         scp -r ${ADD_NODE_PATH}/kubernetes          root@${NODE}:/etc/
-        scp -r ${ADD_NODE_PATH}/etcd                root@${NODE}:/etc/
         scp -r ${ADD_NODE_PATH}/kubelet.service.d   root@${NODE}:/etc/systemd/system/
         scp ${ADD_NODE_PATH}/kubelet.service        root@${NODE}:/lib/systemd/system/
         scp ${ADD_NODE_PATH}/kube-proxy.service     root@${NODE}:/lib/systemd/system/
