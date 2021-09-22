@@ -3,6 +3,10 @@
 function 1_install_docker {
     echo "1. [`hostname`] Install docker"
 
+    # Disable IPv6
+    sysctl -w net.ipv6.conf.all.disable_ipv6=1
+    sysctl -w net.ipv6.conf.default.disable_ipv6=1
+
     yum remove -y docker \
                   docker-client \
                   docker-client-latest \
@@ -15,13 +19,26 @@ function 1_install_docker {
         echo y | cp /tmp/yum.repos.d/docker-ce.repo-aliyun /etc/yum.repos.d/docker.repo
     else
         yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo; fi
-    yum install -y docker-ce-19.03.15-3.el7
+    #===== BEGIN install specific version docker
+    #yum install -y docker-ce-19.03.15-3.el7
+    # END
+
+    #===== BEGIN intall latest docker
+    yum install -y docker-ce docker-ce-cli containerd.io
+    # END
     systemctl enable --now docker
 }
 
 
 function 2_configure_docker {
     echo "2. [`hostname`] Configure docker"
+    while true; do
+        if ls -d /etc/docker; then
+            break
+        else
+            sleep 3
+        fi
+    done
 
 cat > /etc/docker/daemon.json <<-EOF
 {
