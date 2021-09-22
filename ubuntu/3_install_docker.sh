@@ -9,8 +9,8 @@ function 1_install_docker {
 
     local docker_url
     if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
-        docker_url="https://mirrors.ustc.edu.cn/docker-ce"
-        #docker_url="https://mirrors.aliyun.com/docker-ce"
+        #docker_url="https://mirrors.ustc.edu.cn/docker-ce"
+        docker_url="https://mirrors.aliyun.com/docker-ce"
     else
         docker_url="https://download.docker.com"; fi
 
@@ -23,16 +23,28 @@ function 1_install_docker {
         sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
     apt-get update -y
-    local docker_version="5:19.03.15~3-0~ubuntu-$(lsb_release -sc)"
-    apt-mark unhold docker-ce docker-ce-cli
-    apt-get install -y --allow-downgrades docker-ce=${docker_version} docker-ce-cli=${docker_version} containerd.io
-    apt-mark hold docker-ce docker-ce-cli
+    ##===== BEGIN: install specific version docker
+    #local docker_version="5:19.03.15~3-0~ubuntu-$(lsb_release -sc)"
+    #apt-mark unhold docker-ce docker-ce-cli
+    #apt-get install -y --allow-downgrades docker-ce=${docker_version} docker-ce-cli=${docker_version} containerd.io
+    #apt-mark hold docker-ce docker-ce-cli
+    ## END
+    #===== BEGIN install latest docker
+    apt-get install -y --allow-downgrades docker-ce docker-ce-cli containerd.io
+    # END
     systemctl enable --now docker
 }
 
 
 function 2_configure_docker {
     echo "2. [`hostname`] Configure docker"
+    while true; do
+        if ls -d /etc/docker; then
+            break
+        else
+            sleep 3
+        fi
+    done
 
 cat > /etc/docker/daemon.json <<-\EOF
 {
