@@ -3,9 +3,9 @@
 function 1_install_docker {
     echo "1. [`hostname`] Install docker"
 
-    apt-get remove -y docker docker-engine docker.io containerd runc
-    apt-get update -y
-    apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release software-properties-common
+    _apt_wait && apt-get remove -y docker docker-engine docker.io containerd runc
+    _apt_wait && apt-get update -y
+    _apt_wait && apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release software-properties-common
 
     local docker_url
     if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
@@ -22,7 +22,7 @@ function 1_install_docker {
     echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] ${docker_url}/linux/ubuntu $(lsb_release -cs) stable" | \
         sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-    apt-get update -y
+    _apt_wait && apt-get update -y
     ##===== BEGIN: install specific version docker
     #local docker_version="5:19.03.15~3-0~ubuntu-$(lsb_release -sc)"
     #apt-mark unhold docker-ce docker-ce-cli
@@ -30,7 +30,7 @@ function 1_install_docker {
     #apt-mark hold docker-ce docker-ce-cli
     ## END
     #===== BEGIN install latest docker
-    apt-get install -y --allow-downgrades docker-ce docker-ce-cli containerd.io
+    _apt_wait && apt-get install -y --allow-downgrades docker-ce docker-ce-cli containerd.io
     # END
     systemctl enable --now docker
 }
