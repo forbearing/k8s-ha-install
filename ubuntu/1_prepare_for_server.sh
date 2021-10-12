@@ -25,20 +25,20 @@ function 1_upgrade_system {
     fi
 
     export DEBIAN_FRONTEND=noninteractive
-    apt-get update -y
-    apt-get -o Dpkg::Options::="--force-confold" upgrade -q -y
-    apt-get -o Dpkg::Options::="--force-confold" dist-upgrade -q -y
-    apt-get autoremove -y
-    apt-get autoclean -y
+    _apt_wait && apt-get update -y
+    _apt_wait && apt-get -o Dpkg::Options::="--force-confold" upgrade -q -y
+    _apt_wait && apt-get -o Dpkg::Options::="--force-confold" dist-upgrade -q -y
+    _apt_wait && apt-get autoremove -y
+    _apt_wait && apt-get autoclean -y
 }
 
 
 function 2_install_necessary_package {
     echo "2. [`hostname`] Install necessary package"
 
-    apt-get install -y coreutils apt-file apt-transport-https software-properties-common \
+    _apt_wait && apt-get install -y coreutils apt-file apt-transport-https software-properties-common \
         iputils-ping bash-completion wget curl zip unzip bzip2 vim net-tools \
-        git zsh fish rsync psmisc procps dnsutils lvm2 ntp ntpdate jq sysstat tree \
+        git zsh fish rsync psmisc procps dnsutils lvm2 jq sysstat tree \
         lsof virt-what conntrack ipset open-iscsi ipvsadm auditd socat multitail
 
     #if [[ $(virt-what) == "vmware" ]]; then
@@ -59,6 +59,19 @@ function 4_set_timezone_and_ntp_client {
 
     echo "timezone: ${TIMEZONE}"
     timedatectl set-timezone ${TIMEZONE}
+
+    local release=$(lsb_release -sc)
+    case "${release}" in
+    focal)
+        _apt_wait && apt-get install -y systemd-timesyncd
+        systemctl enable --now systemd-timesyncd.service
+        systemctl restart systemd-timesyncd.service ;;
+    bionic)
+        _apt_wait && apt-get install -y ntp ntpdate
+        systemctl enable --now ntp
+        systemctl restart ntp ;;
+    esac
+
     timedatectl set-ntp true
     systemctl restart rsyslog
     systemctl restart cron
