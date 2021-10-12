@@ -14,6 +14,10 @@ function stage_prepare {
         echo "${IP} ${HOST}" >> /etc/hosts; done
 
 
+    # 如果操作系统是 Debian/Ubuntu，调用 _apt_wait 函数等待 dpkg/apt-get 释放
+    source /etc/os-release
+    if [[ ${ID} == debian || ${ID} == ubuntu ]]; then
+        _apt_wait; fi
     # 安装 sshpass ssh-keyscan
     # 生成 ssh 密钥对
     if ! command -v sshpass; then ${INSTALL_MANAGER} install -y sshpass; fi
