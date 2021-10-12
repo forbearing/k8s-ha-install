@@ -79,3 +79,44 @@ function check_root_and_os() {
     # 检查网络是否可用，否则退出脚本
     if ! timeout 2 ping -c 2 -i 1 114.114.114.114 &> /dev/null; then ERR "no network" && exit $EXIT_FAILURE; fi
 }
+
+# refer: https://gist.github.com/tedivm/e11ebfdc25dc1d7935a3d5640a1f1c90
+function _apt_wait() {
+    while true; do
+        if lsof /var/lib/dpkg/lock &> /dev/null; then
+            sleep 1
+            continue; fi
+        if lsof /var/lib/dpkg/lock-frontend &> /dev/null; then
+            sleep 1
+            continue; fi
+        if lsof /var/lib/apt/lists/lock &> /dev/null; then
+            sleep 1
+            continue; fi
+        if lsof /var/lib/apt/daily_lock &> /dev/null; then
+            sleep 1
+            continue; fi
+        if lsof /var/log/unattended-upgrades/unattended-upgrades.log &> /dev/null; then
+            sleep 1
+            continue; fi
+        #echo "lock released"
+        break
+    done
+}
+
+# refer: https://gist.github.com/tedivm/e11ebfdc25dc1d7935a3d5640a1f1c90
+function _apt_wait2() {
+    while sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+        sleep 1
+    done
+    while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 ; do
+        sleep 1
+    done
+    while sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1 ; do
+        sleep 1
+    done
+    if [ -f /var/log/unattended-upgrades/unattended-upgrades.log ]; then
+        while sudo fuser /var/log/unattended-upgrades/unattended-upgrades.log >/dev/null 2>&1 ; do
+            sleep 1
+        done
+    fi
+}
