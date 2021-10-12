@@ -6,14 +6,14 @@
 - 必须以 root 身份运行 setup.sh 脚本。
 - 必须在 master 上执行 setup.sh 脚本，任何一个 master 节点都行，不能在 worker 节点上执行。
 - 用来部署 k8s 高可用集群的 Linux Server 必须都是同一 Linux 发行版本，要么都是 Debian 系列，要么都是 RHEL 系列。
-- 用来部署 k8s 高可用集群的 Linux Server 口令必须相同，把 k8s 节点的 root 口令设置在这个变量中 ````K8S_ROOT_PASS````
+- 用来部署 k8s 高可用集群的 Linux Server 口令必须相同，把 k8s 节点的 root 口令设置在 `K8S_ROOT_PASS`变量中 
 
 #### Linux 系统支持:
 
-- Centos7
-- Ubuntu18
-- Ubuntu20 (未严格测试)
-- (后续支持 debian)
+- CentOS 7
+- Ubuntu 18
+- Ubuntu 20
+- (后续支持 Debian 和 CentOS 8 / Rocky Linux)
 
 #### K8S 版本支持
 
@@ -52,7 +52,7 @@
 
 > 你要添加的 worker 节点的主机名和 IP地址，格式为  ````[Worker_Hostname]=Worker_IP````，写入 shell dict 中，
 >
-> 这个变量只会在 ````./setup.sh -a 或者 ./setup.sh -e k8s-t1.env -a ```` 的时候才会被```` -a ````选项读取。
+> 这个变量只会在 ````./setup.sh -a 或者 ./setup.sh -e k8s-t1.env -a ```` 的时候被```` -a ````选项读取。
 
 #### CONTROL_PANEL_ENDPOINT
 
@@ -96,24 +96,24 @@
 
 # 4. k8s 部署过程截图
 
-![k8s-stage-one-two-three](images/k8s-stage-one-two-three.png)
+![k8s-stage-one-two-three](doc/pics/k8s-stage-one-two-three.png)
 
-![k8s-stage-four-1](images/k8s-stage-four-1.png)
+![k8s-stage-four-1](doc/pics/k8s-stage-four-1.png)
 
-![k8s-stage-four-2](images/k8s-stage-four-2.png)
+![k8s-stage-four-2](doc/pics/k8s-stage-four-2.png)
 
-![k8s-stage-four-3-4-5](images/k8s-stage-four-3-4-5.png)
+![k8s-stage-four-3-4-5](doc/pics/k8s-stage-four-3-4-5.png)
 
-![k8s-stage-four-6](images/k8s-stage-four-6.png)
+![k8s-stage-four-6](doc/pics/k8s-stage-four-6.png)
 
-![k8s-stage-four-7](images/k8s-stage-four-7.png)
+![k8s-stage-four-7](doc/pics/k8s-stage-four-7.png)
 
-![k8s-stage-four-8-9-10-11-12](images/k8s-stage-four-8-9-10-11-12.png)
+![k8s-stage-four-8-9-10-11-12](doc/pics/k8s-stage-four-8-9-10-11-12.png)
 
-![k8s-stage-four-13-14](images/k8s-stage-four-13-14.png)
+![k8s-stage-four-13-14](doc/pics/k8s-stage-four-13-14.png)
 
-![k8s-stage-four-15-16-17-18](images/k8s-stage-four-15-16-17-18.png)
+![k8s-stage-four-15-16-17-18](doc/pics/k8s-stage-four-15-16-17-18.png)
 
-![k8s-stage-five](images/k8s-stage-five.png)
+![k8s-stage-five](doc/pics/k8s-stage-five.png)
 
-![k8s-finished](images/k8s-finished.png)
+![k8s-finished](doc/pics/k8s-finished.png)
