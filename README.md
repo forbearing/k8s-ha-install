@@ -92,7 +92,7 @@
 
 
 
-![avatar](images/k8s.env.png)
+![avatar](doc/pics/k8s.env.png)
 
 # 4. k8s 部署过程截图
 
