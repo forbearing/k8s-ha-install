@@ -8,6 +8,6 @@ dnsPolicy: ClusterFirstWithHostNet	# default ClusterFirst
 kind: DaemonSet											# default Deployment
 nodeSelector:
 	kubernetes.io/os: linux
-  ingress-nginx: enabled
+ 	ingress-nginx: enabled
 ```
 
