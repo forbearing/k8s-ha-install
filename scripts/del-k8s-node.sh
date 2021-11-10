@@ -127,7 +127,7 @@ function del_k8s_node {
     2_delete_k8s_and_file
     3_delete_docker_and_file
     4_delete_etcd_and_file
-    exit ${EXIT_FAILURE}
+    exit ${EXIT_SUCCESS}
 }
 
 # 确认是否是 k8s 管理员

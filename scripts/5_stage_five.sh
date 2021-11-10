@@ -29,7 +29,10 @@ function deploy_ingress {
                 if [[ $count -eq 2 ]]; then break; fi
                 (( count++ ))
             done
-            helm install --create-namespace -n ingress-nginx ingress-nginx addons-3rd/ingress-nginx/ 
+            helm install -n ingress-nginx --create-namespace ingress-nginx addons-3rd/ingress-nginx/v1.0.4/ --set metrics.enabled=true
+            # helm install -n ingress-nginx --create-namespace ingress-nginx addons-3rd/ingress-nginx/v0.44.0 --set metrics.enabled=true
+            # helm install -n ingress-nginx --create-namespace ingress-nginx addons-3rd/ingress-nginx/v1.0.4/
+            # helm install -n ingress-nginx --create-namespace ingress-nginx addons-3rd/ingress-nginx/v0.44.0
             break
         fi
     done
