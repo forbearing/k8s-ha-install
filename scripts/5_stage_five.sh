@@ -29,10 +29,15 @@ function deploy_ingress {
                 if [[ $count -eq 2 ]]; then break; fi
                 (( count++ ))
             done
-            helm install -n ingress-nginx --create-namespace ingress-nginx addons-3rd/ingress-nginx/v1.0.4/ --set metrics.enabled=true
-            # helm install -n ingress-nginx --create-namespace ingress-nginx addons-3rd/ingress-nginx/v0.44.0 --set metrics.enabled=true
-            # helm install -n ingress-nginx --create-namespace ingress-nginx addons-3rd/ingress-nginx/v1.0.4/
-            # helm install -n ingress-nginx --create-namespace ingress-nginx addons-3rd/ingress-nginx/v0.44.0
+            helm install -n ingress-nginx --create-namespace ingress-controller addons-3rd/ingress-nginx/v1.0.4/ \
+                --set controller.metrics.enabled=true \
+                --set controller.metrics.serviceMonitor.enabled=true \
+                --set controller.metrics.serviceMonitor.namespace=ingress-nginx \
+                --set-string controller.podAnnotations."prometheus\.io/scrape"="true" \
+                --set-string controller.podAnnotations."prometheus\.io/port"="10254" \
+            # helm install -n ingress-controller --create-namespace ingress-nginx addons-3rd/ingress-nginx/v1.0.4/
+            # helm install -n ingress-controller --create-namespace ingress-nginx addons-3rd/ingress-nginx/v0.44.0/
+            ## helm get values ingress-controller --namespace ingress-nginx
             break
         fi
     done
