@@ -49,8 +49,6 @@ function 2_configure_docker {
 cat > /etc/docker/daemon.json <<-\EOF
 {
   "exec-opts": ["native.cgroupdriver=systemd"],
-  "registry-mirrors": ["https://f4kfbhwb.mirror.aliyuncs.com"],
-  "insecure-registries": ["http://registry.qxis-dev.com"],
   "max-concurrent-downloads": 10,
   "max-concurrent-uploads": 5,
   "log-driver": "json-file",
