@@ -7,6 +7,14 @@
 - 必须在 master 上执行 setup.sh 脚本，任何一个 master 节点都行，不能在 worker 节点上执行。
 - 用来部署 k8s 高可用集群的 Linux Server 必须都是同一 Linux 发行版本，要么都是 Debian 系列，要么都是 RHEL 系列。
 - 用来部署 k8s 高可用集群的 Linux Server 口令必须相同，把 k8s 节点的 root 口令设置在 `K8S_ROOT_PASS`变量中 
+- 6个 stage 功能介绍：
+    - Stage Prepare: 准备阶段，用来配置 ssh 免密码登录和主机名
+    - Stage 1: Linux 系统准备
+    - Stage 2: 为部署 Kubernetes 做好环境准备
+    - Stage 3: 安装 Docker/Containerd
+    - Stage 4: 部署 Kubernetes Cluster
+    - Stage 5: 部署 Kubernetes 必要组件和插件
+
 
 #### Linux 系统支持:
 
@@ -20,15 +28,26 @@
 - v1.20.x
 - v1.21.x
 
+#### 计划做的事
+
+- 更加简化安装
+- stage prepare，stage 1-3 是可以重复运行的。stage 4 加强验证，做到可以多次运行 stage 4
+- 完善 stage 5 的部署，同时 stage 5 中的一些 addon 有些已经很老了，需要更新到新版本（已更新 ingress-nginx）
+- 部署 kubernetes cluster 目前一共有5个 stage，打算再加一个 stage 6
+- stage 6 功能，这些功能都可以通过设置环境变量来选择。
+    - 自动备份 etcd 和 kubernetes 数据和配置文件
+    - 配置防火墙
+    - Linux 系统安全加固
+
 # 2. 使用
 
-#### 修改 k8s.env 或者 k8s-t1.env 变量文件
+#### 修改 k8s.env 或者 k8s-t20.env 变量文件
 
 ```bash
 ./setup.sh                     		# 使用默认的 k8s.env 变量文件部署 k8s 高可用集群
 ./setup.sh -a                  		# 使用默认的 k8s.env 变量文件添加 k8s worker 节点
-./setup.sh -e k8s-t1.env       		# 使用自定义的 k8s-t1.env 变量文件部署 k8s 高可用集群
-./setup.sh -e k8s-t1.env -a    		# 使用自定义的 k8s-t1.env 变量文件添加 k8s worker 节点
+./setup.sh -e k8s-t20.env       	# 使用自定义的 k8s-u20.env 变量文件部署 k8s 高可用集群
+./setup.sh -e k8s-t20.env -a    	# 使用自定义的 k8s-u20.env 变量文件添加 k8s worker 节点
 ./setup.sh -d worker4          		# 删除 k8s worker 节点
 ```
 
@@ -52,7 +71,7 @@
 
 > 你要添加的 worker 节点的主机名和 IP地址，格式为  ````[Worker_Hostname]=Worker_IP````，写入 shell dict 中，
 >
-> 这个变量只会在 ````./setup.sh -a 或者 ./setup.sh -e k8s-t1.env -a ```` 的时候被```` -a ````选项读取。
+> 这个变量只会在 ````./setup.sh -a 或者 ./setup.sh -e k8s-t20.env -a ```` 的时候被```` -a ````选项读取。
 
 #### CONTROL_PANEL_ENDPOINT
 
