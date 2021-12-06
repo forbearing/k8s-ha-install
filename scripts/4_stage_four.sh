@@ -73,12 +73,36 @@ function 2_install_keepalived_and_haproxy {
     #  master 节点安装 keepalived, haproxy
     MSG2 "2. Installed Keepalived and Haproxy for Master Node"
 
-    for NODE in "${MASTER[@]}"; do
-        ssh ${NODE} "ls /usr/sbin/keepalived" &> /dev/null
-        if [[ $? -ne 0 ]]; then ssh ${NODE} "${INSTALL_MANAGER} install -y keepalived"; fi
-        ssh ${NODE} "ls /usr/sbin/haproxy" &> /dev/null
-        if [[ $? -ne 0 ]]; then ssh ${NODE} "${INSTALL_MANAGER} install -y haproxy"; fi
-    done
+    source /etc/os-release
+    case ${ID} in
+    centos | rhel )
+        for NODE in "${MASTER[@]}"; do
+            scp centos/pkgs/haproxy.service                           root@${NODE}:/tmp/
+            scp centos/pkgs/haproxy-2.0.18-4.el7.x86_64.rpm           root@${NODE}:/tmp/
+            scp centos/pkgs/haproxy-debuginfo-2.0.18-4.el7.x86_64.rpm root@${NODE}:/tmp/; done
+        for NODE in "${MASTER[@]}"; do
+            ssh root@${NODE} "
+            yum localinstall -y /tmp/haproxy-2.0.18-4.el7.x86_64.rpm /tmp/haproxy-debuginfo-2.0.18-4.el7.x86_64.rpm
+            yum install -y keepalived
+            mv /tmp/haproxy.service /lib/systemd/system/
+            systemctl daemon-reload"; done; ;;
+    debian )
+        : ;;
+    ubuntu )
+        for NODE in "${MASTER[@]}"; do
+            ssh root@${NODE} "
+            add-apt-repository -y ppa:vbernat/haproxy-2.4
+            apt-get update -y
+            apt-get install -y haproxy keepalived"
+        done ;;
+    esac
+
+    # for NODE in "${MASTER[@]}"; do
+    #     ssh ${NODE} "ls /usr/sbin/keepalived" &> /dev/null
+    #     if [[ $? -ne 0 ]]; then ssh ${NODE} "${INSTALL_MANAGER} install -y keepalived"; fi
+    #     ssh ${NODE} "ls /usr/sbin/haproxy" &> /dev/null
+    #     if [[ $? -ne 0 ]]; then ssh ${NODE} "${INSTALL_MANAGER} install -y haproxy"; fi
+    # done
 }
 
 
@@ -629,15 +653,15 @@ function 13_setup_kubelet {
     local resolvConf
     source /etc/os-release
     case ${ID} in
-        "centos"|"rhel" )
-            resolvConf="/etc/resolv.conf"
-            sed -i "s%#resolvConf#%${resolvConf}%g" ${KUBELET_CONF_PATH}/kubelet-conf.yaml ;;
-          "debian" )
-            resolvConf="/etc/resolv.conf"
-            sed -i "s%#resolvConf#%${resolvConf}%g" ${KUBELET_CONF_PATH}/kubelet-conf.yaml ;;
-          "ubuntu" )
-            resolvConf="/run/systemd/resolve/resolv.conf"
-            sed -i "s%#resolvConf#%${resolvConf}%g" ${KUBELET_CONF_PATH}/kubelet-conf.yaml ;;
+    centos | rhel )
+        resolvConf="/etc/resolv.conf"
+        sed -i "s%#resolvConf#%${resolvConf}%g" ${KUBELET_CONF_PATH}/kubelet-conf.yaml ;;
+    debian )
+        resolvConf="/etc/resolv.conf"
+        sed -i "s%#resolvConf#%${resolvConf}%g" ${KUBELET_CONF_PATH}/kubelet-conf.yaml ;;
+    ubuntu )
+        resolvConf="/run/systemd/resolve/resolv.conf"
+        sed -i "s%#resolvConf#%${resolvConf}%g" ${KUBELET_CONF_PATH}/kubelet-conf.yaml ;;
     esac
 
     # 将生成的配置文件发送到 k8s 所有节点上
@@ -697,14 +721,14 @@ function 14_setup_kube_proxy {
 
     # 设置 kube-proxy mode, 默认设置为 ipvs
     case ${K8S_PROXY_MODE} in
-        "ipvs")
-            sed -i "s%#K8S_PROXY_MODE#%${K8S_PROXY_MODE}%"  ${KUBE_PROXY_CONF_PATH}/kube-proxy.yaml ;;
-        "iptables")
-            K8S_PROXY_MODE=""
-            sed -i "s%#K8S_PROXY_MODE#%${K8S_PROXY_MODE}%"  ${KUBE_PROXY_CONF_PATH}/kube-proxy.yaml ;;
-        *)
-            K8S_PROXY_MODE="ipvs"
-            sed -i "s%#K8S_PROXY_MODE#%${K8S_PROXY_MODE}%"  ${KUBE_PROXY_CONF_PATH}/kube-proxy.yaml ;;
+    ipvs)
+        sed -i "s%#K8S_PROXY_MODE#%${K8S_PROXY_MODE}%"  ${KUBE_PROXY_CONF_PATH}/kube-proxy.yaml ;;
+    iptables)
+        K8S_PROXY_MODE=""
+        sed -i "s%#K8S_PROXY_MODE#%${K8S_PROXY_MODE}%"  ${KUBE_PROXY_CONF_PATH}/kube-proxy.yaml ;;
+    *)
+        K8S_PROXY_MODE="ipvs"
+        sed -i "s%#K8S_PROXY_MODE#%${K8S_PROXY_MODE}%"  ${KUBE_PROXY_CONF_PATH}/kube-proxy.yaml ;;
     esac
 
     # 将生成的配置文件 kube-proxy.kubeconfig kube-proxy.yaml kube-proxy.service复制到所有的节点上
