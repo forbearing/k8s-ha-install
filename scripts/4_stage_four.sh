@@ -775,8 +775,10 @@ function 17_deploy_metrics_server {
 
     mkdir -p ${K8S_DEPLOY_LOG_PATH}/addons/metrics-server
     local METRICS_CONF_PATH="${K8S_DEPLOY_LOG_PATH}/addons/metrics-server"
-    cp addons/metrics-server/metrics-server-0.4.x/metrics-server-0.4.3.yaml ${METRICS_CONF_PATH}
-    kubectl apply -f ${METRICS_CONF_PATH}/metrics-server-0.4.3.yaml
+    # cp addons/metrics-server/metrics-server-0.4.x/metrics-server-0.4.3.yaml ${METRICS_CONF_PATH}
+    # kubectl apply -f ${METRICS_CONF_PATH}/metrics-server-0.4.3.yaml
+    cp addons/metrics-server/metrics-server-0.5.x/metrics-server-0.5.2.yaml ${METRICS_CONF_PATH}
+    kubectl apply -f ${METRICS_CONF_PATH}/metrics-server-0.5.2.yaml
 }
 
 
