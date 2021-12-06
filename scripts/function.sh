@@ -57,8 +57,11 @@ function print_environment {
     echo "SRV_NETWORK_DNS_IP:       ${SRV_NETWORK_DNS_IP[*]}"
     echo "POD_NETWORK_CIDR:         ${POD_NETWORK_CIDR[*]}"
     echo "K8S_PATH                  ${K8S_PATH}"
+    echo "K8S_VERSION:              ${K8S_VERSION}"
+    echo "K8S_PROXY_MODE:           ${K8S_PROXY_MODE}"
     echo "KUBE_CERT_PATH:           ${KUBE_CERT_PATH}"
     echo "ETCD_CERT_PATH:           ${ETCD_CERT_PATH}"
+    echo "K8S_DEPLOY_LOG_PATH:      ${K8S_DEPLOY_LOG_PATH}"
     MSG1 "=================================== Environment ==================================="
 }
 
