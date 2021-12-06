@@ -737,12 +737,11 @@ function 15_deploy_calico {
     ETCD_KEY=$(cat ${KUBE_CERT_PATH}/etcd/etcd-key.pem | base64 | tr -d '\n')
 
 
-    #cp addons/calico/calico_3.15/calico-etcd.yaml /tmp/calico-etcd.yaml                    # v3.15.3
-    #cp addons/calico/calico_3.18/calico-etcd.yaml /tmp/calico-etcd.yaml                    # v3.18.1
-    #curl https://docs.projectcalico.org/manifests/calico-etcd.yaml -o calico-etcd.yaml     # latest version
+    #curl https://docs.projectcalico.org/manifests/calico-etcd.yaml -o calico-etcd.yaml                 # latest version
+    #curl https://docs.projectcalico.org/archive/v3.20/manifests/calico-etcd.yaml -o calico-etcd.yaml   # v3.20
     mkdir -p "${K8S_DEPLOY_LOG_PATH}/addons/calico"
     local CALICO_CONF_PATH="${K8S_DEPLOY_LOG_PATH}/addons/calico"
-    cp addons/calico/calico_3.18/calico-etcd.yaml                                ${CALICO_CONF_PATH}/calico-etcd.yaml
+    cp addons/calico/calico-3.20/calico-etcd-v3.20.3.yaml                        ${CALICO_CONF_PATH}/calico-etcd.yaml
     sed -i -r "s%(.*)http://<ETCD_IP>:<ETCD_PORT>(.*)%\1${ETCD_ENDPOINTS}\2%"    ${CALICO_CONF_PATH}/calico-etcd.yaml
     sed -i "s%# etcd-key: null%etcd-key: ${ETCD_KEY}%g"                          ${CALICO_CONF_PATH}/calico-etcd.yaml
     sed -i "s%# etcd-cert: null%etcd-cert: ${ETCD_CERT}%g"                       ${CALICO_CONF_PATH}/calico-etcd.yaml
