@@ -7,36 +7,61 @@ MSG1(){ echo -e "\n\n\033[32m\033[01m$1\033[0m\n"; }
 MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
 
 
-
 declare -A CEPH_MON CEPH_MGR CEPH_OSD CEPH_MDS
 CEPH_MON=(
-    [ceph-node1]=10.240.1.31
-    [ceph-node2]=10.240.1.32
-    [ceph-node3]=10.240.1.33)
+    [ceph-node1]=10.250.19.11
+    [ceph-node2]=10.250.19.12
+    [ceph-node3]=10.250.19.13)
 CEPH_MGR=(
-    [ceph-node1]=10.240.1.31
-    [ceph-node2]=10.240.1.32
-    [ceph-node3]=10.240.1.33)
+    [ceph-node1]=10.250.19.11
+    [ceph-node2]=10.250.19.12
+    [ceph-node3]=10.250.19.13)
 CEPH_OSD=( 
-    [ceph-node1]=10.240.1.31
-    [ceph-node2]=10.240.1.32
-    [ceph-node3]=10.240.1.33
-    [ceph-node4]=10.240.1.34
-    [ceph-node5]=10.240.1.35)
+    [ceph-node1]=10.250.19.11
+    [ceph-node2]=10.250.19.12
+    [ceph-node3]=10.250.19.13
+    [ceph-node4]=10.250.19.14
+    [ceph-node5]=10.250.19.15)
 CEPH_MDS=(
-    [ceph-node1]=10.240.1.31
-    [ceph-node2]=10.240.1.32
-    [ceph-node3]=10.240.1.33)
+    [ceph-node1]=10.250.19.11
+    [ceph-node2]=10.250.19.12
+    [ceph-node3]=10.250.19.13)
 CEPH_NODE=( ${!CEPH_MON[@]} ${!CEPH_MGR[@]} ${!CEPH_OSD[@]} ${!CEPH_MDS[@]} )
 CEPH_NODE=($(tr ' ' '\n' <<< "${CEPH_NODE[@]}" | sort -u | tr '\n' ' '))    # shell array deduplicate
 echo ${CEPH_NODE[@]}
 
-CURRENT_NODE_IP="10.240.1.31"
+CURRENT_NODE_IP="10.250.19.11"
 CEPH_ROOT_PASS="toor"
-CEPH_CLUSTER_NETWORK="10.240.0.0/16"
-CEPH_PUBLIC_NETWORK="10.240.0.0/16"
+CEPH_CLUSTER_NETWORK="10.250.0.0/16"
+CEPH_PUBLIC_NETWORK="10.250.0.0/16"
 CEPH_OSD_DISK="/dev/sdb"
 CEPH_DASHBOARD_PASS="admin"
+
+CEPH_DEPLOY_LOG="/root/ceph-deploy-log"
+mkdir -p "${CEPH_DEPLOY_LOG}"
+
+
+function _apt_wait() {
+    while true; do
+        if lsof /var/lib/dpkg/lock &> /dev/null; then
+            sleep 1
+            continue; fi
+        if lsof /var/lib/dpkg/lock-frontend &> /dev/null; then
+            sleep 1
+            continue; fi
+        if lsof /var/lib/apt/lists/lock &> /dev/null; then
+            sleep 1
+            continue; fi
+        if lsof /var/lib/apt/daily_lock &> /dev/null; then
+            sleep 1
+            continue; fi
+        if lsof /var/log/unattended-upgrades/unattended-upgrades.log &> /dev/null; then
+            sleep 1
+            continue; fi
+        #echo "lock released"
+        break
+    done
+}
 
 
 function 1_configure_ssh_authentication {
@@ -56,7 +81,8 @@ function 1_configure_ssh_authentication {
 
     # 1.安装 sshpass 软件包
     # 2.生成 ssh 密钥对
-    if ! command -v sshpass; then apt-get update -y && apt-get install -y sshpass; fi
+    if ! command -v sshpass; then _apt_wait && apt-get update -y; _apt_wait && apt-get install -y sshpass; fi
+    if ! command -v multitail; then _apt_wait && apt-get update -y; _apt_wait && apt-get install -y multitail; fi
     if [[ ! -d "/root/.ssh" ]]; then rm -rf /root/.ssh; mkdir /root/.ssh; chmod 0700 /root/.ssh; fi
     if [[ ! -s "/root/.ssh/id_rsa" ]]; then ssh-keygen -t rsa -N '' -f /root/.ssh/id_rsa; fi 
     if [[ ! -s "/root/.ssh/id_ecdsa" ]]; then ssh-keygen -t ecdsa -N '' -f /root/.ssh/id_ecdsa; fi
@@ -68,11 +94,11 @@ function 1_configure_ssh_authentication {
     # 3.将本机的 /etc/hosts 拷贝到其它 ceph 节点上
     # 4.设置所有节点的主机名
     for HOST in "${CEPH_NODE[@]}"; do
-        ssh-keyscan "${HOST}" >> /root/.ssh/known_hosts 2> /dev/null
-        sshpass -p "${CEPH_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_rsa.pub root@"${HOST}"
-        sshpass -p "${CEPH_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ecdsa.pub root@"${HOST}"
-        sshpass -p "${CEPH_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ed25519.pub root@"${HOST}"
-        #sshpass -p "${CEPH_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_xmss.pub root@"${HOST}"
+        ssh-keyscan "${HOST}" >> /root/.ssh/known_hosts
+        sshpass -p "${CEPH_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_rsa.pub root@"${HOST}" > /dev/null
+        sshpass -p "${CEPH_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ecdsa.pub root@"${HOST}" > /dev/null
+        sshpass -p "${CEPH_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ed25519.pub root@"${HOST}" > /dev/null
+        #sshpass -p "${CEPH_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_xmss.pub root@"${HOST}" > /dev/null
         ssh root@${HOST} "hostnamectl set-hostname ${HOST}"
         scp /etc/hosts root@${HOST}:/etc/
     done
@@ -83,28 +109,28 @@ function 1_configure_ssh_authentication {
 function 2_all_ceph_upgrade {
     MSG1 "2. Ceph Node Upgrade"
 
+    mkdir -p ${CEPH_DEPLOY_LOG}/2_ceph_node_upgrade
     for HOST in "${CEPH_NODE[@]}"; do
-        MSG2 "${HOST} upgrade"
         ssh root@${HOST} "
+            $(typeset -f _apt_wait)
             export DEBIAN_FRONTEND=noninteractive
-            apt-get update -y
-            apt-get -o Dpkg::Options::=\"--force-confold\" upgrade -q -y
-            apt-get -o Dpkg::Options::=\"--force-confold\" dist-upgrade -q -y
-            apt-get autoremove -y
-            apt-get autoclean -y"
+            _apt_wait && apt-get update -y
+            _apt_wait && apt-get -o Dpkg::Options::=\"--force-confold\" upgrade -q -y
+            _apt_wait && apt-get -o Dpkg::Options::=\"--force-confold\" dist-upgrade -q -y
+            _apt_wait && apt-get autoremove -y
+            _apt_wait && apt-get autoclean -y
+            _apt_wait apt-get install -y apt-transport-https software-properties-common curl wget python3" &> ${CEPH_DEPLOY_LOG}/2_ceph_node_upgrade/${HOST}.log &
     done
-
-    # install necessary package
-    for HOST in "${CEPH_NODE[@]}"; do
-        ssh root@${HOST} "
-            apt-get install -y apt-transport-https software-properties-common curl wget python3"
-    done
+    MSG2 "multitail ${CEPH_DEPLOY_LOG}/2_ceph_node_upgrade/*.log"
+    wait
 }
 
 
 
 function 3_optimizate_system {
     MSG1 "3. Optimizate System"
+
+    mkdir -p "${CEPH_DEPLOY_LOG}"/3_optimizate_system
     
     # configure ssh
     local SSH_CONF_PATH="/etc/ssh/sshd_config"
@@ -155,8 +181,9 @@ function 3_optimizate_system {
             timedatectl set-timezone Asia/Shanghai
             timedatectl set-ntp true
             systemctl restart cron
-            systemctl restart rsyslog"
+            systemctl restart rsyslog" &> ${CEPH_DEPLOY_LOG}/3_optimizate_system/${HOST}.log &
     done
+    wait
 }
 
 
@@ -178,19 +205,45 @@ function install_docker {
         sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
     apt-get update -y
-    local docker_version="5:19.03.15~3-0~ubuntu-$(lsb_release -sc)"
-    apt-mark unhold docker-ce docker-ce-cli
-    apt-get install -y --allow-downgrades docker-ce=${docker_version} docker-ce-cli=${docker_version} containerd.io
-    apt-mark hold docker-ce docker-ce-cli
+    # local docker_version="5:19.03.15~3-0~ubuntu-$(lsb_release -sc)"
+    # apt-mark unhold docker-ce docker-ce-cli
+    # apt-get install -y --allow-downgrades docker-ce=${docker_version} docker-ce-cli=${docker_version} containerd.io
+    # apt-mark hold docker-ce docker-ce-cli
+    apt-get install -y docker-ce docker-ce-cli containerd.io
     systemctl enable --now docker
 }
 function 4_install_docker {
+    mkdir -p ${CEPH_DEPLOY_LOG}/4_install_docker
     MSG1 "4. Install docker"
 
-    for HOST in "${CEPH_NODE[@]}"; do
-        MSG2 "${HOST} install docker"
-        ssh root@${HOST} "$(typeset -f install_docker); install_docker"
+    docker_url="https://mirrors.ustc.edu.cn/docker-ce"
+    #docker_url="https://mirrors.aliyun.com/docker-ce"
+    #docker_url="https://download.docker.com"
+    while true; do
+        if curl -fsSL ${docker_url}/linux/ubuntu/gpg | sudo gpg --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg; then
+            break; fi
+        sleep 1
     done
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] ${docker_url}/linux/ubuntu $(lsb_release -cs) stable" | \
+        sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    for HOST in "${CEPH_NODE[@]}"; do
+        scp /usr/share/keyrings/docker-archive-keyring.gpg root@${HOST}:/usr/share/keyrings/
+        scp /etc/apt/sources.list.d/docker.list root@${HOST}:/etc/apt/sources.list.d/
+    done
+
+    for HOST in "${CEPH_NODE[@]}"; do
+        ssh root@${HOST} "
+            $(typeset -f _apt_wait)
+            _apt_wait && apt-get remove -y docker docker-engine docker.io containerd runc
+            _apt_wait && apt-get update -y
+            _apt_wait && apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release software-properties-common
+            _apt_wait && apt-get update -y
+            _apt_wait && apt-get install -y docker-ce docker-ce-cli containerd.io
+            systemctl enable --now docker" &> ${CEPH_DEPLOY_LOG}/4_install_docker/${HOST}.log &
+    done
+    MSG2 "multitail ${CEPH_DEPLOY_LOG}/4_install_docker/*.log"
+    wait
 }
 
 
@@ -199,15 +252,19 @@ function 5_install_cephadm {
     #curl --silent https://download.ceph.com/keys/release.asc | sudo apt-key add -
     #add-apt-repository -y https://download.ceph.com/debian-pacific
     #apt-get install -y cephadm
+    mkdir -p "${CEPH_DEPLOY_LOG}"/5_install_cephadm
     for HOST in "${!CEPH_MON[@]}"; do
-        MSG2 "${HOST} install cephadm"
+        # MSG2 "${HOST} install cephadm"
         ssh root@${HOST} "
+            $(typeset -f _apt_wait)
             export DEBIAN_FRONTEND=noninteractive
             curl --silent https://download.ceph.com/keys/release.asc | sudo apt-key add -
             add-apt-repository -y https://download.ceph.com/debian-pacific
-            apt-get update -y
-            apt-get install -y cephadm"
+            _apt_wait && apt-get update -y
+            _apt_wait && apt-get install -y cephadm" &> ${CEPH_DEPLOY_LOG}/5_install_cephadm/${HOST}.log &
     done
+    MSG2 "multitail ${CEPH_DEPLOY_LOG}/5_install_cephadm/*.log"
+    wait
 }
 
 
