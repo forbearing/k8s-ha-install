@@ -119,7 +119,7 @@ function 2_all_ceph_upgrade {
             _apt_wait && apt-get -o Dpkg::Options::=\"--force-confold\" dist-upgrade -q -y
             _apt_wait && apt-get autoremove -y
             _apt_wait && apt-get autoclean -y
-            _apt_wait apt-get install -y apt-transport-https software-properties-common curl wget python3" &> ${CEPH_DEPLOY_LOG}/2_ceph_node_upgrade/${HOST}.log &
+            _apt_wait && apt-get install -y apt-transport-https software-properties-common curl wget python3" &> ${CEPH_DEPLOY_LOG}/2_ceph_node_upgrade/${HOST}.log &
     done
     MSG2 "multitail ${CEPH_DEPLOY_LOG}/2_ceph_node_upgrade/*.log"
     wait
