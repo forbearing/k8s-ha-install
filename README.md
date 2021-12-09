@@ -18,15 +18,16 @@
 
 #### Linux 系统支持:
 
-- CentOS 7
-- Ubuntu 18
 - Ubuntu 20
+- Ubuntu 18
+- CentOS 7
 - (后续支持 Debian 9 / Debian 10 和 CentOS 8 / Rocky Linux)
 
 #### K8S 版本支持
 
-- v1.20.x
+- v1.22.x
 - v1.21.x
+- v1.20.x
 
 #### 计划做的事
 
@@ -99,7 +100,7 @@
 
 #### K8S_VERSION
 
-> 你要部署的 k8s 版本，支持 `v1.20` `v1.21`，默认是最新版本。
+> 你要部署的 k8s 版本，支持 `v1.20` `v1.21` `v1.22`，默认是最新版本。
 
 #### K8S_PROXY_MODE
 
