@@ -73,12 +73,12 @@ source scripts/del-k8s-node.sh                          # del k8s worker node sc
 
 while getopts "e:ad:h" opt; do
     case "${opt}" in
-        e) environment_file="${OPTARG}" ;;
-        a) i_want_add_k8s_node="true" ;;
-        d) i_want_del_k8s_node="true";
-           DEL_WORKER="${OPTARG}" ;;
-        h) usage; exit $EXIT_SUCCESS ;;
-        *) usage; exit $EXIT_FAILURE ;;
+    e) environment_file="${OPTARG}" ;;
+    a) i_want_add_k8s_node="true" ;;
+    d) i_want_del_k8s_node="true";
+       DEL_WORKER="${OPTARG}" ;;
+    h) usage; exit $EXIT_SUCCESS ;;
+    *) usage; exit $EXIT_FAILURE ;;
     esac
 done
 [[ ${environment_file} ]] || environment_file="k8s.env"
