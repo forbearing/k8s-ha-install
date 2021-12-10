@@ -84,7 +84,7 @@
 
 #### SRV_NETWORK_IP
 
-> kubernetes 集群的 IP 地址，往往都是 service network 中的第一个 IP 地址，例如 ：`172.18.0.1`。
+> kubernetes 集群的 IP 地址，一般都是 service network 中的第一个 IP 地址，例如 ：`172.18.0.1`。
 
 #### SRV_NETWORK_DNS_IP
 
@@ -96,11 +96,11 @@
 
 #### K8S_ROOT_PASS
 
-> 服务器 root 用户口令，默认是 `toor`。
+> root 用户口令，默认是 `toor`。
 
 #### K8S_VERSION
 
-> 你要部署的 k8s 版本，支持 `v1.22` `v1.21` `v1.20`，默认是最新版本。
+> 你要部署的 k8s 版本，支持 `v1.23` `v1.22` `v1.21` `v1.20`，默认是最新版本。
 
 #### K8S_PROXY_MODE
 
@@ -108,7 +108,7 @@
 
 #### INSTALL_XXX
 
-> 是否需要安装指定的插件，不安装变量留空，安装设置变量任何值。
+> 是否需要安装指定的插件，不安装变量留空，安装设置任意变量值。
 
 
 
