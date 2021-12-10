@@ -42,13 +42,13 @@
 
 # 2. 使用
 
-#### 修改 k8s.env 或者 k8s-t20.env 变量文件
+#### 修改 k8s.env 或者 k8s-u20.env 变量文件
 
 ```bash
 ./setup.sh                     		# 使用默认的 k8s.env 变量文件部署 k8s 高可用集群
 ./setup.sh -a                  		# 使用默认的 k8s.env 变量文件添加 k8s worker 节点
-./setup.sh -e k8s-t20.env       	# 使用自定义的 k8s-u20.env 变量文件部署 k8s 高可用集群
-./setup.sh -e k8s-t20.env -a    	# 使用自定义的 k8s-u20.env 变量文件添加 k8s worker 节点
+./setup.sh -e k8s-u20.env       	# 使用自定义的 k8s-u20.env 变量文件部署 k8s 高可用集群
+./setup.sh -e k8s-u20.env -a    	# 使用自定义的 k8s-u20.env 变量文件添加 k8s worker 节点
 ./setup.sh -d worker4          		# 删除 k8s worker 节点
 ```
 
