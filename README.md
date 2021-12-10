@@ -116,24 +116,40 @@
 
 # 4. k8s 部署过程截图
 
-![k8s-stage-one-two-three](doc/pics/k8s-stage-one-two-three.png)
+![k8s_environ](doc/pics/k8s_environ.png)
 
-![k8s-stage-four-1](doc/pics/k8s-stage-four-1.png)
+![k8s_preapre_1](doc/pics/k8s_preapre_1.png)
 
-![k8s-stage-four-2](doc/pics/k8s-stage-four-2.png)
+![k8s_prepare_2](doc/pics/k8s_prepare_2.png)
 
-![k8s-stage-four-3-4-5](doc/pics/k8s-stage-four-3-4-5.png)
+![k8s_prepare_3](doc/pics/k8s_prepare_3.png)
 
-![k8s-stage-four-6](doc/pics/k8s-stage-four-6.png)
+![k8s_prepare_3](doc/pics/k8s_stage_one.png)
 
-![k8s-stage-four-7](doc/pics/k8s-stage-four-7.png)
+![k8s_stage_two](doc/pics/k8s_stage_two.png)
 
-![k8s-stage-four-8-9-10-11-12](doc/pics/k8s-stage-four-8-9-10-11-12.png)
+![k8s_stage_three](doc/pics/k8s_stage_three.png)
 
-![k8s-stage-four-13-14](doc/pics/k8s-stage-four-13-14.png)
+![k8s_stage_four_1](doc/pics/k8s_stage_four_1.png)
 
-![k8s-stage-four-15-16-17-18](doc/pics/k8s-stage-four-15-16-17-18.png)
+![k8s_stage_four_2](doc/pics/k8s_stage_four_2.png)
 
-![k8s-stage-five](doc/pics/k8s-stage-five.png)
+![k8s_stage_four_3-4](doc/pics/k8s_stage_four_3-4.png)
 
-![k8s-finished](doc/pics/k8s-finished.png)
+![k8s_stage_four_5](doc/pics/k8s_stage_four_5.png)
+
+![k8s_stage_four_6](doc/pics/k8s_stage_four_6.png)
+
+![k8s_stage_four_7](doc/pics/k8s_stage_four_7.png)
+
+![k8s_stage_four_8-9-10-11](doc/pics/k8s_stage_four_8-9-10-11.png)
+
+![k8s_stage_four_12](doc/pics/k8s_stage_four_12.png)
+
+![k8s_stage_four_13](doc/pics/k8s_stage_four_13.png)
+
+![k8s_stage_four_14](doc/pics/k8s_stage_four_14.png)
+
+![k8s_stage_four_15-16-17-18](doc/pics/k8s_stage_four_15-16-17-18.png)
+
+![k8s_finished](doc/pics/k8s_finished.png)
