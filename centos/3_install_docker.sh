@@ -16,7 +16,7 @@ function 1_install_docker {
                   docker-logrotate \
                   docker-engine
     if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
-        yes | cp /etc/yum.repos.d/docker-ce.repo /etc/yum.repos.d/docker-ce.repo.$(date +%Y%m%d%H%M)
+        # yes | cp /etc/yum.repos.d/docker-ce.repo /etc/yum.repos.d/docker-ce.repo.$(date +%Y%m%d%H%M)
         yes | cp /tmp/yum.repos.d/docker-ce.repo-aliyun /etc/yum.repos.d/docker.repo
     else
         yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo; fi
