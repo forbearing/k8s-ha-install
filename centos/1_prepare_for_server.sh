@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function 1_import_repo {
-    echo "1. [`hostname`] Imort yum repo"
+    echo "1. [`hostname`] Import yum repo"
 
     # Disable IPv6
     sysctl -w net.ipv6.conf.all.disable_ipv6=1
