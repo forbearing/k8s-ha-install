@@ -8,7 +8,7 @@ function 1_install_necessary_package_for_k8s {
         bridge-utils sysstat libseccomp \
         ceph-common jq \
         gcc gcc-c++ make cmake autoconf automake \
-        libxml2-devel openssl-deve curl-devel libaio-devel ncurses-devel zlib-devel
+        libxml2-devel openssl-devel curl-devel libaio-devel ncurses-devel zlib-devel
 }
 
 
