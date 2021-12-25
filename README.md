@@ -20,8 +20,9 @@
 
 - Ubuntu 20
 - Ubuntu 18
+- Rocky 8
 - CentOS 7
-- (后续支持 Debian 9 / Debian 10 和 CentOS 8 / Rocky Linux)
+- (后续支持 Debian 9 / Debian 10)
 
 #### K8S 版本支持
 
