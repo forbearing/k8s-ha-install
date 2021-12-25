@@ -27,6 +27,26 @@ function stage_two {
         MSG2 "Please Waiting... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-two/*.log)"
         wait
         ;;
+    rocky)
+        # Linux: rocky
+        source rocky/2_prepare_for_k8s.sh
+        for NODE in "${ALL_NODE[@]}"; do
+            MSG2 "*** ${NODE} *** is Preparing for Kubernetes"
+            ssh root@${NODE} \
+                "$(typeset -f 1_install_necessary_package_for_k8s)
+                 $(typeset -f 2_disable_swap)
+                 $(typeset -f 3_upgrade_kernel)
+                 $(typeset -f 4_load_kernel_module)
+                 $(typeset -f 5_configure_kernel_parameter)
+                 1_install_necessary_package_for_k8s
+                 2_disable_swap
+                 4_load_kernel_module
+                 5_configure_kernel_parameter" \
+                 &> ${K8S_DEPLOY_LOG_PATH}/logs/stage-two/${NODE}.log &
+        done
+        MSG2 "Please Waiting... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-two/*.log)"
+        wait
+        ;;
     ubuntu)
         # Linux: ubuntu
         source ubuntu/2_prepare_for_k8s.sh
