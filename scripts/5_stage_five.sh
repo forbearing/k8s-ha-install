@@ -29,7 +29,7 @@ function deploy_ingress {
                 if [[ $count -eq 2 ]]; then break; fi
                 (( count++ ))
             done
-            helm install -n ingress-nginx --create-namespace ingress-controller addons-3rd/ingress-nginx/v1.0.4/ \
+            helm upgrade --install -n ingress-nginx --create-namespace ingress-controller addons-3rd/ingress-nginx/v1.0.4/ \
                 --set controller.metrics.enabled=true \
                 --set-string controller.podAnnotations."prometheus\.io/scrape"="true" \
                 --set-string controller.podAnnotations."prometheus\.io/port"="10254"
