@@ -86,6 +86,9 @@ function 2_install_keepalived_and_haproxy {
             yum install -y keepalived
             mv /tmp/haproxy.service /lib/systemd/system/
             systemctl daemon-reload"; done; ;;
+    rocky)
+        for NODE in "${MASTER[@]}"; do
+            ssh root@${NODE} "yum install -y haproxy keepalived"; done ;;
     debian )
         : ;;
     ubuntu )
@@ -135,8 +138,8 @@ function 3_setup_haproxy {
     #for (( i=0; i<${#MASTER[@]}; i++ )); do
     for NODE in "${MASTER[@]}"; do
         scp ${HAPROXY_CONF_PATH}/haproxy.cfg ${NODE}:/etc/haproxy/haproxy.cfg
-        ssh ${NODE} "systemctl enable haproxy"
-        ssh ${NODE} "systemctl restart haproxy"
+        ssh ${NODE} "systemctl enable haproxy
+                     systemctl restart haproxy" &
     done
 }
 
@@ -187,10 +190,10 @@ function 4_setup_keepalived {
     for HOST in "${!MASTER[@]}"; do
         scp ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST} ${HOST}:/etc/keepalived/keepalived.conf
         scp conf/keepalived/check_apiserver.sh ${HOST}:/etc/keepalived/check_apiserver.sh
-        ssh ${HOST} "chmod 755 /etc/keepalived/check_apiserver.sh"
-        ssh ${HOST} "systemctl enable keepalived"
-        ssh ${HOST} "systemctl restart haproxy"
-        ssh ${HOST} "systemctl restart keepalived"; done
+        ssh ${HOST} "chmod 755 /etc/keepalived/check_apiserver.sh
+                     systemctl enable keepalived
+                     systemctl restart keepalived" &
+    done
 }
 
 
@@ -656,6 +659,9 @@ function 13_setup_kubelet {
     centos | rhel )
         resolvConf="/etc/resolv.conf"
         sed -i "s%#resolvConf#%${resolvConf}%g" ${KUBELET_CONF_PATH}/kubelet-conf.yaml ;;
+    rocky)
+        resolvConf="/etc/resolv.conf"
+        sed -i "s%#resolvConf#%${resolvConf}%g" ${KUBELET_CONF_PATH}/kubelet-conf.yaml ;;
     debian )
         resolvConf="/etc/resolv.conf"
         sed -i "s%#resolvConf#%${resolvConf}%g" ${KUBELET_CONF_PATH}/kubelet-conf.yaml ;;
@@ -811,18 +817,38 @@ function 18_label_and_taint_master_node {
     # 为 master 节点打上污点
     # master 节点的 taint 默认是 NoSchedule，为了充分利用 master 资源可以设置成 PreferNoSchedule
     MSG2 "18. Label and Taint master node"
-    sleep 5
-    while true; do
-        if kubectl get node | grep Ready; then
-            for HOST in "${!MASTER[@]}"; do
-                kubectl label nodes ${HOST} node-role.kubernetes.io/master= --overwrite  
-                kubectl label nodes ${HOST} node-role.kubernetes.io/control-plane= --overwrite
-                kubectl taint nodes ${HOST} node-role.kubernetes.io/master:NoSchedule --overwrite; done
-                #kubectl taint nodes ${HOST} node-role.kubernetes.io/master:PreferNoSchedule --overwrite
-            break
-        else
-            sleep 1; 
-        fi
+
+    # while true; do
+    #     if kubectl get node &> /dev/null; then break; fi
+    #     sleep 5
+    # done
+
+    # while true; do
+    #     if kubectl get node | grep Ready; then
+    #         for HOST in "${!MASTER[@]}"; do
+    #             kubectl label nodes ${HOST} node-role.kubernetes.io/master= --overwrite
+    #             kubectl label nodes ${HOST} node-role.kubernetes.io/control-plane= --overwrite
+    #             kubectl taint nodes ${HOST} node-role.kubernetes.io/master:NoSchedule --overwrite; done
+    #             #kubectl taint nodes ${HOST} node-role.kubernetes.io/master:PreferNoSchedule --overwrite
+    #         break
+    #     else
+    #         sleep 1;
+    #     fi
+    # done
+
+    for NODE in "${!MASTER[@]}"; do
+        while true; do
+            if kubectl get node ${NODE}; then
+                kubectl label node ${NODE} node-role.kubernetes.io/master= --overwrite  
+                kubectl label node ${NODE} node-role.kubernetes.io/control-plane= --overwrite
+                kubectl taint node ${NODE} node-role.kubernetes.io/master:NoSchedule --overwrite
+                #kubectl taint node ${NODE} node-role.kubernetes.io/master:PreferNoSchedule --overwrite
+                break
+            else
+                echo "kubectl not get node ${NODE}, try again."
+                sleep 5
+            fi
+        done
     done
 }
 
