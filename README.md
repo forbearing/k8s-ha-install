@@ -22,7 +22,7 @@
 - Ubuntu 18
 - Rocky 8
 - CentOS 7
-- (后续支持 Debian 9 / Debian 10)
+- (后续支持 Debian 10 / Debian 11)
 
 #### K8S 版本支持
 
