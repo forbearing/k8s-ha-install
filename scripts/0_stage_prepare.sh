@@ -18,6 +18,8 @@ function stage_prepare {
     source /etc/os-release
     if [[ ${ID} == debian || ${ID} == ubuntu ]]; then
         _apt_wait; fi
+    if [[ ${ID} == rocky ]]; then
+        yum install -y epel-release; fi
     # 安装 sshpass ssh-keyscan
     # 生成 ssh 密钥对
     if ! command -v sshpass; then ${INSTALL_MANAGER} install -y sshpass; fi
@@ -61,9 +63,22 @@ function stage_prepare {
     done
 
 
-    # 如果操作系统为 RHEL/CentOS，则将 yum.repos.d 复制到所有 k8s 节点上的 /tmp 目录下
+    # # 如果操作系统为 RHEL/CentOS，则将 yum.repos.d 复制到所有 k8s 节点上的 /tmp 目录下
+    # source /etc/os-release
+    # if [[ ${ID} == centos || ${ID} == rhel ]]; then
+    #     for NODE in "${ALL_NODE[@]}"; do
+    #         scp -q -r centos/yum.repos.d ${NODE}:/tmp/; done; fi
+
+    # 如果操作系统为 RHEL/CentOS/Rocky，则将 yum.repos.d 复制到所有的 k8s 节点的 /tmp 目录下
     source /etc/os-release
-    if [[ ${ID} == centos || ${ID} == rhel ]]; then
+    case ${ID} in
+    rhel | centos)
         for NODE in "${ALL_NODE[@]}"; do
-            scp -r centos/yum.repos.d ${NODE}:/tmp/; done; fi 
+            scp -q -r centos/yum.repos.d ${NODE}:/tmp/; done ;;
+    rocky)
+        for NODE in "${ALL_NODE[@]}"; do
+            scp -q -r rocky/yum.repos.d ${NODE}:/tmp/; done ;;
+    *)
+        echo "Not support Linux: ${ID}" && exit $EXIT_FAILURE ;;
+    esac
 }
