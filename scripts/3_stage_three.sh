@@ -22,6 +22,22 @@ function stage_three {
         MSG2 "Please Waiting... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-three/*.log)"
         wait
         ;;
+    rocky)
+        # Linux: rocky
+        source rocky/3_install_docker.sh
+        for NODE in "${ALL_NODE[@]}"; do
+            MSG2 "*** ${NODE} *** is Installing Docker"
+            ssh root@${NODE} \
+                "export TIMEZONE=${TIMEZONE}
+                 $(typeset -f 1_install_docker)
+                 $(typeset -f 2_configure_docker)
+                 1_install_docker
+                 2_configure_docker" \
+                 &> ${K8S_DEPLOY_LOG_PATH}/logs/stage-three/${NODE}.log &
+        done
+        MSG2 "Please Waiting... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-three/*.log)"
+        wait
+        ;;
     ubuntu)
         # Linux: ubuntu
         source ubuntu/3_install_docker.sh
