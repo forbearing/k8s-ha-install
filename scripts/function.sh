@@ -71,7 +71,7 @@ function check_root_and_os() {
     [[ "$(uname)" != "Linux" ]] && ERR "Not Support OS !" && exit $EXIT_FAILURE
     [[ $(id -u) -ne 0 ]] && ERR "Not ROOT !" && exit $EXIT_FAILURE
     source /etc/os-release
-    if [[ "$ID" == "centos" || "$ID" == "rhel" ]]; then
+    if [[ "$ID" == "centos" || "$ID" == "rhel"  || "rocky" ]]; then
         INSTALL_MANAGER="yum"
     elif [[ "$ID" == "debian" || "$ID" == "ubuntu" ]]; then
         INSTALL_MANAGER="apt-get"
