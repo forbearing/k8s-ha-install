@@ -60,7 +60,23 @@ function stage_three {
         ;;
     debian)
         # Linux: debian
-        :
+        source debian/3_install_docker.sh
+        for NODE in "${ALL_NODE[@]}"; do
+            MSG2 "*** ${NODE} *** is Installing Docker"
+            ssh root@${NODE} \
+                "export TIMEZONE=${TIMEZONE}
+                 $(typeset -f _apt_wait)
+                 $(typeset -f 1_install_docker)
+                 $(typeset -f 2_configure_docker)
+                 $(typeset -f 3_audit_for_docker)
+                 _apt_wait
+                 1_install_docker
+                 2_configure_docker
+                 3_audit_for_docker" \
+                 &> ${K8S_DEPLOY_LOG_PATH}/logs/stage-three/${NODE}.log &
+        done
+        MSG2 "Please Waiting... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-three/*.log)"
+        wait
         ;;
     *)
         ERR "Not Support Linux !" && exit $EXIT_FAILURE ;;
