@@ -16,7 +16,7 @@
     - Stage 5: 部署 Kubernetes 必要组件和插件
 
 
-#### Linux 系统支持:
+#### Linux 系统支持：
 
 - Debian 11（我最爱的 Linux，稳如老狗）
 - Ubuntu 20（屁事真多，自作聪明）
@@ -25,7 +25,7 @@
 - CentOS 7
 - (可能还会支持 Debian 10，不一定)
 
-#### K8S 版本支持
+#### Kubernetes 版本支持：
 
 - v1.23.x
 - v1.22.x
