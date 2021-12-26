@@ -5,9 +5,11 @@ function 1_upgrade_system {
 
     local mirrors
     local release
-    local release=$(lsb_release -sc)
     if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
+        if ! command -v lsb_release; then apt-get update; apt-get install -y lsb-release apt-transport-https; fi
+        release=$(lsb_release -sc)
         #mirrors="https://mirrors.ustc.edu.cn/ubuntu"
+        #mirrors="https://mirrors.163.com/ubuntu"
         mirrors="https://mirrors.aliyun.com/ubuntu"
         source_list=(
             "deb ${mirrors} ${release} main restricted universe multiverse"
@@ -20,7 +22,7 @@ function 1_upgrade_system {
             "deb-src ${mirrors} ${release}-updates main restricted universe multiverse"
             "deb-src ${mirrors} ${release}-proposed main restricted universe multiverse"
             "deb-src ${mirrors} ${release}-backports main restricted universe multiverse")
-        echo y | cp /etc/apt/sources.list /etc/apt/sources.list.$(date +%Y%m%d%H%M)
+        yes | cp /etc/apt/sources.list /etc/apt/sources.list.$(date +%Y%m%d%H%M)
         printf "%s\n" "${source_list[@]}" > /etc/apt/sources.list
     fi
 
