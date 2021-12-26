@@ -166,7 +166,8 @@ function 4_setup_keepalived {
     IFS=${OLD_IFS}
     CONTROL_PLANE_ENDPOINT_IP=${temp_arr[0]}
     INTERFACE=$(ip route show | grep default | awk '{print $5}' | sed -n '1,1p')
-    ROUTE_ID=$(echo $RANDOM % 100 + 1 | bc)         # random virtual_route_id for keepalived
+    #ROUTE_ID=$(echo $RANDOM % 100 + 1 | bc)         # random virtual_route_id for keepalived
+    ROUTE_ID=$(echo $(($RANDOM % 100 + 1)))         # random virtual_route_id id for keepalived
     VIRTUAL_IP=${CONTROL_PLANE_ENDPOINT_IP}
 
     # 为 master 节点生成 keepalived 配置文件
