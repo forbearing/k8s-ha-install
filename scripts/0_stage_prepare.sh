@@ -14,16 +14,19 @@ function stage_prepare {
         echo "${IP} ${HOST}" >> /etc/hosts; done
 
 
-    # 如果操作系统是 Debian/Ubuntu，调用 _apt_wait 函数等待 dpkg/apt-get 释放
+    # 安装 sshpass ssh-keyscan multitail
     source /etc/os-release
-    if [[ ${ID} == debian || ${ID} == ubuntu ]]; then
-        _apt_wait; fi
-    if [[ ${ID} == rocky ]]; then
-        yum install -y epel-release; fi
-    # 安装 sshpass ssh-keyscan
+    case ${ID} in 
+    debian | ubuntu)
+        _apt_wait && apt-get install -y sshpass multitail ;;
+    rocky | centos)
+        yum install -y epel-release
+        yum install -y sshpass multitail ;;
+    *)
+        ERR "Not Support Linux ${ID}!"
+        exit $EXIT_FAILURE
+    esac
     # 生成 ssh 密钥对
-    if ! command -v sshpass; then ${INSTALL_MANAGER} install -y sshpass; fi
-    if ! command -v multitail; then ${INSTALL_MANAGER} install -y multitail; fi
     [[ ! -d ${K8S_PATH} ]] && rm -rf "${K8S_PATH}"; mkdir -p "${K8S_PATH}"
     [[ ! -d ${KUBE_CERT_PATH} ]] && rm -rf "${KUBE_CERT_PATH}"; mkdir -p "${KUBE_CERT_PATH}"
     [[ ! -d ${ETCD_CERT_PATH} ]] && rm -rf "${ETCD_CERT_PATH}"; mkdir -p "${ETCD_CERT_PATH}"
@@ -31,7 +34,7 @@ function stage_prepare {
     if [[ ! -s "/root/.ssh/id_rsa" ]]; then ssh-keygen -t rsa -N '' -f /root/.ssh/id_rsa; fi 
     if [[ ! -s "/root/.ssh/id_ecdsa" ]]; then ssh-keygen -t ecdsa -N '' -f /root/.ssh/id_ecdsa; fi
     if [[ ! -s "/root/.ssh/id_ed25519" ]]; then ssh-keygen -t ed25519 -N '' -f /root/.ssh/id_ed25519; fi
-    #if [[ ! -s "/root/.ssh/id_xmss" ]]; then ssh-keyscan -t xmss -N '' -f /root/.ssh/id_xmss; fi
+    #if [[ ! -s "/root/.ssh/id_xmss" ]]; then ssh-keygen -t xmss -N '' -f /root/.ssh/id_xmss; fi
 
 
     # 收集 master 节点和 worker 节点的主机指纹
@@ -63,12 +66,6 @@ function stage_prepare {
     done
 
 
-    # # 如果操作系统为 RHEL/CentOS，则将 yum.repos.d 复制到所有 k8s 节点上的 /tmp 目录下
-    # source /etc/os-release
-    # if [[ ${ID} == centos || ${ID} == rhel ]]; then
-    #     for NODE in "${ALL_NODE[@]}"; do
-    #         scp -q -r centos/yum.repos.d ${NODE}:/tmp/; done; fi
-
     # 如果操作系统为 RHEL/CentOS/Rocky，则将 yum.repos.d 复制到所有的 k8s 节点的 /tmp 目录下
     source /etc/os-release
     case ${ID} in
@@ -78,7 +75,5 @@ function stage_prepare {
     rocky)
         for NODE in "${ALL_NODE[@]}"; do
             scp -q -r rocky/yum.repos.d ${NODE}:/tmp/; done ;;
-    *)
-        echo "Not support Linux: ${ID}" && exit $EXIT_FAILURE ;;
     esac
 }
