@@ -18,11 +18,12 @@
 
 #### Linux 系统支持:
 
-- Ubuntu 20
+- Debian 11（我最爱的 Linux，稳如老狗）
+- Ubuntu 20（屁事真多，自作聪明）
 - Ubuntu 18
 - Rocky 8
 - CentOS 7
-- (后续支持 Debian 10 / Debian 11)
+- (可能还会支持 Debian 10，不一定)
 
 #### K8S 版本支持
 
