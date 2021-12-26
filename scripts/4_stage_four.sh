@@ -76,6 +76,7 @@ function 2_install_keepalived_and_haproxy {
     source /etc/os-release
     case ${ID} in
     centos | rhel )
+        # centos7 的 haproxy 太老了，已经不更新了，拷贝 haproxy2 数据包并安装
         for NODE in "${MASTER[@]}"; do
             scp centos/pkgs/haproxy.service                           root@${NODE}:/tmp/
             scp centos/pkgs/haproxy-2.0.18-4.el7.x86_64.rpm           root@${NODE}:/tmp/
@@ -87,11 +88,15 @@ function 2_install_keepalived_and_haproxy {
             mv /tmp/haproxy.service /lib/systemd/system/
             systemctl daemon-reload"; done; ;;
     rocky)
+        # rocky 8 默认还不是 haproxy2.x，以后打算安装 haporxy 2.x
         for NODE in "${MASTER[@]}"; do
             ssh root@${NODE} "yum install -y haproxy keepalived"; done ;;
     debian )
-        : ;;
+        # debian 11 默认就是 haproxy 2.x
+        for NODE in "${MASTER[@]}"; do
+            ssh root@${NODE} "apt-get install -y haproxy keepalived"; done ;;
     ubuntu )
+        # ubuntu 18, 20 默认还不是 haproxy
         for NODE in "${MASTER[@]}"; do
             ssh root@${NODE} "
             add-apt-repository -y ppa:vbernat/haproxy-2.4
