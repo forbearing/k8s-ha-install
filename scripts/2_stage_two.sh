@@ -68,7 +68,22 @@ function stage_two {
         ;;
     debian)
         # Linux: debian
-        :
+        source debian/2_prepare_for_k8s.sh
+        for NODE in "${ALL_NODE[@]}"; do
+            MSG2 "*** ${NODE} *** is Preparing for Kubernetes"
+            ssh root@${NODE} \
+                "$(typeset -f _apt_wait)
+                 $(typeset -f 1_disable_swap)
+                 $(typeset -f 2_load_kernel_module)
+                 $(typeset -f 3_configure_kernel_parameter)
+                 _apt_wait
+                 1_disable_swap
+                 2_load_kernel_module
+                 3_configure_kernel_parameter" \
+                 &> ${K8S_DEPLOY_LOG_PATH}/logs/stage-two/${NODE}.log &
+        done
+        MSG2 "Please Waiting... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-two/*.log)"
+        wait
         ;;
     *)
         ERR "Not Support Linux !" && exit $EXIT_FAILURE ;;
