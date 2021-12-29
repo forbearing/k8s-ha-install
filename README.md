@@ -18,19 +18,18 @@
 
 #### Linux 系统支持：
 
-- Debian 11（我最爱的 Linux，稳如老狗）
-- Ubuntu 20（屁事真多，自作聪明）
-- Ubuntu 18
+- Debian 11（最推荐的系统）
+- Ubuntu 20、Ubuntu 18
 - Rocky 8
 - CentOS 7
 - (可能还会支持 Debian 10，不一定)
 
 #### Kubernetes 版本支持：
 
-- v1.23
-- v1.22
-- v1.21
-- v1.20
+- v1.23+
+- v1.22+
+- v1.21+
+- v1.20+
 
 #### 计划做的事
 
