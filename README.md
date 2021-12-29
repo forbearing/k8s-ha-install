@@ -21,7 +21,7 @@
 - Debian 11（最推荐的系统）
 - Ubuntu 20、Ubuntu 18
 - Rocky 8
-- CentOS 7
+- CentOS 7（不推荐的系统）
 - (可能还会支持 Debian 10，不一定)
 
 #### Kubernetes 版本支持：
@@ -56,63 +56,21 @@
 
 # 3. 环境变量
 
-
-
-#### MASTER
-
-> master 节点的主机名和 IP 地址，格式为`[Master_Hostname]=Master_IP`，写入 shell dict 中。
-
-#### WORKER
-
-> worker 节点的主机名和 IP 地址，格式为 `[Worker_Hostname]=Worker_IP`，写入 shell dict 中。
-
-#### EXTRA_MASTER
-
-> 用来扩展 master 节点的（可选），格式为` [Master_Hostname]=Master_IP`，写入 shell dict 中。
-
-#### ADD_WORKER
-
-> 你要添加的 worker 节点的主机名和 IP地址，格式为  `[Worker_Hostname]=Worker_IP`，写入 shell dict 中，
->
-> 这个变量只会在 `./setup.sh -a` 或者 `./setup.sh -e k8s-u20.env -a`  的时候被 `-a `选项读取。
-
-#### CONTROL_PANEL_ENDPOINT
-
-> k8s 高可用集群，master 节点通过 `lvs/haproxy/nginx` 虚拟出来的虚拟IP 地址和端口，例如：`10.250.13.10:8443`。
-
-#### SRV_NETWORK_CIDR
-
-> k8s service network 的网段，例如： `172.18.0.0/16`。
-
-#### SRV_NETWORK_IP
-
-> kubernetes 集群的 IP 地址，一般都是 service network 中的第一个 IP 地址，例如 ：`172.18.0.1`。
-
-#### SRV_NETWORK_DNS_IP
-
-> kubernetes 集群的 coredns IP 地址，一般是第十个 IP，例如： `172.18.0.10。`
-
-#### POD_NETWORK_CIDR
-
-> k8s pod network 的网段，例如：`192.168.0.0/16`。
-
-#### K8S_ROOT_PASS
-
-> root 用户口令，默认是 `toor`。
-
-#### K8S_VERSION
-
-> 你要部署的 k8s 版本，支持 `v1.23` `v1.22` `v1.21` `v1.20`，默认是最新版本。
-
-#### K8S_PROXY_MODE
-
-> `kube-proxy` 使用的 proxy mode，支持 `iptables`  `ipvs`，默认是 `ipvs`。
-
-#### INSTALL_XXX
-
-> 是否需要安装指定的插件，不安装变量留空，安装设置任意变量值。
-
-
+| 环境变量名             | 变量解释                                                     |
+| ---------------------- | ------------------------------------------------------------ |
+| MASTER                 | master 节点的主机名和 IP 地址，格式为`[Master_Hostname]=Master_IP`，写入 shell dict 中。 |
+| WORKER                 | worker 节点的主机名和 IP 地址，格式为 `[Worker_Hostname]=Worker_IP`，写入 shell dict 中。 |
+| EXTRA_MASTER           | 用来扩展 master 节点的（可选），格式为` [Master_Hostname]=Master_IP`，写入 shell dict 中。 |
+| ADD_WORKER             | 你要添加的 worker 节点的主机名和 IP地址，格式为  `[Worker_Hostname]=Worker_IP`，写入 shell dict 中。这个变量只会在 `./setup.sh -a` 或者 `./setup.sh -e k8s-u20.env -a`  的时候被 `-a `选项读取。 |
+| CONTROL_PANEL_ENDPOINT | k8s 高可用集群，master 节点通过 `lvs/haproxy/nginx` 虚拟出来的虚拟IP 地址和端口，例如：`10.250.13.10:8443`。 |
+| SRV_NETWORK_CIDR       | k8s service network 的网段，例如： `172.18.0.0/16`。         |
+| SRV_NETWORK_IP         | kubernetes 集群的 IP 地址，一般都是 service network 中的第一个 IP 地址，例如 ：`172.18.0.1`。 |
+| SRV_NETWORK_DNS_IP     | kubernetes 集群的 coredns IP 地址，一般是第十个 IP，例如： `172.18.0.10。` |
+| POD_NETWORK_CIDR       | k8s pod network 的网段，例如：`192.168.0.0/16`。             |
+| K8S_ROOT_PASS          | root 用户口令，默认是 `toor`。                               |
+| K8S_VERSION            | 你要部署的 k8s 版本，支持 `v1.23` `v1.22` `v1.21` `v1.20`，默认是最新版本。 |
+| K8S_PROXY_MODE         | `kube-proxy` 使用的 proxy mode，支持 `iptables`  `ipvs`，默认是 `ipvs`。 |
+| INSTALL_XXX            | 是否需要安装指定的插件，不安装变量留空，安装设置任意变量值。 |
 
 ![avatar](doc/pics/k8s.env.png)
 
