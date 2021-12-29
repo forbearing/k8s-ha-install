@@ -10,7 +10,8 @@ function 1_install_docker {
     local docker_url
     if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
         #docker_url="https://mirrors.ustc.edu.cn/docker-ce"
-        docker_url="https://mirrors.aliyun.com/docker-ce"
+        # docker_url="https://mirrors.aliyun.com/docker-ce"
+        docker_url="https://mirrors.163.com/docker-ce"
     else
         docker_url="https://download.docker.com"; fi
 

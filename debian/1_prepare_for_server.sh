@@ -9,8 +9,8 @@ function 1_upgrade_system {
         if ! command -v lsb_release; then apt-get update; apt-get install -y lsb-release apt-transport-https; fi
         release=$(lsb_release -sc)
         #mirrors="https://mirrors.ustc.edu.cn/debian"
-        #mirrors="https://mirrors.163.com/debian"
-        mirrors="https://mirrors.aliyun.com/debian"
+        mirrors="https://mirrors.163.com/debian"
+        # mirrors="https://mirrors.aliyun.com/debian"
         source_list=(
             "deb ${mirrors} ${release} main non-free contrib"
             "deb ${mirrors} ${release}-updates main non-free contrib"
