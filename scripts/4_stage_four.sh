@@ -145,7 +145,7 @@ function 3_setup_haproxy {
         scp ${HAPROXY_CONF_PATH}/haproxy.cfg ${NODE}:/etc/haproxy/haproxy.cfg
         ssh ${NODE} "systemctl enable haproxy
                      systemctl restart haproxy" &
-    done
+    done; wait
 }
 
 
@@ -199,7 +199,7 @@ function 4_setup_keepalived {
         ssh ${HOST} "chmod 755 /etc/keepalived/check_apiserver.sh
                      systemctl enable keepalived
                      systemctl restart keepalived" &
-    done
+    done; wait
 }
 
 
@@ -207,8 +207,15 @@ function 4_setup_keepalived {
 function 5_generate_etcd_certs {
     MSG2 "5. Generate certs for etcd"
 
-    # 如果 kubernetees 在部署成功，就不重新生成 etcd 证书
-    if kubectl get node; then return; fi
+    # 如果 kubernetees 部署成功，就不重新生成 etcd 证书
+    local count=1
+    while true; do
+        if kubectl get node &> /dev/null; then return; fi
+        if [[ ${count} -ge 3 ]]; then break; fi
+        sleep 2
+        (( count ++ ))
+    done
+
     [[ ! -d ${K8S_PATH} ]] && rm -rf "${K8S_PATH}"; mkdir -p "${K8S_PATH}"
     [[ ! -d ${ETCD_CERT_PATH} ]] && rm -rf "${ETCD_CERT_PATH}"; mkdir -p "${ETCD_CERT_PATH}"
 
@@ -251,7 +258,14 @@ function 6_generate_kubernetes_certs() {
     MSG2 "6. Generate certs for Kubernetes"
 
     # 如果 kubernetees 在正常运行，就不重新生成 kubernetes 证书
-    if kubectl get node; then return; fi
+    local count=1
+    while true; do
+        if kubectl get node &> /dev/null; then return; fi
+        if [[ ${count} -ge 3 ]]; then break; fi
+        sleep 1
+        (( count++ ))
+    done
+
     [[ ! -d ${K8S_PATH} ]] && rm -rf "${K8S_PATH}"; mkdir -p "${K8S_PATH}"
     [[ ! -d ${KUBE_CERT_PATH} ]] && rm -rf "${KUBE_CERT_PATH}"; mkdir -p "${KUBE_CERT_PATH}"
 
@@ -437,7 +451,15 @@ function 6_generate_kubernetes_certs() {
 
 
 function 7_copy_etcd_and_k8s_certs {
+
     MSG2 "7. Copy etcd and k8s certs and config file"
+    local count=1
+    while true; do
+        if kubectl get node &> /dev/null; then return; fi
+        if [[ ${count} -ge 3 ]]; then break; fi
+        sleep 1
+        (( count++ ))
+    done
 
 
     # 将 etcd 证书拷贝到所有的 master 节点上
@@ -493,10 +515,18 @@ function 8_setup_etcd() {
     # 3、所有 etcd 节点设置 etcd 服务自启动
     MSG2 "8. Setup etcd"
 
+    local count=1
+    while true; do
+        if kubectl get node &> /dev/null; then return; fi
+        if [[ ${count} -ge 3 ]]; then break; fi
+        sleep 1
+        (( count++ ))
+    done
+
     # 在所有 master 节点上 创建所需目录
     # 链接 /etc/etcd/ssl 目录到 /etc/kubernetes/pki/etcd/
     for NODE in "${MASTER[@]}"; do
-        ssh ${NODE} "mkdir ${KUBE_CERT_PATH}/etcd/"
+        ssh ${NODE} "mkdir -p ${KUBE_CERT_PATH}/etcd/"
         ssh ${NODE} "ln -sf ${ETCD_CERT_PATH}/* ${KUBE_CERT_PATH}/etcd/"; done
 
 
@@ -529,7 +559,7 @@ function 8_setup_etcd() {
         ssh ${HOST} "systemctl daemon-reload
                      systemctl enable etcd
                      systemctl restart etcd" &
-    done
+    done; wait
 }
 
 
@@ -563,8 +593,8 @@ function 9_setup_apiserver() {
         # 将生成好的配置文件 kube-apiserver.service 复制到所有 master 节点
         ssh ${HOST} "systemctl daemon-reload
                      systemctl enable kube-apiserver
-                     systemctl restart kube-apiserver"
-    done
+                     systemctl restart kube-apiserver" &
+    done; wait
 }
 
 
@@ -589,10 +619,10 @@ function 10_setup_controller_manager {
     for NODE in "${MASTER[@]}"; do
         scp ${CONTROLLER_MANAGER_CONF_PATH}/kube-controller-manager.service \
             ${NODE}:/lib/systemd/system/kube-controller-manager.service
-        ssh ${NODE} "systemctl daemon-reload"
-        ssh ${NODE} "systemctl enable kube-controller-manager"
-        ssh ${NODE} "systemctl restart kube-controller-manager"
-    done
+        ssh ${NODE} "systemctl daemon-reload
+                     systemctl enable kube-controller-manager
+                     systemctl restart kube-controller-manager" &
+    done; wait
 }
 
 
@@ -613,10 +643,10 @@ function 11_setup_scheduler {
     for NODE in "${MASTER[@]}"; do
         scp ${SCHEDULER_CONF_PATH}/kube-scheduler.service \
             ${NODE}:/lib/systemd/system/kube-scheduler.service
-        ssh ${NODE} "systemctl daemon-reload"
-        ssh ${NODE} "systemctl enable kube-scheduler"
-        ssh ${NODE} "systemctl restart kube-scheduler"
-    done
+        ssh ${NODE} "systemctl daemon-reload
+                     systemctl enable kube-scheduler
+                     systemctl restart kube-scheduler" &
+    done; wait
 }
 
 
@@ -624,15 +654,18 @@ function 11_setup_scheduler {
 function 12_setup_k8s_admin {
     MSG2 "12. Setup K8S admin"
 
-    [ ! -d /root/.kube ] && rm -rf /root/.kube; mkdir /root/.kube
+    [ ! -d /root/.kube ] && rm -rf /root/.kube; mkdir -p /root/.kube
     cp ${K8S_PATH}/admin.kubeconfig /root/.kube/config
 
     # 应用 bootstrap/bootstrap.secret.yaml
     while true; do
-        if kubectl get cs; then
+        if kubectl get cs &> /dev/null ; then
             kubectl apply -f conf/bootstrap/bootstrap.secret.yaml
-            break; fi
-        sleep 1; done
+            break; 
+        else
+            echo "kubectl can't get cs, try again."
+            sleep 3; fi
+    done
 }
 
 
@@ -681,10 +714,10 @@ function 13_setup_kubelet {
         scp ${KUBELET_CONF_PATH}/kubelet.service    ${NODE}:/lib/systemd/system/kubelet.service
         scp ${KUBELET_CONF_PATH}/10-kubelet.conf    ${NODE}:/etc/systemd/system/kubelet.service.d/10-kubelet.conf
         scp ${KUBELET_CONF_PATH}/kubelet-conf.yaml  ${NODE}:${K8S_PATH}/kubelet-conf.yaml
-        ssh ${NODE} "systemctl daemon-reload"
-        ssh ${NODE} "systemctl enable kubelet"
-        ssh ${NODE} "systemctl restart kubelet"
-    done
+        ssh ${NODE} "systemctl daemon-reload
+                     systemctl enable kubelet
+                     systemctl restart kubelet" &
+    done; wait
 }
 
 
@@ -748,10 +781,10 @@ function 14_setup_kube_proxy {
         scp ${KUBE_PROXY_CONF_PATH}/kube-proxy.service  ${NODE}:/lib/systemd/system/kube-proxy.service
         scp ${KUBE_PROXY_CONF_PATH}/kube-proxy.yaml     ${NODE}:${K8S_PATH}/kube-proxy.yaml
         scp ${K8S_PATH}/kube-proxy.kubeconfig           ${NODE}:${K8S_PATH}/kube-proxy.kubeconfig
-        ssh ${NODE} "systemctl daemon-reload"
-        ssh ${NODE} "systemctl enable kube-proxy"
-        ssh ${NODE} "systemctl restart kube-proxy"
-    done
+        ssh ${NODE} "systemctl daemon-reload
+                     systemctl enable kube-proxy
+                     systemctl restart kube-proxy" &
+    done; wait
 }
 
 
@@ -824,34 +857,16 @@ function 18_label_and_taint_master_node {
     # master 节点的 taint 默认是 NoSchedule，为了充分利用 master 资源可以设置成 PreferNoSchedule
     MSG2 "18. Label and Taint master node"
 
-    # while true; do
-    #     if kubectl get node &> /dev/null; then break; fi
-    #     sleep 5
-    # done
-
-    # while true; do
-    #     if kubectl get node | grep Ready; then
-    #         for HOST in "${!MASTER[@]}"; do
-    #             kubectl label nodes ${HOST} node-role.kubernetes.io/master= --overwrite
-    #             kubectl label nodes ${HOST} node-role.kubernetes.io/control-plane= --overwrite
-    #             kubectl taint nodes ${HOST} node-role.kubernetes.io/master:NoSchedule --overwrite; done
-    #             #kubectl taint nodes ${HOST} node-role.kubernetes.io/master:PreferNoSchedule --overwrite
-    #         break
-    #     else
-    #         sleep 1;
-    #     fi
-    # done
-
     for NODE in "${!MASTER[@]}"; do
         while true; do
-            if kubectl get node ${NODE}; then
+            if kubectl get node ${NODE} &> /dev/null; then
                 kubectl label node ${NODE} node-role.kubernetes.io/master= --overwrite  
                 kubectl label node ${NODE} node-role.kubernetes.io/control-plane= --overwrite
                 kubectl taint node ${NODE} node-role.kubernetes.io/master:NoSchedule --overwrite
                 #kubectl taint node ${NODE} node-role.kubernetes.io/master:PreferNoSchedule --overwrite
                 break
             else
-                echo "kubectl not get node ${NODE}, try again."
+                echo "kubectl can't get node ${NODE}, try again."
                 sleep 5
             fi
         done
