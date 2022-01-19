@@ -1,4 +1,4 @@
-# 1. 介绍
+## 1. 介绍
 
 #### 注意事项 
 
@@ -18,10 +18,11 @@
 
 #### Linux 系统支持：
 
-- Debian 11（最推荐的系统）
+- Debian 11
 - Ubuntu 20、Ubuntu 18
 - Rocky 8
-- CentOS 7（不推荐的系统）
+- CentOS 7
+- 最推荐的 Linux 是 Debian、最不推荐的 Linux 是 CentOS7
 - (可能还会支持 Debian 10，不一定)
 
 #### Kubernetes 版本支持：
@@ -42,9 +43,9 @@
     - 配置防火墙
     - Linux 系统安全加固
 
-# 2. 使用
+## 2. 使用
 
-#### 修改 k8s.env 或者 k8s-u20.env 变量文件
+##### 修改 k8s.env 或者 k8s-u20.env 变量文件
 
 ```bash
 ./setup.sh                     		# 使用默认的 k8s.env 变量文件部署 k8s 高可用集群
@@ -54,7 +55,7 @@
 ./setup.sh -d worker4          		# 删除 k8s worker 节点
 ```
 
-# 3. 环境变量
+## 3. 环境变量
 
 | 环境变量名             | 变量解释                                                     |
 | ---------------------- | ------------------------------------------------------------ |
@@ -74,7 +75,7 @@
 
 ![avatar](doc/pics/k8s.env.png)
 
-# 4. k8s 部署过程截图
+## 4. k8s 部署过程截图
 
 ![k8s_environ](doc/pics/k8s_environ.png)
 
