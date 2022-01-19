@@ -117,4 +117,4 @@
 
 ## License
 
-This software is licensed under the [Apache 2.0](https://github.com/forbearing/k8s-ha-install/blob/master/LICENSE) © [hybfkuf](fredjoseph863@gmail.com).
+This software is licensed under the [Apache 2.0](https://github.com/forbearing/k8s-ha-install/blob/master/LICENSE) © [hybfkuf](https://github.com/forbearing/).
