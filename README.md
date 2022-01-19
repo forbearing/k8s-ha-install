@@ -113,3 +113,7 @@
 ![k8s_stage_four_15-16-17-18](doc/pics/k8s_stage_four_15-16-17-18.png)
 
 ![k8s_finished](doc/pics/k8s_finished.png)
+
+## License
+
+This software is licensed under the [Apache 2.0](https://github.com/forbearing/k8s-ha-install/blob/master/LICENSE) © [hybfkuf](fredjoseph863@gmail.com).
