@@ -1,5 +1,9 @@
 ## 1. 介绍
 
+#### 推荐 Kubernetes 课程
+
+这个项目从杜宽老师的 Kubernetes 视频课程中借鉴了很多，如果有想学 Kubernetes 但无从下手的小伙伴，可以看下杜宽老师的 [Kubernetes 视频课程](https://edu.51cto.com/center/course/lesson/index?id=592685)
+
 #### 注意事项 
 
 - 默认 3 个 etcd 部署在 3 个 master 节点上。
