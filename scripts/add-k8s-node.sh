@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
 
+# Copyright 2021 hybfkuf
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 function 0_add_k8s_node_script_prepare {
     # 检测是否为 root 用户，否则退出脚本
@@ -8,13 +21,11 @@ function 0_add_k8s_node_script_prepare {
     [[ $(id -u) -ne 0 ]] && ERR "not root !" && exit $EXIT_FAILURE
     source /etc/os-release
     K8S_NODE_OS=${ID}
-    if [[ "$ID" == "centos" || "$ID" == "rhel" ]]; then
-        INSTALL_MANAGER="yum"
-    elif [[ "$ID" == "debian" || "$ID" == "ubuntu" ]]; then
-        INSTALL_MANAGER="apt-get"
-    else
-        ERR "not support !"
-        EXIT $EXIT_FAILURE; fi
+    case $ID in 
+    rocky | centos)  INSTALL_MANAGER="yum" ;;
+    debian | ubuntu) INSTALL_MANAGER="yum" ;;
+    *) ERR "not support linux: ${ID}" && EXIT $EXIT_FAILURE
+    esac
 
     # 检查网络是否可用，否则退出脚本
     # 检查新增节点是否可达，否则退出脚本
@@ -67,7 +78,6 @@ function 2_copy_hosts_file_to_all_k8s_node {
         echo ${NODE}
         scp /etc/hosts ${NODE}:/etc/hosts; done
 }
-
 
 
 # 检查节点是否已经存在集群中，如果存在集群中，则去除该节点
@@ -137,6 +147,32 @@ function 4_run_stage_one {
         MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-one/*.log)"
         wait
         ;;
+    rocky)
+        # Linux: rocky
+        source rocky/1_prepare_for_server.sh
+        for NODE in "${ADD_WORKER[@]}"; do
+            MSG2 "*** ${NODE} *** is Preparing for Linux Server"
+            ssh root@${NODE} \
+                "export TIMEZONE=${TIMEZONE}
+                 $(typeset -f 1_import_repo)
+                 $(typeset -f 2_install_necessary_package)
+                 $(typeset -f 3_upgrade_system)
+                 $(typeset -f 4_disable_firewald_and_selinux)
+                 $(typeset -f 5_set_timezone_and_ntp_client)
+                 $(typeset -f 6_configure_sshd)
+                 $(typeset -f 7_configure_ulimit)
+                 1_import_repo
+                 2_install_necessary_package
+                 3_upgrade_system
+                 4_disable_firewald_and_selinux
+                 5_set_timezone_and_ntp_client
+                 6_configure_sshd
+                 7_configure_ulimit" \
+                 &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-one/${NODE}.log &
+        done
+        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-one/*.log)"
+        wait
+        ;;
     ubuntu)
         # Linux: ubuntu
         source ubuntu/1_prepare_for_server.sh
@@ -165,7 +201,29 @@ function 4_run_stage_one {
         ;;
     debian)
         # Linux: debian
-        :
+        source debian/1_prepare_for_server.sh
+        for NODE in "${ADD_WORKER[@]}"; do
+            MSG2 "*** ${NODE} *** is Preparing for Linux Server"
+            ssh root@${NODE} \
+                "export TIMEZONE=${TIMEZONE}
+                 $(typeset -f _apt_wait)
+                 $(typeset -f 1_upgrade_system)
+                 $(typeset -f 2_install_necessary_package)
+                 $(typeset -f 3_disable_firewald_and_selinux)
+                 $(typeset -f 4_set_timezone_and_ntp_client)
+                 $(typeset -f 5_configure_sshd)
+                 $(typeset -f 6_configure_ulimit)
+                 _apt_wait
+                 1_upgrade_system
+                 2_install_necessary_package
+                 3_disable_firewald_and_selinux
+                 4_set_timezone_and_ntp_client
+                 5_configure_sshd
+                 6_configure_ulimit" \
+                 &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-one/${NODE}.log &
+        done
+        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-one/*.log)"
+        wait
         ;;
     *)
         ERR "Not Support Linux !" && exit $EXIT_FAILURE ;;
@@ -201,6 +259,27 @@ function 5_run_stage_two {
         MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-two/*.log)"
         wait
         ;;
+    rocky)
+        # Linux: rocky
+        source rocky/2_prepare_for_k8s.sh
+        for NODE in "${ADD_WORKER[@]}"; do
+            MSG2 "*** ${NODE} *** is Preparing for Linux Server"
+            MSG2 "*** ${NODE} *** is Preparing for Kubernetes"
+            ssh root@${NODE} \
+                "$(typeset -f 1_install_necessary_package_for_k8s)
+                 $(typeset -f 2_disable_swap)
+                 $(typeset -f 3_upgrade_kernel)
+                 $(typeset -f 4_load_kernel_module)
+                 $(typeset -f 5_configure_kernel_parameter)
+                 1_install_necessary_package_for_k8s
+                 2_disable_swap
+                 4_load_kernel_module
+                 5_configure_kernel_parameter" \
+                 &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-two/${NODE}.log &
+        done
+        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-two/*.log)"
+        wait
+        ;;
     ubuntu)
         # Linux: ubuntu
         source ubuntu/2_prepare_for_k8s.sh
@@ -222,7 +301,22 @@ function 5_run_stage_two {
         ;;
     debian)
         # Linux: debian
-        :
+        source debian/2_prepare_for_k8s.sh
+        for NODE in "${ADD_WORKER[@]}"; do
+            MSG2 "*** ${NODE} *** is Preparing for Kubernetes"
+            ssh root@${NODE} \
+                "$(typeset -f _apt_wait)
+                 $(typeset -f 1_disable_swap)
+                 $(typeset -f 2_load_kernel_module)
+                 $(typeset -f 3_configure_kernel_parameter)
+                 _apt_wait
+                 1_disable_swap
+                 2_load_kernel_module
+                 3_configure_kernel_parameter" \
+                 &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-two/${NODE}.log &
+        done
+        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-two/*.log)"
+        wait
         ;;
     *)
         ERR "Not Support Linux !" && exit $EXIT_FAILURE ;;
@@ -240,6 +334,22 @@ function 6_run_stage_three {
     centos|rhel)
         # Linux: centos/rhel
         source centos/3_install_docker.sh
+        for NODE in "${ADD_WORKER[@]}"; do
+            MSG2 "*** ${NODE} *** is Installing Docker"
+            ssh root@${NODE} \
+                "export TIMEZONE=${TIMEZONE}
+                 $(typeset -f 1_install_docker)
+                 $(typeset -f 2_configure_docker)
+                 1_install_docker
+                 2_configure_docker" \
+                 &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-three/${NODE}.log &
+        done
+        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-three/*.log)"
+        wait
+        ;;
+    rocky)
+        # Linux: rocky
+        source rocky/3_install_docker.sh
         for NODE in "${ADD_WORKER[@]}"; do
             MSG2 "*** ${NODE} *** is Installing Docker"
             ssh root@${NODE} \
@@ -275,7 +385,23 @@ function 6_run_stage_three {
         ;;
     debian)
         # Linux: debian
-        :
+        source debian/3_install_docker.sh
+        for NODE in "${ADD_WORKER[@]}"; do
+            MSG2 "*** ${NODE} *** is Installing Docker"
+            ssh root@${NODE} \
+                "export TIMEZONE=${TIMEZONE}
+                 $(typeset -f _apt_wait)
+                 $(typeset -f 1_install_docker)
+                 $(typeset -f 2_configure_docker)
+                 $(typeset -f 3_audit_for_docker)
+                 _apt_wait
+                 1_install_docker
+                 2_configure_docker
+                 3_audit_for_docker" \
+                 &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-three/${NODE}.log &
+        done
+        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-three/*.log)"
+        wait
         ;;
     *)
         ERR "Not Support Linux !" && exit $EXIT_FAILURE ;;
@@ -365,6 +491,7 @@ function 9_enable_kube_service {
             systemctl restart docker kubelet kube-proxy"
     done
 }
+
 
 function add_k8s_node {
     MSG1 "Adding k8s worker node ..."
