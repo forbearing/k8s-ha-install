@@ -1,52 +1,18 @@
 #!/usr/bin/env bash
 
-# to-do-list (跟你无关，你不用关注这个)
-#   - 提供选项 kube-proxy mode: ipvs, iptables
-#   - 所有通用脚本，例如: 检查 Linux 版本、是否为 root 用户、检查网络，都放在 script/function.sh 文件中
-
-# 描述: 一共分为 5 个阶段
-#   Stage Prepare: 准备阶段，用来配置 ssh 免密码登录和主机名
-#   Stage 1: Linux 系统准备
-#   Stage 2: 为部署 Kubernetes 做好环境准备
-#   Stage 3: 安装 Docker/Containerd
-#   Stage 4: 部署 Kubernetes Cluster
-#   Stage 5: 部署 Kubernetes 必要组件和插件
-
-# Stage 1: 系统准备
-#   1. 导入所需 yum 源
-#   2. 安装必要软件
-#   3. 升级系统
-#   4. 关闭防火墙、SELinux
-#   5. 设置时区、NTP 时间同步
-#   6. 设置 sshd
-#   7. ulimits 参数调整
-# Stage 2: k8s 准备
-#   1. 安装 k8s 所需软件
-#   2. 关闭 swap 分区
-#   4. 升级 Kernel
-#   4. 加载 K8S 所需内核模块
-#   5. 调整内核参数
-# Stage 3: 安装 Docker
-#   1. 安装 docker 所需软件
-#   1. 安装 docker-ce
-#   2. 调整 docker-ce 启动参数
-
-# 注意事项：
-#   1. 支持的系统: CentOS 7, Ubuntu 18, Ubuntu 20,  Debian 10 (Debian 10 还没有测试)
-#   2. 运行此命令的节点必须是 master 节点，任何一台 master 节点都行，不能是 worker 节点
-#   3. 你只需要提前配置好 k8s 节点的静态IP地址，不需要配置 ssh 无密钥登录，不需要配置
-#      主机名，一键安装。节点的静态IP和主机名配置在变量中。
-#   4. 所有 k8s 节点必须要相同的操作系统和 Linux 发行版本，要么都为 Ubuntu 要么都为 CentOS
-#   5. EXTRA_MASTER_HOST 和 EXTRA_MASTER_IP 数组用来扩展 etcd 节点和 k8s master 节点
-#      etcd 节点默认部署在 k8s master 节点上。
-# 说明:
-#   1. 安装 k8s 五个阶段的脚本都存放在 scripts 目录下，分别对应
-#      scripts/0_stage_prepare.sh
-#      scripts/1_stage_one.sh
-#      scripts/2_stage_two.sh
-#      scripts/3_stage_three.sh
-#      scripts/4_stage_four.sh
-#      scripts/5_stage_five.sh
+# Copyright 2021 hybfkuf
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 EXIT_SUCCESS=0
 EXIT_FAILURE=1
