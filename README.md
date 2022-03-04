@@ -26,7 +26,7 @@
 - Ubuntu 20、Ubuntu 18
 - Rocky 8
 - CentOS 7
-- 最推荐的 Linux 是 Debian、最不推荐的 Linux 是 CentOS7
+- 最推荐的是 Debian、最不推荐的是 CentOS7
 - (可能还会支持 Debian 10，不一定)
 
 #### Kubernetes 版本支持：
