@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 
+# Copyright 2021 hybfkuf
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 function usage {
     echo -e "Options: "
     echo -e "    -e      environment file"
@@ -62,7 +76,6 @@ function print_environment {
     echo "KUBE_CERT_PATH:           ${KUBE_CERT_PATH}"
     echo "ETCD_CERT_PATH:           ${ETCD_CERT_PATH}"
     echo "K8S_DEPLOY_LOG_PATH:      ${K8S_DEPLOY_LOG_PATH}"
-    MSG1 "=================================== Environment ==================================="
 }
 
 function check_root_and_os() {
@@ -80,7 +93,7 @@ function check_root_and_os() {
         EXIT $EXIT_FAILURE
     fi
     # 检查网络是否可用，否则退出脚本
-    if ! timeout 2 ping -c 2 -i 1 114.114.114.114 &> /dev/null; then ERR "no network" && exit $EXIT_FAILURE; fi
+    if ! timeout 2 ping -c 2 114.114.114.114 &> /dev/null; then ERR "no network" && exit $EXIT_FAILURE; fi
 }
 
 # refer: https://gist.github.com/tedivm/e11ebfdc25dc1d7935a3d5640a1f1c90
