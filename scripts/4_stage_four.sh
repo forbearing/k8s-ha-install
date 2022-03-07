@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 
+# Copyright 2021 hybfkuf
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 function 1_copy_binary_package_and_create_dir {
     # 1. 解压 k8s 二进制文件
     # 2. 将 kubernetes 二进制文件、etcd 二进制文件、cfssl 工具包拷贝到所有的 master 节点
@@ -810,7 +824,13 @@ function 15_deploy_calico {
     #curl https://docs.projectcalico.org/archive/v3.20/manifests/calico-etcd.yaml -o calico-etcd.yaml   # v3.20
     mkdir -p "${K8S_DEPLOY_LOG_PATH}/addons/calico"
     local CALICO_CONF_PATH="${K8S_DEPLOY_LOG_PATH}/addons/calico"
-    cp addons/calico/calico-3.20/calico-etcd-v3.20.3.yaml                        ${CALICO_CONF_PATH}/calico-etcd.yaml
+    case ${K8S_VERSION} in 
+    "v1.20"|"v1.21"|"v1.22")
+        # cp addons/calico/calico-3.20/calico-etcd-v3.20.3.yaml                    ${CALICO_CONF_PATH}/calico-etcd.yaml
+        cp addons/calico/calico-3.21/calico-etcd-v3.21.4.yaml                    ${CALICO_CONF_PATH}/calico-etcd.yaml ;;
+    "v1.23")
+        cp addons/calico/calico-3.22/calico-etcd-v3.22.1.yaml                    ${CALICO_CONF_PATH}/calico-etcd.yaml ;;
+    esac
     sed -i -r "s%(.*)http://<ETCD_IP>:<ETCD_PORT>(.*)%\1${ETCD_ENDPOINTS}\2%"    ${CALICO_CONF_PATH}/calico-etcd.yaml
     sed -i "s%# etcd-key: null%etcd-key: ${ETCD_KEY}%g"                          ${CALICO_CONF_PATH}/calico-etcd.yaml
     sed -i "s%# etcd-cert: null%etcd-cert: ${ETCD_CERT}%g"                       ${CALICO_CONF_PATH}/calico-etcd.yaml
