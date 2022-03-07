@@ -224,7 +224,8 @@ spec:
         # This container installs the CNI binaries
         # and CNI network config file on each node.
         - name: install-cni
-          image: docker.io/calico/cni:v3.15.3
+          #image: docker.io/calico/cni:v3.15.3
+          image: registry.cn-shanghai.aliyuncs.com/hybfkuf/cni:v3.15.3
           command: ["/install-cni.sh"]
           env:
             # Name of the CNI config file to create.
@@ -263,7 +264,8 @@ spec:
         # Adds a Flex Volume Driver that creates a per-pod Unix Domain Socket to allow Dikastes
         # to communicate with Felix over the Policy Sync API.
         - name: flexvol-driver
-          image: docker.io/calico/pod2daemon-flexvol:v3.15.3
+          #image: docker.io/calico/pod2daemon-flexvol:v3.15.3
+          image: registry.cn-shanghai.aliyuncs.com/hybfkuf/pod2daemon-flexvol:v3.15.3
           volumeMounts:
           - name: flexvol-driver-host
             mountPath: /host/driver
@@ -274,7 +276,8 @@ spec:
         # container programs network policy and routes on each
         # host.
         - name: calico-node
-          image: docker.io/calico/node:v3.15.3
+          #image: docker.io/calico/node:v3.15.3
+          image: registry.cn-shanghai.aliyuncs.com/hybfkuf/node:v3.15.3
           env:
             # The location of the etcd cluster.
             - name: ETCD_ENDPOINTS
@@ -484,7 +487,8 @@ spec:
       hostNetwork: true
       containers:
         - name: calico-kube-controllers
-          image: docker.io/calico/kube-controllers:v3.15.3
+          #image: docker.io/calico/kube-controllers:v3.15.3
+          image: registry.cn-shanghai.aliyuncs.com/hybfkuf/kube-controllers:v3.15.3
           env:
             # The location of the etcd cluster.
             - name: ETCD_ENDPOINTS
