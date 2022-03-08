@@ -19,6 +19,7 @@ EXIT_FAILURE=1
 ERR(){ echo -e "\033[31m\033[01m$1\033[0m"; }
 MSG1(){ echo -e "\n\n\033[32m\033[01m$1\033[0m\n"; }
 MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
+MSG3(){ echo -e "\033[33m\033[01m$1\033[0m"; }
 
 K8S_PATH="/etc/kubernetes"                              # k8s config path
 KUBE_CERT_PATH="/etc/kubernetes/pki"                    # k8s cert path
