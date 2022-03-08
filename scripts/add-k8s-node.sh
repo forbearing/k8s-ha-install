@@ -29,9 +29,9 @@ function 0_add_k8s_node_script_prepare {
 
     # 检查网络是否可用，否则退出脚本
     # 检查新增节点是否可达，否则退出脚本
-    if ! timeout 2 ping -c 2 -i 1 114.114.114.114 &> /dev/null; then ERR "no network" && exit $EXIT_FAILURE; fi
+    if ! timeout 5 ping -c 2 8.8.8.8 &> /dev/null; then ERR "no network" && exit $EXIT_FAILURE; fi
     for NODE in "${ADD_WORKER[@]}"; do
-        if ! timeout 2 ping -c 1 -i 1 ${NODE}; then
+        if ! timeout 5 ping -c 2 ${NODE}; then
             ERR "worker node ${NODE} can't access"
             exit $EXIT_FAILURE; fi; done
 }
@@ -125,7 +125,7 @@ function 4_run_stage_one {
         # Linux: centos/rhel
         source centos/1_prepare_for_server.sh
         for NODE in "${ADD_WORKER[@]}"; do
-            MSG2 "*** ${NODE} *** is Preparing for Linux Server"
+            MSG3 "*** ${NODE} *** is Preparing for Linux Server"
             ssh root@${NODE} \
                 "export TIMEZONE=${TIMEZONE}
                  $(typeset -f 1_import_repo)
@@ -144,14 +144,14 @@ function 4_run_stage_one {
                  7_configure_ulimit" \
                  &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-one/${NODE}.log &
         done
-        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-one/*.log)"
         wait
         ;;
     rocky)
         # Linux: rocky
         source rocky/1_prepare_for_server.sh
         for NODE in "${ADD_WORKER[@]}"; do
-            MSG2 "*** ${NODE} *** is Preparing for Linux Server"
+            MSG3 "*** ${NODE} *** is Preparing for Linux Server"
             ssh root@${NODE} \
                 "export TIMEZONE=${TIMEZONE}
                  $(typeset -f 1_import_repo)
@@ -170,14 +170,14 @@ function 4_run_stage_one {
                  7_configure_ulimit" \
                  &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-one/${NODE}.log &
         done
-        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-one/*.log)"
         wait
         ;;
     ubuntu)
         # Linux: ubuntu
         source ubuntu/1_prepare_for_server.sh
         for NODE in "${ADD_WORKER[@]}"; do
-            MSG2 "*** ${NODE} *** is Preparing for Linux Server"
+            MSG3 "*** ${NODE} *** is Preparing for Linux Server"
             ssh root@${NODE} \
                 "export TIMEZONE=${TIMEZONE}
                  $(typeset -f _apt_wait)
@@ -196,14 +196,14 @@ function 4_run_stage_one {
                  6_configure_ulimit" \
                  &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-one/${NODE}.log &
         done
-        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-one/*.log)"
         wait
         ;;
     debian)
         # Linux: debian
         source debian/1_prepare_for_server.sh
         for NODE in "${ADD_WORKER[@]}"; do
-            MSG2 "*** ${NODE} *** is Preparing for Linux Server"
+            MSG3 "*** ${NODE} *** is Preparing for Linux Server"
             ssh root@${NODE} \
                 "export TIMEZONE=${TIMEZONE}
                  $(typeset -f _apt_wait)
@@ -222,7 +222,7 @@ function 4_run_stage_one {
                  6_configure_ulimit" \
                  &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-one/${NODE}.log &
         done
-        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-one/*.log)"
         wait
         ;;
     *)
@@ -242,7 +242,7 @@ function 5_run_stage_two {
         # Linux centos/rhel
         source centos/2_prepare_for_k8s.sh
         for NODE in "${ADD_WORKER[@]}"; do
-            MSG2 "*** ${NODE} *** is Preparing for Kubernetes"
+            MSG3 "*** ${NODE} *** is Preparing for Kubernetes"
             ssh root@${NODE} \
                 "$(typeset -f 1_install_necessary_package_for_k8s)
                  $(typeset -f 2_disable_swap)
@@ -256,15 +256,14 @@ function 5_run_stage_two {
                  5_configure_kernel_parameter" \
                  &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-two/${NODE}.log &
         done
-        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-two/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-two/*.log)"
         wait
         ;;
     rocky)
         # Linux: rocky
         source rocky/2_prepare_for_k8s.sh
         for NODE in "${ADD_WORKER[@]}"; do
-            MSG2 "*** ${NODE} *** is Preparing for Linux Server"
-            MSG2 "*** ${NODE} *** is Preparing for Kubernetes"
+            MSG3 "*** ${NODE} *** is Preparing for Kubernetes"
             ssh root@${NODE} \
                 "$(typeset -f 1_install_necessary_package_for_k8s)
                  $(typeset -f 2_disable_swap)
@@ -277,14 +276,14 @@ function 5_run_stage_two {
                  5_configure_kernel_parameter" \
                  &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-two/${NODE}.log &
         done
-        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-two/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-two/*.log)"
         wait
         ;;
     ubuntu)
         # Linux: ubuntu
         source ubuntu/2_prepare_for_k8s.sh
         for NODE in "${ADD_WORKER[@]}"; do
-            MSG2 "*** ${NODE} *** is Preparing for Kubernetes"
+            MSG3 "*** ${NODE} *** is Preparing for Kubernetes"
             ssh root@${NODE} \
                 "$(typeset -f _apt_wait)
                  $(typeset -f 1_disable_swap)
@@ -296,14 +295,14 @@ function 5_run_stage_two {
                  3_configure_kernel_parameter" \
                  &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-two/${NODE}.log &
         done
-        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-two/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-two/*.log)"
         wait
         ;;
     debian)
         # Linux: debian
         source debian/2_prepare_for_k8s.sh
         for NODE in "${ADD_WORKER[@]}"; do
-            MSG2 "*** ${NODE} *** is Preparing for Kubernetes"
+            MSG3 "*** ${NODE} *** is Preparing for Kubernetes"
             ssh root@${NODE} \
                 "$(typeset -f _apt_wait)
                  $(typeset -f 1_disable_swap)
@@ -315,7 +314,7 @@ function 5_run_stage_two {
                  3_configure_kernel_parameter" \
                  &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-two/${NODE}.log &
         done
-        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-two/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-two/*.log)"
         wait
         ;;
     *)
@@ -335,7 +334,7 @@ function 6_run_stage_three {
         # Linux: centos/rhel
         source centos/3_install_docker.sh
         for NODE in "${ADD_WORKER[@]}"; do
-            MSG2 "*** ${NODE} *** is Installing Docker"
+            MSG3 "*** ${NODE} *** is Installing Docker"
             ssh root@${NODE} \
                 "export TIMEZONE=${TIMEZONE}
                  $(typeset -f 1_install_docker)
@@ -344,14 +343,14 @@ function 6_run_stage_three {
                  2_configure_docker" \
                  &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-three/${NODE}.log &
         done
-        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-three/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-three/*.log)"
         wait
         ;;
     rocky)
         # Linux: rocky
         source rocky/3_install_docker.sh
         for NODE in "${ADD_WORKER[@]}"; do
-            MSG2 "*** ${NODE} *** is Installing Docker"
+            MSG3 "*** ${NODE} *** is Installing Docker"
             ssh root@${NODE} \
                 "export TIMEZONE=${TIMEZONE}
                  $(typeset -f 1_install_docker)
@@ -360,14 +359,14 @@ function 6_run_stage_three {
                  2_configure_docker" \
                  &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-three/${NODE}.log &
         done
-        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-three/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-three/*.log)"
         wait
         ;;
     ubuntu)
         # Linux: ubuntu
         source ubuntu/3_install_docker.sh
         for NODE in "${ADD_WORKER[@]}"; do
-            MSG2 "*** ${NODE} *** is Installing Docker"
+            MSG3 "*** ${NODE} *** is Installing Docker"
             ssh root@${NODE} \
                 "export TIMEZONE=${TIMEZONE}
                  $(typeset -f _apt_wait)
@@ -380,14 +379,14 @@ function 6_run_stage_three {
                  3_audit_for_docker" \
                  &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-three/${NODE}.log &
         done
-        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-three/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-three/*.log)"
         wait
         ;;
     debian)
         # Linux: debian
         source debian/3_install_docker.sh
         for NODE in "${ADD_WORKER[@]}"; do
-            MSG2 "*** ${NODE} *** is Installing Docker"
+            MSG3 "*** ${NODE} *** is Installing Docker"
             ssh root@${NODE} \
                 "export TIMEZONE=${TIMEZONE}
                  $(typeset -f _apt_wait)
@@ -400,7 +399,7 @@ function 6_run_stage_three {
                  3_audit_for_docker" \
                  &> ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-three/${NODE}.log &
         done
-        MSG2 "Please Waiting... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-three/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f ${K8S_DEPLOY_LOG_PATH}/logs_add-worker/stage-three/*.log)"
         wait
         ;;
     *)
