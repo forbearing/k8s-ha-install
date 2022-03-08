@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 
+# Copyright 2021 hybfkuf
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 function stage_two {
     MSG1 "====================== Stage 2: Prepare for Kubernetes ========================";
 
@@ -10,7 +24,7 @@ function stage_two {
         # Linux: centos/rhel
         source centos/2_prepare_for_k8s.sh
         for NODE in "${ALL_NODE[@]}"; do
-            MSG2 "*** ${NODE} *** is Preparing for Kubernetes"
+            MSG3 "*** ${NODE} *** is Preparing for Kubernetes"
             ssh root@${NODE} \
                 "$(typeset -f 1_install_necessary_package_for_k8s)
                  $(typeset -f 2_disable_swap)
@@ -24,14 +38,14 @@ function stage_two {
                  5_configure_kernel_parameter" \
                  &> ${K8S_DEPLOY_LOG_PATH}/logs/stage-two/${NODE}.log &
         done
-        MSG2 "Please Waiting... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-two/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-two/*.log)"
         wait
         ;;
     rocky)
         # Linux: rocky
         source rocky/2_prepare_for_k8s.sh
         for NODE in "${ALL_NODE[@]}"; do
-            MSG2 "*** ${NODE} *** is Preparing for Kubernetes"
+            MSG3 "*** ${NODE} *** is Preparing for Kubernetes"
             ssh root@${NODE} \
                 "$(typeset -f 1_install_necessary_package_for_k8s)
                  $(typeset -f 2_disable_swap)
@@ -44,14 +58,14 @@ function stage_two {
                  5_configure_kernel_parameter" \
                  &> ${K8S_DEPLOY_LOG_PATH}/logs/stage-two/${NODE}.log &
         done
-        MSG2 "Please Waiting... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-two/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-two/*.log)"
         wait
         ;;
     ubuntu)
         # Linux: ubuntu
         source ubuntu/2_prepare_for_k8s.sh
         for NODE in "${ALL_NODE[@]}"; do
-            MSG2 "*** ${NODE} *** is Preparing for Kubernetes"
+            MSG3 "*** ${NODE} *** is Preparing for Kubernetes"
             ssh root@${NODE} \
                 "$(typeset -f _apt_wait)
                  $(typeset -f 1_disable_swap)
@@ -63,14 +77,14 @@ function stage_two {
                  3_configure_kernel_parameter" \
                  &> ${K8S_DEPLOY_LOG_PATH}/logs/stage-two/${NODE}.log &
         done
-        MSG2 "Please Waiting... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-two/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-two/*.log)"
         wait
         ;;
     debian)
         # Linux: debian
         source debian/2_prepare_for_k8s.sh
         for NODE in "${ALL_NODE[@]}"; do
-            MSG2 "*** ${NODE} *** is Preparing for Kubernetes"
+            MSG3 "*** ${NODE} *** is Preparing for Kubernetes"
             ssh root@${NODE} \
                 "$(typeset -f _apt_wait)
                  $(typeset -f 1_disable_swap)
@@ -82,7 +96,7 @@ function stage_two {
                  3_configure_kernel_parameter" \
                  &> ${K8S_DEPLOY_LOG_PATH}/logs/stage-two/${NODE}.log &
         done
-        MSG2 "Please Waiting... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-two/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-two/*.log)"
         wait
         ;;
     *)

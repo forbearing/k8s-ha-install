@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 
+# Copyright 2021 hybfkuf
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 function stage_one {
     MSG1 "=================== Stage 1: Prepare for Linux Server =========================";
 
@@ -10,7 +24,7 @@ function stage_one {
         # Linux: centos/rhel
         source centos/1_prepare_for_server.sh
         for NODE in "${ALL_NODE[@]}"; do
-            MSG2 "*** ${NODE} *** is Preparing for Linux Server"
+            MSG3 "*** ${NODE} *** is Preparing for Linux Server"
             ssh root@${NODE} \
                 "export TIMEZONE=${TIMEZONE}
                  $(typeset -f 1_import_repo)
@@ -29,14 +43,14 @@ function stage_one {
                  7_configure_ulimit" \
                  &> ${K8S_DEPLOY_LOG_PATH}/logs/stage-one/${NODE}.log &
         done
-        MSG2 "Please Waiting... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-one/*.log)"
         wait
         ;;
     rocky)
         # Linux: rocky
         source rocky/1_prepare_for_server.sh
         for NODE in "${ALL_NODE[@]}"; do
-            MSG2 "*** ${NODE} *** is Preparing for Linux Server"
+            MSG3 "*** ${NODE} *** is Preparing for Linux Server"
             ssh root@${NODE} \
                 "export TIMEZONE=${TIMEZONE}
                  $(typeset -f 1_import_repo)
@@ -55,14 +69,14 @@ function stage_one {
                  7_configure_ulimit" \
                  &> ${K8S_DEPLOY_LOG_PATH}/logs/stage-one/${NODE}.log &
         done
-        MSG2 "Please Waiting... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-one/*.log)"
         wait
         ;;
     ubuntu)
         # Linux: ubuntu
         source ubuntu/1_prepare_for_server.sh
         for NODE in "${ALL_NODE[@]}"; do
-            MSG2 "*** ${NODE} *** is Preparing for Linux Server"
+            MSG3 "*** ${NODE} *** is Preparing for Linux Server"
             ssh root@${NODE} \
                 "export TIMEZONE=${TIMEZONE}
                  $(typeset -f _apt_wait)
@@ -81,14 +95,14 @@ function stage_one {
                  6_configure_ulimit" \
                  &> ${K8S_DEPLOY_LOG_PATH}/logs/stage-one/${NODE}.log &
         done
-        MSG2 "Please Waiting... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-one/*.log)"
         wait
         ;;
     debian)
         # Linux: debian
         source debian/1_prepare_for_server.sh
         for NODE in "${ALL_NODE[@]}"; do
-            MSG2 "*** ${NODE} *** is Preparing for Linux Server"
+            MSG3 "*** ${NODE} *** is Preparing for Linux Server"
             ssh root@${NODE} \
                 "export TIMEZONE=${TIMEZONE}
                  $(typeset -f _apt_wait)
@@ -107,7 +121,7 @@ function stage_one {
                  6_configure_ulimit" \
                  &> ${K8S_DEPLOY_LOG_PATH}/logs/stage-one/${NODE}.log &
         done
-        MSG2 "Please Waiting... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-one/*.log)"
         wait
         ;;
     *)
