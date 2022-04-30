@@ -10,9 +10,9 @@
 
 [powertools]
 name=Rocky Linux $releasever - PowerTools
-#mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=PowerTools-$releasever
-baseurl=https://mirrors.163.com/rocky/$releasever/PowerTools/$basearch/os/
-gpgcheck=1
+#mirrorlist=http://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=PowerTools-$releasever
+baseurl=http://mirrors.163.com/rocky/$releasever/PowerTools/$basearch/os/
+gpgcheck=0
 enabled=0
 countme=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rockyofficial

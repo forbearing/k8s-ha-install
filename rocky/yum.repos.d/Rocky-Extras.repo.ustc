@@ -10,9 +10,9 @@
 
 [extras]
 name=Rocky Linux $releasever - Extras
-#mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=extras-$releasever
-baseurl=https://mirrors.ustc.edu.cn/rocky/$releasever/extras/$basearch/os/
-gpgcheck=1
+#mirrorlist=http://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=extras-$releasever
+baseurl=http://mirrors.ustc.edu.cn/rocky/$releasever/extras/$basearch/os/
+gpgcheck=0
 enabled=1
 countme=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rockyofficial

@@ -5,7 +5,7 @@ name=Extra Packages for Enterprise Linux $releasever - $basearch
 baseurl=https://mirrors.aliyun.com/epel/$releasever/Everything/$basearch
 #metalink=https://mirrors.fedoraproject.org/metalink?repo=epel-$releasever&arch=$basearch&infra=$infra&content=$contentdir
 enabled=1
-gpgcheck=1
+gpgcheck=0
 countme=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-8
 
@@ -17,7 +17,7 @@ baseurl=https://mirrors.aliyun.com/epel/$releasever/Everything/$basearch/debug
 #metalink=https://mirrors.fedoraproject.org/metalink?repo=epel-debug-$releasever&arch=$basearch&infra=$infra&content=$contentdir
 enabled=0
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-8
-gpgcheck=1
+gpgcheck=0
 
 [epel-source]
 name=Extra Packages for Enterprise Linux $releasever - $basearch - Source
@@ -27,4 +27,4 @@ baseurl=https://mirrors.aliyun.com/epel/$releasever/Everything/source/tree/
 #metalink=https://mirrors.fedoraproject.org/metalink?repo=epel-source-$releasever&arch=$basearch&infra=$infra&content=$contentdir
 enabled=0
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-8
-gpgcheck=1
+gpgcheck=0

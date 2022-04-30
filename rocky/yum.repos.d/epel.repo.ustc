@@ -2,10 +2,10 @@
 name=Extra Packages for Enterprise Linux $releasever - $basearch
 # It is much more secure to use the metalink, but if you wish to use a local mirror
 # place its address here.
-baseurl=https://mirrors.ustc.edu.cn/epel/$releasever/Everything/$basearch
-#metalink=https://mirrors.fedoraproject.org/metalink?repo=epel-$releasever&arch=$basearch&infra=$infra&content=$contentdir
+baseurl=http://mirrors.ustc.edu.cn/epel/$releasever/Everything/$basearch
+#metalink=http://mirrors.fedoraproject.org/metalink?repo=epel-$releasever&arch=$basearch&infra=$infra&content=$contentdir
 enabled=1
-gpgcheck=1
+gpgcheck=0
 countme=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-8
 
@@ -13,18 +13,18 @@ gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-8
 name=Extra Packages for Enterprise Linux $releasever - $basearch - Debug
 # It is much more secure to use the metalink, but if you wish to use a local mirror
 # place its address here.
-baseurl=https://mirrors.ustc.edu.cn/epel/$releasever/Everything/$basearch/debug
-#metalink=https://mirrors.fedoraproject.org/metalink?repo=epel-debug-$releasever&arch=$basearch&infra=$infra&content=$contentdir
+baseurl=http://mirrors.ustc.edu.cn/epel/$releasever/Everything/$basearch/debug
+#metalink=http://mirrors.fedoraproject.org/metalink?repo=epel-debug-$releasever&arch=$basearch&infra=$infra&content=$contentdir
 enabled=0
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-8
-gpgcheck=1
+gpgcheck=0
 
 [epel-source]
 name=Extra Packages for Enterprise Linux $releasever - $basearch - Source
 # It is much more secure to use the metalink, but if you wish to use a local mirror
 # place it's address here.
-baseurl=https://mirrors.ustc.edu.cn/epel/$releasever/Everything/source/tree/
-#metalink=https://mirrors.fedoraproject.org/metalink?repo=epel-source-$releasever&arch=$basearch&infra=$infra&content=$contentdir
+baseurl=http://mirrors.ustc.edu.cn/epel/$releasever/Everything/source/tree/
+#metalink=http://mirrors.fedoraproject.org/metalink?repo=epel-source-$releasever&arch=$basearch&infra=$infra&content=$contentdir
 enabled=0
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-8
-gpgcheck=1
+gpgcheck=0
