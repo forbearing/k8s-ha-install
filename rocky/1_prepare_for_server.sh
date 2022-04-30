@@ -8,20 +8,20 @@ function 1_import_repo {
     # sysctl -w net.ipv6.conf.default.disable_ipv6=1
 
     if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
-        yes | cp /etc/yum.repos.d/Rocky-BaseOS.repo     /etc/yum.repos.d/Rocky-BaseOS.repo.$(date +%Y%m%d%H%M)
-        yes | cp /etc/yum.repos.d/Rocky-Extras.repo     /etc/yum.repos.d/Rocky-Extras.repo.$(date +%Y%m%d%H%M)
-        yes | cp /etc/yum.repos.d/Rocky-AppStream.repo  /etc/yum.repos.d/Rocky-AppStream.repo.$(date +%Y%m%d%H%M)
-        yes | cp /etc/yum.repos.d/Rocky-PowerTools.repo /etc/yum.repos.d/Rocky-PowerTools.repo.$(date +%Y%m%d%H%M)
+        cp -f /etc/yum.repos.d/Rocky-BaseOS.repo     /etc/yum.repos.d/Rocky-BaseOS.repo.$(date +%Y%m%d%H%M)
+        cp -f /etc/yum.repos.d/Rocky-Extras.repo     /etc/yum.repos.d/Rocky-Extras.repo.$(date +%Y%m%d%H%M)
+        cp -f /etc/yum.repos.d/Rocky-AppStream.repo  /etc/yum.repos.d/Rocky-AppStream.repo.$(date +%Y%m%d%H%M)
+        cp -f /etc/yum.repos.d/Rocky-PowerTools.repo /etc/yum.repos.d/Rocky-PowerTools.repo.$(date +%Y%m%d%H%M)
 
-        # yes | cp /tmp/yum.repos.d/Rocky-BaseOS.repo.ustc     /etc/yum.repos.d/Rocky-BaseOS.repo
-        # yes | cp /tmp/yum.repos.d/Rocky-Extras.repo.ustc     /etc/yum.repos.d/Rocky-Extras.repo
-        # yes | cp /tmp/yum.repos.d/Rocky-AppStream.repo.ustc  /etc/yum.repos.d/Rocky-AppStream.repo
-        # yes | cp /tmp/yum.repos.d/Rocky-PowerTools.repo.ustc /etc/yum.repos.d/Rocky-PowerTools.repo
+        cp -f /tmp/yum.repos.d/Rocky-BaseOS.repo.ustc     /etc/yum.repos.d/Rocky-BaseOS.repo
+        cp -f /tmp/yum.repos.d/Rocky-Extras.repo.ustc     /etc/yum.repos.d/Rocky-Extras.repo
+        cp -f /tmp/yum.repos.d/Rocky-AppStream.repo.ustc  /etc/yum.repos.d/Rocky-AppStream.repo
+        cp -f /tmp/yum.repos.d/Rocky-PowerTools.repo.ustc /etc/yum.repos.d/Rocky-PowerTools.repo
 
-        yes | cp /tmp/yum.repos.d/Rocky-BaseOS.repo.163     /etc/yum.repos.d/Rocky-BaseOS.repo
-        yes | cp /tmp/yum.repos.d/Rocky-Extras.repo.163     /etc/yum.repos.d/Rocky-Extras.repo
-        yes | cp /tmp/yum.repos.d/Rocky-AppStream.repo.163  /etc/yum.repos.d/Rocky-AppStream.repo
-        yes | cp /tmp/yum.repos.d/Rocky-PowerTools.repo.163 /etc/yum.repos.d/Rocky-PowerTools.repo
+        # cp -f /tmp/yum.repos.d/Rocky-BaseOS.repo.163     /etc/yum.repos.d/Rocky-BaseOS.repo
+        # cp -f /tmp/yum.repos.d/Rocky-Extras.repo.163     /etc/yum.repos.d/Rocky-Extras.repo
+        # cp -f /tmp/yum.repos.d/Rocky-AppStream.repo.163  /etc/yum.repos.d/Rocky-AppStream.repo
+        # cp -f /tmp/yum.repos.d/Rocky-PowerTools.repo.163 /etc/yum.repos.d/Rocky-PowerTools.repo
     fi
         
 }
@@ -46,9 +46,9 @@ function 2_install_necessary_package {
     yum install -y epel-release
 
     if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
-        yes | cp /etc/yum.repos.d/epel.repo /etc/yum.repos.d/epel.repo.$(date +%Y%m%d%H%M)
-        # yes | cp /tmp/yum.repos.d/epel.repo.ustc /etc/yum.repos.d/epel.repo; fi
-        yes | cp /tmp/yum.repos.d/epel.repo.aliyun /etc/yum.repos.d/epel.repo; fi
+        cp -f /etc/yum.repos.d/epel.repo /etc/yum.repos.d/epel.repo.$(date +%Y%m%d%H%M)
+        # cp -f /tmp/yum.repos.d/epel.repo.ustc /etc/yum.repos.d/epel.repo; fi
+        cp -f /tmp/yum.repos.d/epel.repo.aliyun /etc/yum.repos.d/epel.repo; fi
 
     local count=0
     while true; do
