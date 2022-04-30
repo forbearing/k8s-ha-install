@@ -8,9 +8,12 @@ function 1_upgrade_system {
     if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
         if ! command -v lsb_release; then apt-get update; apt-get install -y lsb-release apt-transport-https; fi
         release=$(lsb_release -sc)
-        #mirrors="https://mirrors.ustc.edu.cn/debian"
-        mirrors="https://mirrors.163.com/debian"
-        # mirrors="https://mirrors.aliyun.com/debian"
+        case ${REPO_MIRROR,,} in
+        ustc)   mirrors="http://mirrors.ustc.edu.cn/debian" ;;
+        163)    mirrors="http://mirrors.163.com/debian" ;;
+        aliyun) mirrors="http://mirrors.aliyun.com/debian" ;;
+        *)      mirrors="http://mirrors.aliyun.com/debian" ;;
+        esac
         source_list=(
             "deb ${mirrors} ${release} main non-free contrib"
             "deb ${mirrors} ${release}-updates main non-free contrib"
@@ -18,7 +21,7 @@ function 1_upgrade_system {
             "deb-src ${mirrors} ${release} main non-free contrib"
             "deb-src ${mirrors} ${release}-updates main non-free contrib"
             "deb-src ${mirrors}-security ${release}-security main non-free contrib")
-        yes | cp /etc/apt/sources.list /etc/apt/sources.list.$(date +%Y%m%d%H%M)
+        cp -f /etc/apt/sources.list /etc/apt/sources.list.$(date +%Y%m%d%H%M)
         printf "%s\n" "${source_list[@]}" > /etc/apt/sources.list
     fi
 
