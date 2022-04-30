@@ -2,16 +2,16 @@
 name=Ceph-x86_64
 baseurl=http://download.ceph.com/rpm-nautilus/el7/x86_64/
 enabled=1
-gpgcheck=0
+gpgcheck=1
 
 [ceph-noarch]
 name=Ceph noarch
 baseurl=http://download.ceph.com/rpm-nautilus/el7/noarch/
 enabled=1
-gpgcheck=0
+gpgcheck=1
 
 [ceph-source]
 name=ceph-source
 baseurl=http://download.ceph.com/rpm-nautilus/el7/SRPMS/
 enabled=1
-gpgcheck=0
+gpgcheck=1

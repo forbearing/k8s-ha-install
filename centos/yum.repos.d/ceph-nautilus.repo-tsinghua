@@ -1,17 +1,17 @@
 [ceph-x86_64]
 name=Ceph-x86_64
-baseurl=https://mirrors.tuna.tsinghua.edu.cn/ceph/rpm-nautilus/el7/x86_64/
+baseurl=http://mirrors.tuna.tsinghua.edu.cn/ceph/rpm-nautilus/el7/x86_64/
 enabled=1
 gpgcheck=0
 
 [ceph-noarch]
 name=Ceph noarch
-baseurl=https://mirrors.tuna.tsinghua.edu.cn/ceph/rpm-nautilus/el7/noarch/
+baseurl=http://mirrors.tuna.tsinghua.edu.cn/ceph/rpm-nautilus/el7/noarch/
 enabled=1
 gpgcheck=0
 
 [ceph-source]
 name=ceph-source
-baseurl=https://mirrors.tuna.tsinghua.edu.cn/ceph/rpm-nautilus/el7/SRPMS/
+baseurl=http://mirrors.tuna.tsinghua.edu.cn/ceph/rpm-nautilus/el7/SRPMS/
 enabled=1
 gpgcheck=0

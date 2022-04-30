@@ -16,7 +16,7 @@ failovermethod=priority
 baseurl=http://mirrors.aliyun.com/centos/$releasever/os/$basearch/
         http://mirrors.aliyuncs.com/centos/$releasever/os/$basearch/
         http://mirrors.cloud.aliyuncs.com/centos/$releasever/os/$basearch/
-gpgcheck=1
+gpgcheck=0
 gpgkey=http://mirrors.aliyun.com/centos/RPM-GPG-KEY-CentOS-7
  
 #released updates 
@@ -26,7 +26,7 @@ failovermethod=priority
 baseurl=http://mirrors.aliyun.com/centos/$releasever/updates/$basearch/
         http://mirrors.aliyuncs.com/centos/$releasever/updates/$basearch/
         http://mirrors.cloud.aliyuncs.com/centos/$releasever/updates/$basearch/
-gpgcheck=1
+gpgcheck=0
 gpgkey=http://mirrors.aliyun.com/centos/RPM-GPG-KEY-CentOS-7
  
 #additional packages that may be useful
@@ -36,7 +36,7 @@ failovermethod=priority
 baseurl=http://mirrors.aliyun.com/centos/$releasever/extras/$basearch/
         http://mirrors.aliyuncs.com/centos/$releasever/extras/$basearch/
         http://mirrors.cloud.aliyuncs.com/centos/$releasever/extras/$basearch/
-gpgcheck=1
+gpgcheck=0
 gpgkey=http://mirrors.aliyun.com/centos/RPM-GPG-KEY-CentOS-7
  
 #additional packages that extend functionality of existing packages
@@ -46,7 +46,7 @@ failovermethod=priority
 baseurl=http://mirrors.aliyun.com/centos/$releasever/centosplus/$basearch/
         http://mirrors.aliyuncs.com/centos/$releasever/centosplus/$basearch/
         http://mirrors.cloud.aliyuncs.com/centos/$releasever/centosplus/$basearch/
-gpgcheck=1
+gpgcheck=0
 enabled=0
 gpgkey=http://mirrors.aliyun.com/centos/RPM-GPG-KEY-CentOS-7
  
@@ -57,6 +57,6 @@ failovermethod=priority
 baseurl=http://mirrors.aliyun.com/centos/$releasever/contrib/$basearch/
         http://mirrors.aliyuncs.com/centos/$releasever/contrib/$basearch/
         http://mirrors.cloud.aliyuncs.com/centos/$releasever/contrib/$basearch/
-gpgcheck=1
+gpgcheck=0
 enabled=0
 gpgkey=http://mirrors.aliyun.com/centos/RPM-GPG-KEY-CentOS-7

@@ -1,6 +1,6 @@
 [elrepo]
 name=ELRepo.org Community Enterprise Linux Repository - el7
-baseurl=https://mirrors.ustc.edu.cn/elrepo/elrepo/el7/$basearch/
+baseurl=http://mirrors.ustc.edu.cn/elrepo/elrepo/el7/$basearch/
 #mirrorlist=http://mirrors.elrepo.org/mirrors-elrepo.el7
 enabled=1
 gpgcheck=0
@@ -9,7 +9,7 @@ protect=0
 
 [elrepo-kernel]
 name=ELRepo.org Community Enterprise Linux Kernel Repository - el7
-baseurl=https://mirrors.ustc.edu.cn/elrepo/kernel/el7/$basearch/
+baseurl=http://mirrors.ustc.edu.cn/elrepo/kernel/el7/$basearch/
 #mirrorlist=http://mirrors.elrepo.org/mirrors-elrepo-kernel.el7
 enabled=1
 gpgcheck=0
@@ -18,7 +18,7 @@ protect=0
 
 [elrepo-testing]
 name=ELRepo.org Community Enterprise Linux Kernel Repository - el7
-baseurl=https://mirrors.ustc.edu.cn/elrepo/testing/el7/$basearch/
+baseurl=http://mirrors.ustc.edu.cn/elrepo/testing/el7/$basearch/
 #mirrorlist=http://mirrors.elrepo.org/mirrors-elrepo-kernel.el7
 enabled=1
 gpgcheck=0
@@ -27,7 +27,7 @@ protect=0
 
 [elrepo-extras]
 name=ELRepo.org Community Enterprise Linux Kernel Repository - el7
-baseurl=https://mirrors.ustc.edu.cn/elrepo/extras/el7/$basearch/
+baseurl=http://mirrors.ustc.edu.cn/elrepo/extras/el7/$basearch/
 #mirrorlist=http://mirrors.elrepo.org/mirrors-elrepo-kernel.el7
 enabled=1
 gpgcheck=0
