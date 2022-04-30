@@ -3,17 +3,13 @@
 function 1_import_repo {
     echo "1. [`hostname`] Import yum repo"
 
-    # Disable IPv6
-    sysctl -w net.ipv6.conf.all.disable_ipv6=1
-    sysctl -w net.ipv6.conf.default.disable_ipv6=1
-
     if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
-        echo y | cp /etc/yum.repos.d/CentOS-Base.repo               /etc/yum.repos.d/CentOS-Base.repo.$(date +%Y%m%d%H%M)
-        echo y | cp /tmp/yum.repos.d/CentOS-Base.repo-ustc          /etc/yum.repos.d/CentOS-Base.repo
-        echo y | cp /tmp/yum.repos.d/elrepo.repo-ustc               /etc/yum.repos.d/elrepo.repo
-        echo y | cp /tmp/yum.repos.d/ceph-nautilus.repo-tsinghua    /etc/yum.repos.d/ceph.repo
+        cp -f /etc/yum.repos.d/CentOS-Base.repo               /etc/yum.repos.d/CentOS-Base.repo.$(date +%Y%m%d%H%M)
+        cp -f /tmp/yum.repos.d/CentOS-Base.repo-aliyun        /etc/yum.repos.d/CentOS-Base.repo
+        cp -f /tmp/yum.repos.d/elrepo.repo-aliyun             /etc/yum.repos.d/elrepo.repo
+        cp -f /tmp/yum.repos.d/ceph-nautilus.repo-tsinghua    /etc/yum.repos.d/ceph.repo
     else
-        echo y | cp /tmp/yum.repos.d/ceph-nautilus.repo-official    /etc/yum.repos.d/ceph.repo
+        cp -f /tmp/yum.repos.d/ceph-nautilus.repo-official    /etc/yum.repos.d/ceph.repo
         rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
         yum install -y https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm
     fi
@@ -26,17 +22,13 @@ function 1_import_repo {
 function 2_install_necessary_package {
     echo "2. [`hostname`] Install necessary package"
 
-    # Disable IPv6
-    sysctl -w net.ipv6.conf.all.disable_ipv6=1
-    sysctl -w net.ipv6.conf.default.disable_ipv6=1
-
     yum clean metadata
     yum makecache
     yum install -y epel-release
 
     if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
-        echo y | cp /etc/yum.repos.d/epel.repo /etc/yum.repos.d/epel.repo.$(date +%Y%m%d%H%M)
-        echo y | cp /tmp/yum.repos.d/epel.repo-ustc /etc/yum.repos.d/epel.repo; fi
+        cp -f /etc/yum.repos.d/epel.repo /etc/yum.repos.d/epel.repo.$(date +%Y%m%d%H%M)
+        cp -f /tmp/yum.repos.d/epel.repo-aliyun /etc/yum.repos.d/epel.repo; fi
 
     yum install -y coreutils bash-completion iputils wget curl zip unzip bzip2 vim net-tools \
         git zsh fish rsync psmisc procps-ng bind-utils yum-utils device-mapper-persistent-data \
@@ -52,9 +44,6 @@ function 2_install_necessary_package {
 function 3_upgrade_system {
     echo "3. [`hostname`] Upgrade system"
 
-    # Disable IPv6
-    sysctl -w net.ipv6.conf.all.disable_ipv6=1
-    sysctl -w net.ipv6.conf.default.disable_ipv6=1
     yum update -y --exclude="docker-ce,kernel-lt"
 }
 
