@@ -93,7 +93,7 @@ function check_root_and_os() {
         EXIT $EXIT_FAILURE
     fi
     # 检查网络是否可用，否则退出脚本
-    if ! timeout 5 ping -c 2 8.8.8.8 &> /dev/null; then ERR "no network" && exit $EXIT_FAILURE; fi
+    if ! timeout 15 ping -c 2 8.8.8.8 &> /dev/null; then ERR "no network" && exit $EXIT_FAILURE; fi
 }
 
 # refer: https://gist.github.com/tedivm/e11ebfdc25dc1d7935a3d5640a1f1c90

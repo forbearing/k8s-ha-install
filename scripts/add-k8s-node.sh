@@ -29,7 +29,7 @@ function 0_add_k8s_node_script_prepare {
 
     # 检查网络是否可用，否则退出脚本
     # 检查新增节点是否可达，否则退出脚本
-    if ! timeout 5 ping -c 2 8.8.8.8 &> /dev/null; then ERR "no network" && exit $EXIT_FAILURE; fi
+    if ! timeout 15 ping -c 2 8.8.8.8 &> /dev/null; then ERR "no network" && exit $EXIT_FAILURE; fi
     for NODE in "${ADD_WORKER[@]}"; do
         if ! timeout 5 ping -c 2 ${NODE}; then
             ERR "worker node ${NODE} can't access"
