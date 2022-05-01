@@ -41,41 +41,41 @@ del_des="-d          删除 k8s worker 节点, 需要提供你想删除的 worke
 function print_environment {
     MSG1 "=================================== Environment ==================================="
     MSG2 "master node"
-    for HOST in "${!MASTER[@]}"; do
-        local IP=${MASTER[$HOST]}
-        printf "%-20s%s\n" ${HOST} ${IP}; done
+    for host in "${!MASTER[@]}"; do
+        local ip=${MASTER[$host]}
+        printf "%-20s%s\n" $host $ip; done
 
     MSG2 "worker node"
-    for HOST in "${!WORKER[@]}"; do
-        local IP=${WORKER[$HOST]}
-        printf "%-20s%s\n" ${HOST} ${IP}; done
+    for host in "${!WORKER[@]}"; do
+        local ip=${WORKER[$host]}
+        printf "%-20s%s\n" $host $ip; done
 
     MSG2 "all k8s node"
     for HOST in "${ALL_NODE[@]}"; do
-        echo ${HOST}; done
+        echo $HOST; done
 
     MSG2 "extra master node"
-    for HOST in "${!EXTRA_MASTER[@]}"; do
-        local IP=${EXTRA_MASTER[$HOST]}
-        printf "%-20s%s\n" ${HOST} ${IP}; done
+    for host in "${!EXTRA_MASTER[@]}"; do
+        local ip=${EXTRA_MASTER[$host]}
+        printf "%-20s%s\n" $host $ip; done
 
     MSG2 "add worker node"
-    for HOST in "${!ADD_WORKER[@]}"; do
-        local IP=${ADD_WORKER[$HOST]}
-        printf "%-20s%s\n" ${HOST} ${IP}; done
+    for host in "${!ADD_WORKER[@]}"; do
+        local ip=${ADD_WORKER[$host]}
+        printf "%-20s%s\n" $host $ip; done
 
     MSG2 "others environment"
-    echo "CONTROL_PLANE_ENDPOINT:   ${CONTROL_PLANE_ENDPOINT}"
-    echo "SRV_NETWORK_CIDR:         ${SRV_NETWORK_CIDR[*]}"
-    echo "SRV_NETWORK_IP:           ${SRV_NETWORK_IP}"
-    echo "SRV_NETWORK_DNS_IP:       ${SRV_NETWORK_DNS_IP[*]}"
-    echo "POD_NETWORK_CIDR:         ${POD_NETWORK_CIDR[*]}"
-    echo "K8S_PATH                  ${K8S_PATH}"
-    echo "K8S_VERSION:              ${K8S_VERSION}"
-    echo "K8S_PROXY_MODE:           ${K8S_PROXY_MODE}"
-    echo "KUBE_CERT_PATH:           ${KUBE_CERT_PATH}"
-    echo "ETCD_CERT_PATH:           ${ETCD_CERT_PATH}"
-    echo "K8S_DEPLOY_LOG_PATH:      ${K8S_DEPLOY_LOG_PATH}"
+    echo "CONTROL_PLANE_ENDPOINT:   $CONTROL_PLANE_ENDPOINT"
+    echo "SRV_NETWORK_CIDR:         $SRV_NETWORK_CIDR"
+    echo "SRV_NETWORK_IP:           $SRV_NETWORK_IP"
+    echo "SRV_NETWORK_DNS_IP:       $SRV_NETWORK_DNS_IP"
+    echo "POD_NETWORK_CIDR:         $POD_NETWORK_CIDR"
+    echo "K8S_PATH                  $K8S_PATH"
+    echo "K8S_VERSION:              $K8S_VERSION"
+    echo "K8S_PROXY_MODE:           $K8S_PROXY_MODE"
+    echo "KUBE_CERT_PATH:           $KUBE_CERT_PATH"
+    echo "ETCD_CERT_PATH:           $ETCD_CERT_PATH"
+    echo "K8S_DEPLOY_LOG_PATH:      $K8S_DEPLOY_LOG_PATH"
 }
 
 function check_root_and_os() {
@@ -83,17 +83,24 @@ function check_root_and_os() {
     # 检测是否为 root 用户，否则推出脚本
     [[ "$(uname)" != "Linux" ]] && ERR "Not Support OS !" && exit $EXIT_FAILURE
     [[ $(id -u) -ne 0 ]] && ERR "Not ROOT !" && exit $EXIT_FAILURE
-    source /etc/os-release
-    if [[ "$ID" == "centos" || "$ID" == "rhel"  || "rocky" ]]; then
-        INSTALL_MANAGER="yum"
-    elif [[ "$ID" == "debian" || "$ID" == "ubuntu" ]]; then
-        INSTALL_MANAGER="apt-get"
-    else
-        ERR "Not Support Linux !"
+
+    case $linuxID in
+    centos|rocky)
+        INSTALL_MANAGER="yum" ;;
+    debian|ubuntu)
+        INSTALL_MANAGER="apt-get" ;;
+    *)
+        ERR "Not Support Linux $linuxID!"
         EXIT $EXIT_FAILURE
-    fi
-    # 检查网络是否可用，否则退出脚本
-    if ! timeout 15 ping -c 2 8.8.8.8 &> /dev/null; then ERR "no network" && exit $EXIT_FAILURE; fi
+    esac
+
+    # if ! command -v ping &> /dev/null; then
+    #     ERR "command ping not found, skip network detect!"
+    # fi
+    # # 检查网络是否可用，否则退出脚本
+    # if ! timeout 15 ping -c 2 8.8.8.8 &> /dev/null; then
+    #     ERR "maybe no network!"
+    # fi
 }
 
 # refer: https://gist.github.com/tedivm/e11ebfdc25dc1d7935a3d5640a1f1c90
@@ -136,3 +143,16 @@ function _apt_wait2() {
         done
     fi
 }
+
+_exportOSInfo() {
+    source /etc/os-release
+    linuxID=$ID
+    linuxMajorVersion=$( echo $VERSION | awk -F'[.| ]' '{print $1}' )
+    linuxCodeName=$VERSION_CODENAME
+    [ -f /etc/lsb-release ] &&  \
+        linuxMinorVersion=$(cat /etc/lsb-release  | awk -F'=' '/DISTRIB_RELEASE/ {print $2}' | awk -F'.'  '{print $2}')
+    [ -f /etc/system-release ] && \
+        linuxMinorVersion=$(cat /etc/system-release | awk '{print $4}' | awk -F'.' '{print $2}')
+    export linuxID linuxMajorVersion linuxMinorVersion linuxCodeName
+}
+_exportOSInfo
