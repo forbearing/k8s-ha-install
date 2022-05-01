@@ -4,7 +4,6 @@ function 1_upgrade_system {
     echo "1. [`hostname`] Upgrade system"
 
     source /etc/os-release
-    local linuxID=$ID
     local linuxVersion=$( echo $VERSION | awk -F'[.| ]' '{print $1}' )
     local linuxCodeName=$VERSION_CODENAME
     local mirror
@@ -88,7 +87,6 @@ function 4_set_timezone_and_ntp_client {
     timedatectl set-timezone $TIMEZONE
 
     source /etc/os-release
-    linuxID=$ID
     linuxVersion=$( echo $VERSION | awk -F'[.| ]' '{print $1}' )
     case "$linuxVersion" in
     18)
