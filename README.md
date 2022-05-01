@@ -23,7 +23,7 @@
 #### Linux 系统支持：
 
 - Debian 11 (推荐)
-- Ubuntu 20、Ubuntu 18
+- Ubuntu 22, Ubuntu 20, Ubuntu 18
 - Rocky 8
 - CentOS 7 (不推荐)
 
