@@ -17,16 +17,16 @@
 function stage_one {
     MSG1 "=================== Stage 1: Prepare for Linux Server =========================";
 
-    source /etc/os-release
-    mkdir -p "${K8S_DEPLOY_LOG_PATH}/logs/stage-one"
-    case ${ID} in
-    centos|rhel)
-        # Linux: centos/rhel
+    mkdir -p "$K8S_DEPLOY_LOG_PATH/logs/stage-one"
+    case $linuxID in
+    centos)
+        # Linux: centos
         source centos/1_prepare_for_server.sh
-        for NODE in "${ALL_NODE[@]}"; do
-            MSG3 "*** ${NODE} *** is Preparing for Linux Server"
-            ssh root@${NODE} \
-                "export TIMEZONE=${TIMEZONE}
+        for node in "${ALL_NODE[@]}"; do
+            MSG3 "*** $node *** is Preparing for Linux Server"
+            ssh root@$node \
+                "export TIMEZONE=$TIMEZONE
+                 export LINUX_SOFTWARE_MIRROR=$LINUX_SOFTWARE_MIRROR
                  $(typeset -f 1_import_repo)
                  $(typeset -f 2_install_necessary_package)
                  $(typeset -f 3_upgrade_system)
@@ -41,18 +41,19 @@ function stage_one {
                  5_set_timezone_and_ntp_client
                  6_configure_sshd
                  7_configure_ulimit" \
-                 &> ${K8S_DEPLOY_LOG_PATH}/logs/stage-one/${NODE}.log &
+                 &>> "$K8S_DEPLOY_LOG_PATH/logs/stage-one/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f $K8S_DEPLOY_LOG_PATH/logs/stage-one/*.log)"
         wait
         ;;
     rocky)
         # Linux: rocky
         source rocky/1_prepare_for_server.sh
-        for NODE in "${ALL_NODE[@]}"; do
-            MSG3 "*** ${NODE} *** is Preparing for Linux Server"
-            ssh root@${NODE} \
-                "export TIMEZONE=${TIMEZONE}
+        for node in "${ALL_NODE[@]}"; do
+            MSG3 "*** $node *** is Preparing for Linux Server"
+            ssh root@$node \
+                "export TIMEZONE=$TIMEZONE
+                 export LINUX_SOFTWARE_MIRROR=$LINUX_SOFTWARE_MIRROR
                  $(typeset -f 1_import_repo)
                  $(typeset -f 2_install_necessary_package)
                  $(typeset -f 3_upgrade_system)
@@ -67,18 +68,19 @@ function stage_one {
                  5_set_timezone_and_ntp_client
                  6_configure_sshd
                  7_configure_ulimit" \
-                 &> ${K8S_DEPLOY_LOG_PATH}/logs/stage-one/${NODE}.log &
+                 &>> "$K8S_DEPLOY_LOG_PATH/logs/stage-one/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f $K8S_DEPLOY_LOG_PATH/logs/stage-one/*.log)"
         wait
         ;;
     ubuntu)
         # Linux: ubuntu
         source ubuntu/1_prepare_for_server.sh
-        for NODE in "${ALL_NODE[@]}"; do
-            MSG3 "*** ${NODE} *** is Preparing for Linux Server"
-            ssh root@${NODE} \
-                "export TIMEZONE=${TIMEZONE}
+        for node in "${ALL_NODE[@]}"; do
+            MSG3 "*** $node *** is Preparing for Linux Server"
+            ssh root@$node \
+                "export TIMEZONE=$TIMEZONE
+                 export LINUX_SOFTWARE_MIRROR=$LINUX_SOFTWARE_MIRROR
                  $(typeset -f _apt_wait)
                  $(typeset -f 1_upgrade_system)
                  $(typeset -f 2_install_necessary_package)
@@ -93,18 +95,19 @@ function stage_one {
                  4_set_timezone_and_ntp_client
                  5_configure_sshd
                  6_configure_ulimit" \
-                 &> ${K8S_DEPLOY_LOG_PATH}/logs/stage-one/${NODE}.log &
+                 &>> "$K8S_DEPLOY_LOG_PATH/logs/stage-one/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f $K8S_DEPLOY_LOG_PATH/logs/stage-one/*.log)"
         wait
         ;;
     debian)
         # Linux: debian
         source debian/1_prepare_for_server.sh
-        for NODE in "${ALL_NODE[@]}"; do
-            MSG3 "*** ${NODE} *** is Preparing for Linux Server"
-            ssh root@${NODE} \
-                "export TIMEZONE=${TIMEZONE}
+        for node in "${ALL_NODE[@]}"; do
+            MSG3 "*** $node *** is Preparing for Linux Server"
+            ssh root@$node \
+                "export TIMEZONE=$TIMEZONE
+                 export LINUX_SOFTWARE_MIRROR=$LINUX_SOFTWARE_MIRROR
                  $(typeset -f _apt_wait)
                  $(typeset -f 1_upgrade_system)
                  $(typeset -f 2_install_necessary_package)
@@ -119,9 +122,9 @@ function stage_one {
                  4_set_timezone_and_ntp_client
                  5_configure_sshd
                  6_configure_ulimit" \
-                 &> ${K8S_DEPLOY_LOG_PATH}/logs/stage-one/${NODE}.log &
+                 &>> "$K8S_DEPLOY_LOG_PATH/logs/stage-one/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 3 -f ${K8S_DEPLOY_LOG_PATH}/logs/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f $K8S_DEPLOY_LOG_PATH/logs/stage-one/*.log)"
         wait
         ;;
     *)
