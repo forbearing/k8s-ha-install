@@ -26,7 +26,7 @@ KUBE_CERT_PATH="/etc/kubernetes/pki"                    # k8s cert path
 ETCD_CERT_PATH="/etc/etcd/ssl"                          # etcd cert path
 K8S_DEPLOY_LOG_PATH="/root/k8s-deploy-log"              # k8s install log dir path
 INSTALL_MANAGER=""                                      # like apt-get yum, set by script, not set here
-environment_file=""                                     # default k8s environment file is k8s.env
+ENV_FILE=""                                             # default k8s environment file is k8s.env
 
 source scripts/function.sh                              # base function script
 source scripts/0_stage_prepare.sh                       # deploy k8s cluster stage prepare script
@@ -40,23 +40,23 @@ source scripts/del-k8s-node.sh                          # del k8s worker node sc
 
 while getopts "e:ad:h" opt; do
     case "${opt}" in
-    e) environment_file="${OPTARG}" ;;
+    e) ENV_FILE="$OPTARG" ;;
     a) i_want_add_k8s_node="true" ;;
     d) i_want_del_k8s_node="true";
-       DEL_WORKER="${OPTARG}" ;;
+       DEL_WORKER="$OPTARG" ;;
     h) usage; exit $EXIT_SUCCESS ;;
     *) usage; exit $EXIT_FAILURE ;;
     esac
 done
-[[ ${environment_file} ]] || environment_file="k8s.env"
-source ${environment_file}
+[[ $ENV_FILE ]] || ENV_FILE="k8s.env"
+source $ENV_FILE
 ALL_NODE=( ${!MASTER[@]} ${!WORKER[@]} )
 
 
-[[ ${K8S_VERSION} ]]    || K8S_VERSION="v1.23"
-[[ ${K8S_PROXY_MODE} ]] || K8S_PROXY_MODE="ipvs"
-[[ ${i_want_add_k8s_node} ]] && add_k8s_node && exit ${EXIT_SUCCESS}
-[[ ${i_want_del_k8s_node} ]] && del_k8s_node && exit ${EXIT_SUCCESS}
+[[ $K8S_VERSION ]]    || K8S_VERSION="v1.23"
+[[ $K8S_PROXY_MODE ]] || K8S_PROXY_MODE="ipvs"
+[[ $i_want_add_k8s_node ]] && add_k8s_node && exit $EXIT_SUCCESS
+[[ $i_want_del_k8s_node ]] && del_k8s_node && exit $EXIT_SUCCESS
 
 
 check_root_and_os
