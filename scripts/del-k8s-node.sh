@@ -98,29 +98,29 @@ function 3_delete_docker_and_file {
     source /tmp/os-release
     rm -rf /tmp/os-release
     case $ID in
-        "ubuntu")
-            ssh root@${DEL_WORKER} "
-                systemctl disable --now containerd docker
-                apt-mark unhold docker-ce docker-ce-cli
-                apt-get purge -y docker-ce docker-ce-cli containerd.io
-                apt-get autoremove -y
-                apt-get autoclean -y
-                groupdel docker"
-            for FILE in "${DOCKER_CONTAINERD_FILE_LIST[@]}"; do
-                ssh root@${DEL_WORKER} "rm -rf ${FILE}"
-            done
-            return 0
-            ;;
-        "centos"|"rhel")
-            ssh root@${DEL_WORKER} "
-                systemctl disable --now containerd docker
-                yum remove -y docker-ce docker-ce-cli containerd.io
-                groupdel docker"
-            for FILE in "${DOCKER_CONTAINERD_FILE_LIST[@]}"; do
-                ssh root@${DEL_WORKER} "rm -rf ${FILE}"
-            done
-            return 0
-            ;;
+    ubuntu)
+        ssh root@${DEL_WORKER} "
+            systemctl disable --now containerd docker
+            apt-mark unhold docker-ce docker-ce-cli
+            apt-get purge -y docker-ce docker-ce-cli containerd.io
+            apt-get autoremove -y
+            apt-get autoclean -y
+            groupdel docker"
+        for FILE in "${DOCKER_CONTAINERD_FILE_LIST[@]}"; do
+            ssh root@${DEL_WORKER} "rm -rf ${FILE}"
+        done
+        return 0
+        ;;
+    centos)
+        ssh root@${DEL_WORKER} "
+            systemctl disable --now containerd docker
+            yum remove -y docker-ce docker-ce-cli containerd.io
+            groupdel docker"
+        for FILE in "${DOCKER_CONTAINERD_FILE_LIST[@]}"; do
+            ssh root@${DEL_WORKER} "rm -rf ${FILE}"
+        done
+        return 0
+        ;;
     esac
 }
 

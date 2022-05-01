@@ -101,7 +101,7 @@ function 2_delete_docker_and_file {
     # remove docker-ce containerd
     source /etc/os-release
     case $ID in
-    "ubuntu")
+    ubuntu)
         systemctl disable --now containerd docker;
         apt-mark unhold docker-ce docker-ce-cli;
         apt-get purge -y docker-ce docker-ce-cli containerd.io; 
@@ -113,7 +113,7 @@ function 2_delete_docker_and_file {
         #ssh root@${DEL_WORKER} reboot
         return
         ;;
-    "centos"|"rhel")
+    centos)
         systemctl disable --now containerd docker
         yum remove -y docker-ce docker-ce-cli containerd.io
         groupdel docker
