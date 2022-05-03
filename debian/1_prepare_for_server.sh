@@ -54,6 +54,8 @@
             "#deb-src $mirror/$linuxID-security $linuxCodeName-security main contrib non-free")
         yes | cp /etc/apt/sources.list /etc/apt/sources.list.$(date +%Y%m%d%H%M)
         printf "%s\n" "${source_list[@]}" > /etc/apt/sources.list
+        [ $linuxVersion == "10" ] && \
+            sed -i "s|$linuxCodeName-security|$linuxCodeName/updates|g" /etc/apt/sources.list
 
         # generate docker repository
         _apt_wait && apt-get update -y
