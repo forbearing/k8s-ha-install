@@ -19,15 +19,19 @@
     - Stage 4: 部署 Kubernetes Cluster
     - Stage 5: 部署 Kubernetes 必要组件和插件
 
+#### Supported UNIX or Linux Operating System Version:
 
-#### Linux 系统支持：
+---
 
-- Debian 11 (推荐)
-- Ubuntu 22, Ubuntu 20, Ubuntu 18
-- Rocky 8
-- CentOS 7 (不推荐)
+| Operating System        | Version    |
+| ----------------------- | ---------- |
+| Debian (Recommanded OS) | 11, 10, 9  |
+| Ubuntu                  | 22, 20, 18 |
+| Rocky                   | 8          |
+| CentOS                  | 7          |
+| FreeBSD (is planning)   |            |
 
-#### Kubernetes 版本支持：
+#### Supported Kubernetes Version:
 
 - v1.23+
 - v1.22+
