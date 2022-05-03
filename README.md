@@ -28,8 +28,10 @@
 | Debian (Recommanded OS) | 11, 10, 9  |
 | Ubuntu                  | 22, 20, 18 |
 | Rocky                   | 8          |
-| CentOS                  | 7          |
+| AlmaLinux (is planning) |            |
 | FreeBSD (is planning)   |            |
+| VzLinux (is planning)   |            |
+| CentOS                  | 7          |
 
 #### Supported Kubernetes Version:
 
