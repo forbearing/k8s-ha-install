@@ -35,7 +35,7 @@
         tsinghua) mirror="http://mirrors.tuna.tsinghua.edu.cn"; isElrepoMirror=1; isDockerMirror=1 ;;
         bfsu)     mirror="http://mirrors.bfsu.edu.cn"; isElrepoMirror=1; isDockerMirror=1 ;;
         163)      mirror="http://mirrors.163.com" ;;
-        *)        mirror="http://cn.archive.ubuntu.com" ;;
+        *)        mirror=$defaultMirror ;;
         esac
         # set the default docker and elrepo repository, if not match
         epelMirror=$mirror
