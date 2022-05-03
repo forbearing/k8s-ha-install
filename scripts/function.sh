@@ -128,17 +128,17 @@ function _apt_wait() {
 
 # refer: https://gist.github.com/tedivm/e11ebfdc25dc1d7935a3d5640a1f1c90
 function _apt_wait2() {
-    while sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+    while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
         sleep 1
     done
-    while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 ; do
+    while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 ; do
         sleep 1
     done
-    while sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1 ; do
+    while fuser /var/lib/apt/lists/lock >/dev/null 2>&1 ; do
         sleep 1
     done
     if [ -f /var/log/unattended-upgrades/unattended-upgrades.log ]; then
-        while sudo fuser /var/log/unattended-upgrades/unattended-upgrades.log >/dev/null 2>&1 ; do
+        while fuser /var/log/unattended-upgrades/unattended-upgrades.log >/dev/null 2>&1 ; do
             sleep 1
         done
     fi
