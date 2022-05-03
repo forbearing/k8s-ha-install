@@ -62,7 +62,7 @@ ALL_NODE=( ${!MASTER[@]} ${!WORKER[@]} )
 check_root_and_os
 print_environment
 
-function main {
+main() {
     stage_prepare
     stage_one
     stage_two
