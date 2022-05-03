@@ -52,8 +52,9 @@ function 1_copy_binary_package_and_create_dir {
             ${K8S_DEPLOY_LOG_PATH}/bin/kubelet \
             ${K8S_DEPLOY_LOG_PATH}/bin/kubectl; do
             scp ${PKG} ${NODE}:/usr/local/bin/
-        done
+        done &
     done
+    wait
 
     # 3. 将 k8s 二进制文件拷贝到所有 worker 节点
     for NODE in "${WORKER[@]}"; do
@@ -62,8 +63,9 @@ function 1_copy_binary_package_and_create_dir {
             ${K8S_DEPLOY_LOG_PATH}/bin/kubelet \
             ${K8S_DEPLOY_LOG_PATH}/bin/kubectl; do
             scp ${PKG} ${NODE}:/usr/local/bin/
-        done
+        done &
     done
+    wait
 
     # 4. k8s 所有节点创建所需目录
     for NODE in "${ALL_NODE[@]}"; do
@@ -77,8 +79,9 @@ function 1_copy_binary_package_and_create_dir {
             "/var/lib/kube-proxy" \
             "/var/log/kubernetes"; do
             ssh ${NODE} "mkdir -p ${DIR_PATH}"
-        done
+        done &
     done
+    wait
 }
 
 
@@ -87,44 +90,53 @@ function 2_install_keepalived_and_haproxy {
     #  master 节点安装 keepalived, haproxy
     MSG2 "2. Installed Keepalived and Haproxy for Master Node"
 
-    source /etc/os-release
-    case ${ID} in
-    centos | rhel )
+    case $linuxID in
+    centos)
         # centos7 的 haproxy 太老了，已经不更新了，拷贝 haproxy2 数据包并安装
-        for NODE in "${MASTER[@]}"; do
-            scp centos/pkgs/haproxy.service                           root@${NODE}:/tmp/
-            scp centos/pkgs/haproxy-2.0.18-4.el7.x86_64.rpm           root@${NODE}:/tmp/
-            scp centos/pkgs/haproxy-debuginfo-2.0.18-4.el7.x86_64.rpm root@${NODE}:/tmp/; done
-        for NODE in "${MASTER[@]}"; do
-            ssh root@${NODE} "
-            yum localinstall -y /tmp/haproxy-2.0.18-4.el7.x86_64.rpm /tmp/haproxy-debuginfo-2.0.18-4.el7.x86_64.rpm
-            yum install -y keepalived
-            mv /tmp/haproxy.service /lib/systemd/system/
-            systemctl daemon-reload"; done; ;;
+        for node in "${MASTER[@]}"; do
+            scp centos/pkgs/haproxy.service                           root@$node:/tmp/
+            scp centos/pkgs/haproxy-2.0.18-4.el7.x86_64.rpm           root@$node:/tmp/
+            scp centos/pkgs/haproxy-debuginfo-2.0.18-4.el7.x86_64.rpm root@$node:/tmp/
+        done
+        for node in "${MASTER[@]}"; do
+            ssh root@$node "
+                yum localinstall -y /tmp/haproxy-2.0.18-4.el7.x86_64.rpm /tmp/haproxy-debuginfo-2.0.18-4.el7.x86_64.rpm
+                yum install -y keepalived
+                mv /tmp/haproxy.service /lib/systemd/system/
+                systemctl daemon-reload"
+        done; ;;
     rocky)
         # rocky 8 默认还不是 haproxy2.x，以后打算安装 haporxy 2.x
-        for NODE in "${MASTER[@]}"; do
-            ssh root@${NODE} "yum install -y haproxy keepalived"; done ;;
-    debian )
-        # debian 11 默认就是 haproxy 2.x
-        for NODE in "${MASTER[@]}"; do
-            ssh root@${NODE} "apt-get install -y haproxy keepalived"; done ;;
-    ubuntu )
-        # ubuntu 18, 20 默认还不是 haproxy
-        for NODE in "${MASTER[@]}"; do
-            ssh root@${NODE} "
-            add-apt-repository -y ppa:vbernat/haproxy-2.4
-            apt-get update -y
-            apt-get install -y haproxy keepalived"
+        for node in "${MASTER[@]}"; do
+            ssh root@$node "yum install -y haproxy keepalived"
         done ;;
+    debian)
+        # debian 11 默认就是 haproxy 2.x
+        for node in "${MASTER[@]}"; do
+            ssh root@$node "apt-get install -y haproxy keepalived"
+        done ;;
+    ubuntu)
+        case $linuxMajorVersion in
+        18|20)
+            # ubuntu 18, 20 默认还不是 haproxy
+            for node in "${MASTER[@]}"; do
+                #ssh root@$node "
+                #add-apt-repository -y ppa:vbernat/haproxy-2.4
+                #apt-get update -y
+                #apt-get install -y haproxy keepalived"
+                ssh root@$node "
+                    apt-get install -y -f /tmp/pkgs/haproxy-v2.4.16/$linuxMajorVersion/*.deb
+                    apt-get install -y keepalived"
+            done ;;
+        22)
+            for node in "${MASTER[@]}"; do
+                ssh root@$node "apt-get install -y haproxy keepalived"
+            done ;;
+        *)  
+            ERR "Not Support Linux $linuxID!"
+            exit $EXIT_FAILURE
+        esac
     esac
-
-    # for NODE in "${MASTER[@]}"; do
-    #     ssh ${NODE} "ls /usr/sbin/keepalived" &> /dev/null
-    #     if [[ $? -ne 0 ]]; then ssh ${NODE} "${INSTALL_MANAGER} install -y keepalived"; fi
-    #     ssh ${NODE} "ls /usr/sbin/haproxy" &> /dev/null
-    #     if [[ $? -ne 0 ]]; then ssh ${NODE} "${INSTALL_MANAGER} install -y haproxy"; fi
-    # done
 }
 
 
@@ -481,8 +493,9 @@ function 7_copy_etcd_and_k8s_certs {
         ssh ${NODE} "mkdir -p ${ETCD_CERT_PATH}"
         for FILE in etcd-ca-key.pem etcd-ca.pem etcd-key.pem etcd.pem; do
             scp ${ETCD_CERT_PATH}/${FILE} ${NODE}:${ETCD_CERT_PATH}/${FILE}
-        done
+        done &
     done
+    wait
 
 
     # 将生成的 kubernetes 各个组件的证书和 kubeconfig 文件分别拷贝到 master 节点
@@ -498,24 +511,26 @@ function 7_copy_etcd_and_k8s_certs {
             scheduler.pem scheduler-key.pem \
             front-proxy-client.pem front-proxy-client-key.pem ; do
             scp ${KUBE_CERT_PATH}/${FILE} ${NODE}:${KUBE_CERT_PATH}/${FILE}
-        done
+        done &
         for FILE in \
             controller-manager.kubeconfig \
             scheduler.kubeconfig \
             bootstrap-kubelet.kubeconfig \
             admin.kubeconfig; do
             scp ${K8S_PATH}/${FILE} ${NODE}:${K8S_PATH}/${FILE} 
-        done
+        done &
     done
+    wait
 
     # 将 所需证书和配置文件拷贝到 worker 节点
     for NODE in "${WORKER[@]}"; do
         ssh ${NODE} "mkdir -p ${KUBE_CERT_PATH}"
         for FILE in ca.pem front-proxy-ca.pem; do
             scp ${KUBE_CERT_PATH}/${FILE} ${NODE}:${KUBE_CERT_PATH}/${FILE}
-        done
+        done &
         scp ${K8S_PATH}/bootstrap-kubelet.kubeconfig ${NODE}:${K8S_PATH}/bootstrap-kubelet.kubeconfig
     done
+    wait
 }
 
 
@@ -707,8 +722,7 @@ function 13_setup_kubelet {
     sed -i "s%#KUBE_CERT_PATH#%${KUBE_CERT_PATH}%"          ${KUBELET_CONF_PATH}/kubelet-conf.yaml
     sed -i "s%#SRV_NETWORK_DNS_IP#%${SRV_NETWORK_DNS_IP}%"  ${KUBELET_CONF_PATH}/kubelet-conf.yaml
     local resolvConf
-    source /etc/os-release
-    case ${ID} in
+    case $linuxID in
     centos | rhel )
         resolvConf="/etc/resolv.conf"
         sed -i "s%#resolvConf#%${resolvConf}%g" ${KUBELET_CONF_PATH}/kubelet-conf.yaml ;;
@@ -894,8 +908,7 @@ function 18_label_and_taint_master_node {
 }
 
 
-function stage_four {
-    MSG1 "============ Stage 4: Deployment Kubernetes Cluster from Binary ===============";
+_stage_four() {
     1_copy_binary_package_and_create_dir
     2_install_keepalived_and_haproxy
     3_setup_haproxy
@@ -914,4 +927,11 @@ function stage_four {
     16_deploy_coredns
     17_deploy_metrics_server
     18_label_and_taint_master_node
+}
+
+stage_four() {
+    MSG1 "============ Stage 4: Deployment Kubernetes Cluster from Binary ===============";
+    mkdir -p "$K8S_DEPLOY_LOG_PATH/logs/stage-four"
+    local LOG_FILE="$K8S_DEPLOY_LOG_PATH/logs/stage-four/kubernetes.log"
+    _stage_four 2>&1 | tee -ai "$LOG_FILE"
 }
