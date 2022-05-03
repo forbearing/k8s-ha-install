@@ -45,7 +45,7 @@ prepare_software_mirror() {
         163)      mirror="http://mirrors.163.com" ;;                        # 网易
         *)        mirror=$defaultMirror ;;
         esac
-        [ $isRockyMirror ] || mirror="http://mirror.nju.edu.cn"
+        [ $isRockyMirror ] || mirror=$defaultMirror
 
         case $linuxID in
         debian)
