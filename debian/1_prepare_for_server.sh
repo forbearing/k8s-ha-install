@@ -44,13 +44,15 @@
 
         # generate debian repository
         source_list=(
-            "deb $mirror/$linuxID $linuxCodeName main non-free contrib"
-            "deb $mirror/$linuxID $linuxCodeName-updates main non-free contrib"
-            "deb $mirror/$linuxID-security $linuxCodeName-security main non-free contrib"
-            "#deb-src $mirror/$linuxID $linuxCodeName main non-free contrib"
-            "#deb-src $mirror/$linuxID $linuxCodeName-updates main non-free contrib"
-            "#deb-src $mirror/$linuxID-security $linuxCodeName-security main non-free contrib")
-        cp -f /etc/apt/sources.list /etc/apt/sources.list.$(date +%Y%m%d%H%M)
+            "deb $mirror/$linuxID $linuxCodeName main contrib non-free"
+            "deb $mirror/$linuxID $linuxCodeName-updates main contrib non-free"
+            "deb $mirror/$linuxID $linuxCodeName-backports main contrib non-free"
+            "deb $mirror/$linuxID-security $linuxCodeName-security main contrib non-free"
+            "#deb-src $mirror/$linuxID $linuxCodeName main contrib non-free"
+            "#deb-src $mirror/$linuxID $linuxCodeName-updates main contrib non-free"
+            "#deb-src $mirror/$linuxID $linuxCodeName-backports main contrib non-free"
+            "#deb-src $mirror/$linuxID-security $linuxCodeName-security main contrib non-free")
+        yes | cp /etc/apt/sources.list /etc/apt/sources.list.$(date +%Y%m%d%H%M)
         printf "%s\n" "${source_list[@]}" > /etc/apt/sources.list
 
         # generate docker repository
