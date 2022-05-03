@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-function stage_three {
+stage_three() {
     MSG1 "========================= Stage 3: Install Docker =============================";
 
     mkdir -p "$K8S_DEPLOY_LOG_PATH/logs/stage-three"
@@ -25,9 +25,7 @@ function stage_three {
         for node in "${ALL_NODE[@]}"; do
             MSG3 "*** $node *** is Installing Docker"
             ssh root@$node \
-                "export TIMEZONE=$TIMEZONE
-                 export DOCKER_SOFTWARE_MIRROR=$DOCKER_SOFTWARE_MIRROR
-                 $(typeset -f 1_install_docker)
+                "$(typeset -f 1_install_docker)
                  $(typeset -f 2_configure_docker)
                  1_install_docker
                  2_configure_docker" \
@@ -42,9 +40,7 @@ function stage_three {
         for node in "${ALL_NODE[@]}"; do
             MSG3 "*** $node *** is Installing Docker"
             ssh root@$node \
-                "export TIMEZONE=$TIMEZONE
-                 export DOCKER_SOFTWARE_MIRROR=$DOCKER_SOFTWARE_MIRROR
-                 $(typeset -f 1_install_docker)
+                "$(typeset -f 1_install_docker)
                  $(typeset -f 2_configure_docker)
                  1_install_docker
                  2_configure_docker" \
@@ -59,9 +55,7 @@ function stage_three {
         for node in "${ALL_NODE[@]}"; do
             MSG3 "*** $node *** is Installing Docker"
             ssh root@$node \
-                "export TIMEZONE=$TIMEZONE
-                 export DOCKER_SOFTWARE_MIRROR=$DOCKER_SOFTWARE_MIRROR
-                 $(typeset -f _apt_wait)
+                "$(typeset -f _apt_wait)
                  $(typeset -f 1_install_docker)
                  $(typeset -f 2_configure_docker)
                  $(typeset -f 3_audit_for_docker)
@@ -80,9 +74,7 @@ function stage_three {
         for node in "${ALL_NODE[@]}"; do
             MSG3 "*** $node *** is Installing Docker"
             ssh root@$node \
-                "export TIMEZONE=$TIMEZONE
-                 export DOCKER_SOFTWARE_MIRROR=$DOCKER_SOFTWARE_MIRROR
-                 $(typeset -f _apt_wait)
+                "$(typeset -f _apt_wait)
                  $(typeset -f 1_install_docker)
                  $(typeset -f 2_configure_docker)
                  $(typeset -f 3_audit_for_docker)
