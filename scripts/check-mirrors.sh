@@ -22,7 +22,6 @@ mirrorsList=(
     "http://mirror.lzu.edu.cn"
     "http://mirrors.cqu.edu.cn"
     "http://mirrors.dgut.edu.cn"
-    "http://mirror.nju.edu.cn"
     "http://mirrors.bfsu.edu.cn"
     "http://mirrors.tuna.tsinghua.edu.cn"
 )
@@ -36,7 +35,11 @@ checkMirror() {
         if [[ sc -ge 400 ]]; then
             4xx "$sc - $url/${1/%\/}/"
         elif [[ sc -ge 300 ]]; then
-            3xx "$sc - $url/${1/%\/}/"
+            if [[ sc -eq 302 ]]; then
+                2xx "$sc - $url/${1/%\/}/"
+            else
+                3xx "$sc - $url/${1/%\/}/"
+            fi
         elif [[ sc -ge 200 ]]; then
             2xx "$sc - $url/${1/%\/}/"
         fi
@@ -46,6 +49,7 @@ checkMirror "debian"
 checkMirror "ubuntu"
 checkMirror "rocky"
 checkMirror "centos"
+checkMirror "elrepo"
 checkMirror "almalinux"
 checkMirror "vzlinux"
 checkMirror "docker-ce"
