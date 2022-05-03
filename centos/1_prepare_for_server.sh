@@ -1,42 +1,130 @@
 #!/usr/bin/env bash
 
-function 1_import_repo {
+1_import_repo() {
     echo "1. [`hostname`] Import yum repo"
 
     if [[ $TIMEZONE == "Asia/Shanghai" || $TIMEZONE == "Asia/Chongqing" ]]; then
-        # cp -f /etc/yum.repos.d/CentOS-Base.repo               /etc/yum.repos.d/CentOS-Base.repo.$(date +%Y%m%d%H%M)
-        # cp -f /tmp/yum.repos.d/CentOS-Base.repo-aliyun        /etc/yum.repos.d/CentOS-Base.repo
-        # cp -f /tmp/yum.repos.d/elrepo.repo-aliyun             /etc/yum.repos.d/elrepo.repo
-        # cp -f /tmp/yum.repos.d/ceph-nautilus.repo-tsinghua    /etc/yum.repos.d/ceph.repo
         source /etc/os-release
-        local linuxID=$ID
         local linuxMajorVersion=$( echo $VERSION | awk -F'[.| ]' '{print $1}' )
         local linuxMinorVersion=$(cat /etc/system-release | awk '{print $4}' | awk -F'.' '{print $2}')
-        case $linuxID in
-        centos)
-        esac
-    else
-        :
-        # cp -f /tmp/yum.repos.d/ceph-nautilus.repo-official    /etc/yum.repos.d/ceph.repo
-        # rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
-        # yum install -y https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm
-    fi
+        local mirror
+        local defaultMirror="http://mirror.nju.edu.cn"
+        local epelMirror
+        local isElrepoMirror elrepoMirror
+        local isDockerMirror dockerMirror
 
-    yum clean metadata
-    yum makecache
+        # open source mirror in china
+        case ${LINUX_SOFTWARE_MIRROR,,} in
+        nju)      mirror="http://mirror.nju.edu.cn"; isElrepoMirror=1; isDockerMirror=1 ;;
+        bupt)     mirror="http://mirrors.bupt.edu.cn"; isDockerMirror=1 ;;
+        ustc)     mirror="http://mirrors.ustc.edu.cn"; isElrepoMirror=1; isDockerMirror=1 ;;
+        aliyun)   mirror="http://mirrors.aliyun.com"; isElrepoMirror=1; isDockerMirror=1 ;;
+        tencent)  mirror="http://mirrors.cloud.tencent.com"; isDockerMirror=1 ;;
+        sjtu)     mirror="http://ftp.sjtu.edu.cn" ;;
+        bjtu)     mirror="http://mirror.bjtu.edu.cn" ;;
+        dlut)     mirror="http://mirror.dlut.edu.cn" ;;
+        hit)      mirror="http://mirrors.hit.edu.cn"; isDockerMirror=1 ;;
+        huawei)   mirror="http://repo.huaweicloud.com"; isDockerMirror=1 ;;
+        njupt)    mirror="http://mirrors.njupt.edu.cn"; isDockerMirror=1 ;;
+        sohu)     mirror="http://mirrors.sohu.com" ;;
+        xjtu)     mirror="http://mirrors.xjtu.edu.cn"; isDockerMirror=1 ;;
+        skyshe)   mirror="http://mirrors.skyshe.cn"; isDockerMirror=1 ;;
+        lzu)      mirror="http://mirror.lzu.edu.cn"; isElrepoMirror=1 ;;
+        cqu)      mirror="http://mirrors.cqu.edu.cn" ;;
+        dgut)     mirror="http://mirrors.dgut.edu.cn" ;;
+        tsinghua) mirror="http://mirrors.tuna.tsinghua.edu.cn"; isElrepoMirror=1; isDockerMirror=1 ;;
+        bfsu)     mirror="http://mirrors.bfsu.edu.cn"; isElrepoMirror=1; isDockerMirror=1 ;;
+        163)      mirror="http://mirrors.163.com" ;;
+        *)        mirror="http://cn.archive.ubuntu.com" ;;
+        esac
+        # set the default docker and elrepo repository, if not match
+        epelMirror=$mirror
+        elrepoMirror=$mirror
+        dockerMirror=$mirror
+        [ $isElrepoMirror ] || elrepoMirror=$defaultMirror
+        [ $isDockerMirror ] || dockerMirror=$defaultMirror
+
+        # replace centos repository
+        # install and replace elrepo repository
+        case $linuxMajorVersion in 
+        7)
+            # replace centos repository
+            sed -r -e "s|^mirrorlist=|#mirrorlist=|g" \
+                -e "s|^#baseurl=http|baseurl=http|g" \
+                -e "s|baseurl=(.*)releasever|baseurl=$mirror/centos/\$releasever|g" \
+                -i.$(date +%Y%m%d%H%M) \
+                /etc/yum.repos.d/CentOS*.repo 
+            # install and replace elrepo repository
+            yum localinstall -y /tmp/pkgs/elrepo-release-7.el7.elrepo.noarch.rpm
+            sed -r -e "s|^mirrorlist=|#mirrorlist=|g" \
+                -e "s|baseurl=(.*)elrepo(.*)el7(.*)|baseurl=$elrepoMirror/elrepo/elrepo\2el7/\$basearch/|g" \
+                -e "s|baseurl=(.*)testing(.*)el7(.*)|baseurl=$elrepoMirror/elrepo/testing\2el7/\$basearch/|g" \
+                -e "s|baseurl=(.*)kernel(.*)el7(.*)|baseurl=$elrepoMirror/elrepo/kernel\2el7/\$basearch/|g" \
+                -e "s|baseurl=(.*)extras(.*)el7(.*)|baseurl=$elrepoMirror/elrepo/extras\2el7/\$basearch/|g" \
+                -e "s|gpgcheck=1|gpgcheck=0|g" \
+                -e "/coreix/d" \
+                -e "/rackspace/d" \
+                -e "/fnal/d" \
+                -i.$(date +%Y%m%d%H%M) \
+                /etc/yum.repos.d/elrepo.repo
+            ;;
+        8)
+            # replace centos repository
+            sed -r -e "s|^mirrorlist=|#mirrorlist=|g" \
+                -e "s|^#baseurl=http|baseurl=http|g" \
+                -e "s|baseurl=(.*)releasever|baseurl=$mirror/centos/\$releasever|g" \
+                -i.$(date +%Y%m%d%H%M) \
+                /etc/yum.repos.d/CentOS*.repo
+            # install and replace elrepo repository
+            yum localinstall -y /tmp/pkgs/elrepo-release-8.el8.elrepo.noarch.rpm
+            sed -r -e "s|^mirrorlist=|#mirrorlist=|g" \
+                -e "s|baseurl=(.*)elrepo(.*)el8(.*)|baseurl=$elrepoMirror/elrepo/elrepo\2el8/\$basearch/|g" \
+                -e "s|baseurl=(.*)testing(.*)el8(.*)|baseurl=$elrepoMirror/elrepo/testing\2el8/\$basearch/|g" \
+                -e "s|baseurl=(.*)kernel(.*)el8(.*)|baseurl=$elrepoMirror/elrepo/kernel\2el8/\$basearch/|g" \
+                -e "s|baseurl=(.*)extras(.*)el8(.*)|baseurl=$elrepoMirror/elrepo/extras\2el8/\$basearch/|g" \
+                -e "s|gpgcheck=1|gpgcheck=0|g" \
+                -e "/coreix/d" \
+                -e "/rackspace/d" \
+                -e "/fnal/d" \
+                -i.$(date +%Y%m%d%H%M) \
+                /etc/yum.repos.d/elrepo.repo
+            ;;
+        esac
+
+        # install and replace epel repository
+        yum install -y epel-release
+        sed -r -e "s|^metalink=|#metalink=|g" \
+            -e "s|^#baseurl=http|baseurl=http|g" \
+            -e "s|baseurl=(.*)releasever|baseurl=$epelMirror/epel/\$releasever|g" \
+            -i.$(date +%Y%m%d%H%M) \
+            /etc/yum.repos.d/epel*.repo
+        # copy and replace docker repository file
+        yes | cp /tmp/yum.repos.d/docker-ce.repo /etc/yum.repos.d/
+        sed -r -e "s|baseurl=(.*)releasever|baseurl=$dockerMirror/docker-ce/linux/centos/\$releasever|g" -i.$(date +%Y%m%d%H%M) /etc/yum.repos.d/docker-ce.repo
+
+    # if TIMEZONE isn't Asia/Shanghai or Asia/Chongqing
+    else
+        # install elrepo-release
+        case $linuxMajorVersion in
+        7)
+            rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+            yum install -y https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm ;;
+        8)
+            rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+            yum install -y https://www.elrepo.org/elrepo-release-8.el8.elrepo.noarch.rpm ;;
+        esac
+        # install epel-release
+        yum install -y epel-release
+        # copy docker repository file
+        yes | cp /tmp/yum.repos.d/docker-ce.repo /etc/yum.repos.d/
+        #wget -O /etc/yum.repos.d/docker-ce.repo https://download.docker.com/linux/centos/docker-ce.repo
+        #yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+    fi
 }
 
 
-function 2_install_necessary_package {
+2_install_necessary_package() {
     echo "2. [`hostname`] Install necessary package"
-
-    yum clean metadata
-    yum makecache
-    yum install -y epel-release
-
-    if [[ $TIMEZONE == "Asia/Shanghai" || $TIMEZONE == "Asia/Chongqing" ]]; then
-        cp -f /etc/yum.repos.d/epel.repo /etc/yum.repos.d/epel.repo.$(date +%Y%m%d%H%M)
-        cp -f /tmp/yum.repos.d/epel.repo-aliyun /etc/yum.repos.d/epel.repo; fi
 
     yum install -y coreutils bash-completion iputils wget curl zip unzip bzip2 vim net-tools \
         git zsh fish rsync psmisc procps-ng bind-utils yum-utils device-mapper-persistent-data \
@@ -44,14 +132,15 @@ function 2_install_necessary_package {
 }
 
 
-function 3_upgrade_system {
+3_upgrade_system() {
     echo "3. [`hostname`] Upgrade system"
 
-    yum update -y --exclude="docker-ce,kernel-lt"
+    # yum update -y --exclude="docker-ce,kernel-lt"
+    yum update -y
 }
 
 
-function 4_disable_firewald_and_selinux {
+4_disable_firewald_and_selinux() {
     echo "4. [`hostname`] Disable firewalld and selinux"
 
     systemctl disable --now firewalld
@@ -61,9 +150,8 @@ function 4_disable_firewald_and_selinux {
 }
 
 
-function 5_set_timezone_and_ntp_client {
+5_set_timezone_and_ntp_client() {
     echo "5. [`hostname`] Set timezone and ntp"
-
 
     echo "timezone: $TIMEZONE"
     timedatectl set-timezone "$TIMEZONE"
@@ -73,7 +161,7 @@ function 5_set_timezone_and_ntp_client {
 }
 
 
-function 6_configure_sshd {
+6_configure_sshd() {
     echo "6. [`hostname`] Configure ssh"
     local SSH_CONF_PATH="/etc/ssh/sshd_config"
 
@@ -103,7 +191,7 @@ function 6_configure_sshd {
 }
 
 
-function 7_configure_ulimit {
+7_configure_ulimit() {
     echo "7. [`hostname`] Configure ulimit"
     local ULIMITS_CONF_PATH="/etc/security/limits.conf"
 
@@ -123,7 +211,7 @@ function 7_configure_ulimit {
 }
 
 
-function main {
+main() {
     1_import_repo
     2_install_necessary_package
     3_upgrade_system

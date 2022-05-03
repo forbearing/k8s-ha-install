@@ -1,33 +1,16 @@
 #!/usr/bin/env bash
 
-function 1_install_docker {
+1_install_docker() {
     echo "1. [`hostname`] Install docker"
 
-    yum remove -y docker \
-                  docker-client \
-                  docker-client-latest \
-                  docker-common \
-                  docker-latest \
-                  docker-latest-logrotate \
-                  docker-logrotate \
-                  docker-engine
-    if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
-        # cp -f /etc/yum.repos.d/docker-ce.repo /etc/yum.repos.d/docker-ce.repo.$(date +%Y%m%d%H%M)
-        cp -f /tmp/yum.repos.d/docker-ce.repo-aliyun /etc/yum.repos.d/docker.repo
-    else
-        yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo; fi
-    #===== BEGIN install specific version docker
-    #yum install -y docker-ce-19.03.15-3.el7
-    # END
-
-    #===== BEGIN intall latest docker
+    yum remove -y docker docker-client docker-client-latest docker-common \
+        docker-latest docker-latest-logrotate docker-logrotate docker-engine
     yum install -y docker-ce docker-ce-cli containerd.io
-    # END
     systemctl enable --now docker
 }
 
 
-function 2_configure_docker {
+2_configure_docker() {
     echo "2. [`hostname`] Configure docker"
     while true; do
         if ls -d /etc/docker; then
@@ -59,7 +42,7 @@ EOF
 }
 
 
-function main {
+main() {
     1_install_docker
     2_configure_docker
 }
