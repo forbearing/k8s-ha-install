@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-function stage_one {
+stage_one() {
     MSG1 "=================== Stage 1: Prepare for Linux Server =========================";
 
     mkdir -p "$K8S_DEPLOY_LOG_PATH/logs/stage-one"
