@@ -17,6 +17,7 @@
 prepare_software_mirror() {
     if [[ $TIMEZONE == "Asia/Shanghai" || $TIMEZONE == "Asia/Chongqing" ]]; then
         local mirror
+        local defaultMirror="http://mirror.nju.edu.cn"
         local isRockyMirror
         # Official Archive Mirrors for Ubuntu
         # https://launchpad.net/ubuntu/+archivemirrors
@@ -42,7 +43,7 @@ prepare_software_mirror() {
         tsinghua) mirror="http://mirrors.tuna.tsinghua.edu.cn" ;;           # 清华大学
         bfsu)     mirror="http://mirrors.bfsu.edu.cn" ;;                    # 北京外国语大学
         163)      mirror="http://mirrors.163.com" ;;                        # 网易
-        *)        mirror="http://mirror.nju.edu.cn" ;;                      # 南京大学, 10Gbps
+        *)        mirror=$defaultMirror ;;
         esac
         [ $isRockyMirror ] || mirror="http://mirror.nju.edu.cn"
 
