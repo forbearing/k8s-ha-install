@@ -1,96 +1,98 @@
 #!/usr/bin/env bash
 
-function 1_import_repo {
+1_import_repo() {
     echo "1. [`hostname`] Import yum repo"
 
-    # # Disable IPv6
-    # sysctl -w net.ipv6.conf.all.disable_ipv6=1
-    # sysctl -w net.ipv6.conf.default.disable_ipv6=1
+    if [[ $TIMEZONE == "Asia/Shanghai" || $TIMEZONE == "Asia/Chongqing" ]]; then
+        source /etc/os-release
+        local linuxMajorVersion=$( echo $VERSION | awk -F'[.| ]' '{print $1}' )
+        local linuxMinorVersion=$(cat /etc/system-release | awk '{print $4}' | awk -F'.' '{print $2}')
+        local mirror
+        local defaultMirror="http://mirror.nju.edu.cn"
+        local isRockyMirror
+        local epelMirror
+        local isDockerMirror dockerMirror
 
-    if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
-        cp -f /etc/yum.repos.d/Rocky-BaseOS.repo     /etc/yum.repos.d/Rocky-BaseOS.repo.$(date +%Y%m%d%H%M)
-        cp -f /etc/yum.repos.d/Rocky-Extras.repo     /etc/yum.repos.d/Rocky-Extras.repo.$(date +%Y%m%d%H%M)
-        cp -f /etc/yum.repos.d/Rocky-AppStream.repo  /etc/yum.repos.d/Rocky-AppStream.repo.$(date +%Y%m%d%H%M)
-        cp -f /etc/yum.repos.d/Rocky-PowerTools.repo /etc/yum.repos.d/Rocky-PowerTools.repo.$(date +%Y%m%d%H%M)
+        # open source mirror in china
+        case ${LINUX_SOFTWARE_MIRROR,,} in
+        nju)      mirror="http://mirror.nju.edu.cn"; isRockyMirror=1; isDockerMirror=1 ;;
+        bupt)     mirror="http://mirrors.bupt.edu.cn"; isDockerMirror=1 ;;
+        ustc)     mirror="http://mirrors.ustc.edu.cn"; isRockyMirror=1; isDockerMirror=1 ;;
+        aliyun)   mirror="http://mirrors.aliyun.com"; isDockerMirror=1 ;;
+        tencent)  mirror="http://mirrors.cloud.tencent.com"; isRockyMirror=1; isDockerMirror=1 ;;
+        sjtu)     mirror="http://ftp.sjtu.edu.cn" ;;
+        bjtu)     mirror="http://mirror.bjtu.edu.cn" ;;
+        dlut)     mirror="http://mirror.dlut.edu.cn" ;;
+        hit)      mirror="http://mirrors.hit.edu.cn"; isDockerMirror=1 ;;
+        huawei)   mirror="http://repo.huaweicloud.com"; isDockerMirror=1 ;;
+        njupt)    mirror="http://mirrors.njupt.edu.cn"; isDockerMirror=1 ;;
+        sohu)     mirror="http://mirrors.sohu.com" ;;
+        xjtu)     mirror="http://mirrors.xjtu.edu.cn"; isRockyMirror=1; isDockerMirror=1 ;;
+        skyshe)   mirror="http://mirrors.skyshe.cn"; isRockyMirror=1; isDockerMirror=1 ;;
+        lzu)      mirror="http://mirror.lzu.edu.cn"; ;;
+        cqu)      mirror="http://mirrors.cqu.edu.cn" ;;
+        dgut)     mirror="http://mirrors.dgut.edu.cn" ;;
+        tsinghua) mirror="http://mirrors.tuna.tsinghua.edu.cn"; isDockerMirror=1 ;;
+        bfsu)     mirror="http://mirrors.bfsu.edu.cn"; isDockerMirror=1 ;;
+        163)      mirror="http://mirrors.163.com" ;;
+        *)        mirror=$defaultMirror ;;
+        esac
+        # set the default docker and elrepo repository, if not match
+        epelMirror=$mirror
+        dockerMirror=$mirror
+        [ $isRockyMirror ] || mirror=$defaultMirror
+        [ $isDockerMirror ] || dockerMirror=$defaultMirror
 
-        cp -f /tmp/yum.repos.d/Rocky-BaseOS.repo.ustc     /etc/yum.repos.d/Rocky-BaseOS.repo
-        cp -f /tmp/yum.repos.d/Rocky-Extras.repo.ustc     /etc/yum.repos.d/Rocky-Extras.repo
-        cp -f /tmp/yum.repos.d/Rocky-AppStream.repo.ustc  /etc/yum.repos.d/Rocky-AppStream.repo
-        cp -f /tmp/yum.repos.d/Rocky-PowerTools.repo.ustc /etc/yum.repos.d/Rocky-PowerTools.repo
+        # replace rocky repository
+        [ $linuxMajorVersion == "8" ] && \
+            sed -r -e "s|^mirrorlist=|#mirrorlist=|g" \
+                -e "s|^#baseurl=http|baseurl=http|g" \
+                -e "s|baseurl=(.*)releasever|baseurl=$mirror/rocky/\$releasever|g" \
+                -i.$(date +%Y%m%d%H%M) \
+                /etc/yum.repos.d/Rocky*.repo 
 
-        # cp -f /tmp/yum.repos.d/Rocky-BaseOS.repo.163     /etc/yum.repos.d/Rocky-BaseOS.repo
-        # cp -f /tmp/yum.repos.d/Rocky-Extras.repo.163     /etc/yum.repos.d/Rocky-Extras.repo
-        # cp -f /tmp/yum.repos.d/Rocky-AppStream.repo.163  /etc/yum.repos.d/Rocky-AppStream.repo
-        # cp -f /tmp/yum.repos.d/Rocky-PowerTools.repo.163 /etc/yum.repos.d/Rocky-PowerTools.repo
+        # install and replace epel repository
+        yum install -y epel-release
+        sed -r -e "s|^metalink=|#metalink=|g" \
+            -e "s|^#baseurl=http|baseurl=http|g" \
+            -e "s|baseurl=(.*)releasever|baseurl=$epelMirror/epel/\$releasever|g" \
+            -i.$(date +%Y%m%d%H%M) \
+            /etc/yum.repos.d/epel*.repo
+
+        # copy and replace docker repository file
+        yes | cp /tmp/yum.repos.d/docker-ce.repo /etc/yum.repos.d/
+        sed -r -e "s|baseurl=(.*)releasever|baseurl=$dockerMirror/docker-ce/linux/centos/\$releasever|g" -i.$(date +%Y%m%d%H%M) /etc/yum.repos.d/docker-ce.repo
+
+    # if TIMEZONE isn't Asia/Shanghai or Asia/Chongqing
+    else
+        # install epel-release
+        yum install -y epel-release
+        # copy docker repository file
+        yes | cp /tmp/yum.repos.d/docker-ce.repo /etc/yum.repos.d/
+        #wget -O /etc/yum.repos.d/docker-ce.repo https://download.docker.com/linux/centos/docker-ce.repo
+        #yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
     fi
-        
 }
 
 
-function 2_install_necessary_package {
+2_install_necessary_package() {
     echo "2. [`hostname`] Install necessary package"
 
-    # # Disable IPv6
-    # sysctl -w net.ipv6.conf.all.disable_ipv6=1
-    # sysctl -w net.ipv6.conf.default.disable_ipv6=1
-
-    local count=0
-    while true; do
-        yum --disablerepo=epel makecache
-        local yum_rc=$?
-        if [[ ${yum_rc} -eq 0 ]]; then break; fi
-        if [[ ${count} -ge 60 ]]; then break; fi
-        (( count++ ))
-        sleep $(echo $(($RANDOM % 10 + 1)))
-    done
-    yum install -y epel-release
-
-    if [[ ${TIMEZONE} == "Asia/Shanghai" || ${TIMEZONE} == "Asia/Chongqing" ]]; then
-        cp -f /etc/yum.repos.d/epel.repo /etc/yum.repos.d/epel.repo.$(date +%Y%m%d%H%M)
-        # cp -f /tmp/yum.repos.d/epel.repo.ustc /etc/yum.repos.d/epel.repo; fi
-        cp -f /tmp/yum.repos.d/epel.repo.aliyun /etc/yum.repos.d/epel.repo; fi
-
-    local count=0
-    while true; do
-        yum install -y coreutils bash-completion iputils wget curl zip unzip bzip2 vim net-tools \
-            git zsh fish rsync psmisc procps-ng bind-utils yum-utils device-mapper-persistent-data \
-            lvm2 jq sysstat nc tree lsof virt-what audit iscsi-initiator-utils socat multitail rsyslog
-        local yum_rc=$?
-        if [[ ${yum_rc} -eq 0 ]]; then break; fi
-        if [[ ${count} -ge 60 ]]; then break; fi
-        (( count++ ))
-        sleep $(echo $(($RANDOM % 10 + 1)))
-    done
-
-    #if [[ $(virt-what) == "vmware" ]]; then
-        #yum install -y open-vm-tools
-        #systemctl enable --now vmtoolsd
-    #fi
+    yum install -y coreutils bash-completion iputils wget curl zip unzip bzip2 vim net-tools \
+        git zsh fish rsync psmisc procps-ng bind-utils yum-utils device-mapper-persistent-data \
+        lvm2 jq sysstat nc tree lsof virt-what audit iscsi-initiator-utils socat multitail rsyslog
 }
 
 
-function 3_upgrade_system {
+3_upgrade_system() {
     echo "3. [`hostname`] Upgrade system"
 
-    # # Disable IPv6
-    # sysctl -w net.ipv6.conf.all.disable_ipv6=1
-    # sysctl -w net.ipv6.conf.default.disable_ipv6=1
-
-    # yum update -y --exclude="docker-ce,kernel-lt"
-
-    local count=0
-    while true; do
-        yum update -y --exclude="docker-ce"
-        local yum_rc=$?
-        if [[ ${yum_rc} -eq 0 ]]; then break; fi
-        if [[ ${count} -ge 60 ]]; then break; fi
-        (( count++ ))
-        sleep $(echo $(($RANDOM % 10 + 1)))
-    done
+    # yum update -y --exclude="docker-ce"
+    yum update -y
 }
 
 
-function 4_disable_firewald_and_selinux {
+4_disable_firewald_and_selinux() {
     echo "4. [`hostname`] Disable firewalld and selinux"
 
     systemctl disable --now firewalld
@@ -100,69 +102,68 @@ function 4_disable_firewald_and_selinux {
 }
 
 
-function 5_set_timezone_and_ntp_client {
+5_set_timezone_and_ntp_client() {
     echo "5. [`hostname`] Set timezone and ntp"
 
-
-    echo "timezone: ${TIMEZONE}"
-    timedatectl set-timezone "${TIMEZONE}"
+    echo "timezone: $TIMEZONE"
+    timedatectl set-timezone "$TIMEZONE"
     timedatectl set-ntp 1
     systemctl restart rsyslog
     systemctl restart crond
 }
 
 
-function 6_configure_sshd {
+6_configure_sshd() {
     echo "6. [`hostname`] Configure ssh"
     local SSH_CONF_PATH="/etc/ssh/sshd_config"
 
-    sed -i "/^UseDNS/d" ${SSH_CONF_PATH}
-    sed -i "/^GSSAPIAuthentication/d" ${SSH_CONF_PATH}
-    sed -i "/^PermitRootLogin/d" ${SSH_CONF_PATH}
-    sed -i "/^PasswordAuthentication/d" ${SSH_CONF_PATH}
-    sed -i "/^PermitEmptyPasswords/d" ${SSH_CONF_PATH}
-    sed -i "/^PubkeyAuthentication/d" ${SSH_CONF_PATH}
-    sed -i "/^AuthorizedKeysFile/d" ${SSH_CONF_PATH}
-    #sed -i "/^ClientAliveInterval/d" ${SSH_CONF_PATH}
-    #sed -i "/^ClientAliveCountMax/d" ${SSH_CONF_PATH}
-    sed -i "/^Protocol/d" ${SSH_CONF_PATH}
+    sed -i "/^UseDNS/d" $SSH_CONF_PATH
+    sed -i "/^GSSAPIAuthentication/d" $SSH_CONF_PATH
+    sed -i "/^PermitRootLogin/d" $SSH_CONF_PATH
+    sed -i "/^PasswordAuthentication/d" $SSH_CONF_PATH
+    sed -i "/^PermitEmptyPasswords/d" $SSH_CONF_PATH
+    sed -i "/^PubkeyAuthentication/d" $SSH_CONF_PATH
+    sed -i "/^AuthorizedKeysFile/d" $SSH_CONF_PATH
+    #sed -i "/^ClientAliveInterval/d" $SSH_CONF_PATH
+    #sed -i "/^ClientAliveCountMax/d" $SSH_CONF_PATH
+    sed -i "/^Protocol/d" $SSH_CONF_PATH
 
-    echo "UseDNS no" >> ${SSH_CONF_PATH}
-    echo "GSSAPIAuthentication no" >> ${SSH_CONF_PATH}
-    echo "PermitRootLogin yes" >> ${SSH_CONF_PATH}
-    echo "PasswordAuthentication yes" >> ${SSH_CONF_PATH}
-    echo "PermitEmptyPasswords no" >> ${SSH_CONF_PATH}
-    echo "PubkeyAuthentication yes" >> ${SSH_CONF_PATH}
-    echo "AuthorizedKeysFile .ssh/authorized_keys" >> ${SSH_CONF_PATH}
-    #echo "ClientAliveInterval 360" >> ${SSH_CONF_PATH}
-    #echo "ClientAliveCountMax 0" >> ${SSH_CONF_PATH}
-    echo "Protocol 2" >> ${SSH_CONF_PATH}
+    echo "UseDNS no" >> $SSH_CONF_PATH
+    echo "GSSAPIAuthentication no" >> $SSH_CONF_PATH
+    echo "PermitRootLogin yes" >> $SSH_CONF_PATH
+    echo "PasswordAuthentication yes" >> $SSH_CONF_PATH
+    echo "PermitEmptyPasswords no" >> $SSH_CONF_PATH
+    echo "PubkeyAuthentication yes" >> $SSH_CONF_PATH
+    echo "AuthorizedKeysFile .ssh/authorized_keys" >> $SSH_CONF_PATH
+    #echo "ClientAliveInterval 360" >> $SSH_CONF_PATH
+    #echo "ClientAliveCountMax 0" >> $SSH_CONF_PATH
+    echo "Protocol 2" >> $SSH_CONF_PATH
 
     systemctl restart sshd
 }
 
 
-function 7_configure_ulimit {
+7_configure_ulimit() {
     echo "7. [`hostname`] Configure ulimit"
     local ULIMITS_CONF_PATH="/etc/security/limits.conf"
 
-    sed -i -r "/^\*(.*)soft(.*)nofile(.*)/d" ${ULIMITS_CONF_PATH}
-    sed -i -r "/^\*(.*)hard(.*)nofile(.*)/d" ${ULIMITS_CONF_PATH}
-    sed -i -r "/^\*(.*)soft(.*)nproc(.*)/d" ${ULIMITS_CONF_PATH}
-    sed -i -r "/^\*(.*)hard(.*)nproc(.*)/d" ${ULIMITS_CONF_PATH}
-    sed -i -r "/^\*(.*)soft(.*)memlock(.*)/d" ${ULIMITS_CONF_PATH}
-    sed -i -r "/^\*(.*)hard(.*)memlock(.*)/d" ${ULIMITS_CONF_PATH}
+    sed -i -r "/^\*(.*)soft(.*)nofile(.*)/d" $ULIMITS_CONF_PATH
+    sed -i -r "/^\*(.*)hard(.*)nofile(.*)/d" $ULIMITS_CONF_PATH
+    sed -i -r "/^\*(.*)soft(.*)nproc(.*)/d" $ULIMITS_CONF_PATH
+    sed -i -r "/^\*(.*)hard(.*)nproc(.*)/d" $ULIMITS_CONF_PATH
+    sed -i -r "/^\*(.*)soft(.*)memlock(.*)/d" $ULIMITS_CONF_PATH
+    sed -i -r "/^\*(.*)hard(.*)memlock(.*)/d" $ULIMITS_CONF_PATH
 
-    echo "* soft nofile 655360" >> ${ULIMITS_CONF_PATH}
-    echo "* hard nofile 131072" >> ${ULIMITS_CONF_PATH}
-    echo "* soft nproc 655360" >> ${ULIMITS_CONF_PATH}
-    echo "* hard nproc 655360" >> ${ULIMITS_CONF_PATH}
-    echo "* soft memlock unlimited" >> ${ULIMITS_CONF_PATH}
-    echo "* hard memlock unlimited" >> ${ULIMITS_CONF_PATH}
+    echo "* soft nofile 655360" >> $ULIMITS_CONF_PATH
+    echo "* hard nofile 131072" >> $ULIMITS_CONF_PATH
+    echo "* soft nproc 655360" >> $ULIMITS_CONF_PATH
+    echo "* hard nproc 655360" >> $ULIMITS_CONF_PATH
+    echo "* soft memlock unlimited" >> $ULIMITS_CONF_PATH
+    echo "* hard memlock unlimited" >> $ULIMITS_CONF_PATH
 }
 
 
-function main {
+main() {
     1_import_repo
     2_install_necessary_package
     3_upgrade_system

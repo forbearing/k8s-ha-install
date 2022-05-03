@@ -1,25 +1,17 @@
 #!/usr/bin/env bash
 
-function 1_install_necessary_package_for_k8s {
+1_install_necessary_package_for_k8s() {
     echo "1. [`hostname`] Install package for k8s"
 
-    local count=0
-    while true; do
-        yum install -y \
-            conntrack-tools ipvsadm ipset iptables iptables-services \
-            bridge-utils sysstat libseccomp \
-            gcc gcc-c++ make cmake autoconf automake \
-            libxml2-devel openssl-devel curl-devel libaio-devel ncurses-devel zlib-devel
-        local yum_rc=$?
-        if [[ ${yum_rc} -eq 0 ]]; then break; fi
-        if [[ ${count} -ge 60 ]]; then break; fi
-        (( count++ ))
-        sleep $(echo $(($RANDOM % 10 + 1)))
-    done
+    yum install -y \
+        conntrack-tools ipvsadm ipset iptables iptables-services \
+        bridge-utils sysstat libseccomp \
+        gcc gcc-c++ make cmake autoconf automake \
+        libxml2-devel openssl-devel curl-devel libaio-devel ncurses-devel zlib-devel
 }
 
 
-function 2_disable_swap {
+2_disable_swap() {
     echo "2. [`hostname`] Disable swap"
 
     sed -i -r "/(.*)swap(.*)swap(.*)/d" /etc/fstab
@@ -27,7 +19,7 @@ function 2_disable_swap {
 }
 
 
-function 3_upgrade_kernel {
+3_upgrade_kernel() {
     echo "3. [`hostname`] Upgrade kernel"
 
     yum install -y kernel-lt
@@ -36,7 +28,7 @@ function 3_upgrade_kernel {
 }
 
 
-function 4_load_kernel_module {
+4_load_kernel_module() {
     echo "4. [`hostname`] Load kernel module"
 
     k8s_modules=(
@@ -73,7 +65,7 @@ function 4_load_kernel_module {
 }
 
 
-function 5_configure_kernel_parameter {
+5_configure_kernel_parameter() {
     echo "5. [`hostname`] Configure kernel parameter"
 
     k8s_sysctl=(
@@ -113,7 +105,7 @@ function 5_configure_kernel_parameter {
 }
 
 
-function main {
+main() {
     1_install_necessary_package_for_k8s
     2_disable_swap
     # 3_upgrade_kernel
