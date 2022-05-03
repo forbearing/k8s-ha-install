@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-function 1_disable_swap {
+1_disable_swap() {
     echo "1. [`hostname`] Disable swap"
 
     sed -i -r "/(.*)swap(.*)swap(.*)/d" /etc/fstab
@@ -8,7 +8,7 @@ function 1_disable_swap {
 }
 
 
-function 2_load_kernel_module {
+2_load_kernel_module() {
     echo "2. [`hostname`] Load kernel module"
 
     k8s_modules=(
@@ -43,7 +43,7 @@ function 2_load_kernel_module {
 }
 
 
-function 3_configure_kernel_parameter {
+3_configure_kernel_parameter() {
     echo "3. [`hostname`] Configure kernel parameter"
 
     k8s_sysctl=(
@@ -83,7 +83,7 @@ function 3_configure_kernel_parameter {
 
 
 
-function main {
+main() {
     1_disable_swap
     2_load_kernel_module
     3_configure_kernel_parameter
