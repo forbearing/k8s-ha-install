@@ -66,13 +66,13 @@ prepare_software_mirror() {
                 "deb $mirror/$linuxID $linuxCodeName main restricted universe multiverse"
                 "deb $mirror/$linuxID $linuxCodeName-security main restricted universe multiverse"
                 "deb $mirror/$linuxID $linuxCodeName-updates main restricted universe multiverse"
-                "deb $mirror/$linuxID $linuxCodeName-proposed main restricted universe multiverse"
                 "deb $mirror/$linuxID $linuxCodeName-backports main restricted universe multiverse"
+                "#deb $mirror/$linuxID $linuxCodeName-proposed main restricted universe multiverse"
                 "#deb-src $mirror/$linuxID $linuxCodeName main restricted universe multiverse"
                 "#deb-src $mirror/$linuxID $linuxCodeName-security main restricted universe multiverse"
                 "#deb-src $mirror/$linuxID $linuxCodeName-updates main restricted universe multiverse"
-                "#deb-src $mirror/$linuxID $linuxCodeName-proposed main restricted universe multiverse"
-                "#deb-src $mirror/$linuxID $linuxCodeName-backports main restricted universe multiverse")
+                "#deb-src $mirror/$linuxID $linuxCodeName-backports main restricted universe multiverse"
+                "#deb-src $mirror/$linuxID $linuxCodeName-proposed main restricted universe multiverse")
             yes | cp /etc/apt/sources.list /etc/apt/sources.list.$(date +%Y%m%d%H%M)
             printf "%s\n" "${source_list[@]}" > /etc/apt/sources.list
             ;;
