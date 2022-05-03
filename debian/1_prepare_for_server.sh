@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-function 1_upgrade_system {
+1_upgrade_system() {
     echo "1. [`hostname`] Upgrade system"
 
     source /etc/os-release
@@ -8,40 +8,73 @@ function 1_upgrade_system {
     local linuxVersion=$( echo $VERSION | awk -F'[.| ]' '{print $1}' )
     local linuxCodeName=$VERSION_CODENAME
     local mirror
+    local docker_mirror
+    local isDockerMirror
 
     if [[ $TIMEZONE == "Asia/Shanghai" || $TIMEZONE == "Asia/Chongqing" ]]; then
+        # Official Archive Mirrors for Ubuntu
+        # https://launchpad.net/ubuntu/+archivemirrors
+        # 1. ustc 使用太多会限速甚至是连不上,先测试下 nju
         case ${LINUX_SOFTWARE_MIRROR,,} in
-        nju)      mirror="http://mirror.nju.edu.cn/debian" ;;          # 南京大学, 10Gbps
-        bupt)     mirror="http://mirrors.bupt.edu.cn/debian" ;;        # 北京邮电大学, 10Gbps
-        ustc)     mirror="http://mirrors.ustc.edu.cn/debian" ;;        # 中国科学技术大学, 10Gbps
-        aliyun)   mirror="http://mirrors.aliyun.com/debian" ;;         # 阿里云, 2Gbps
-        tencent)  mirror="http://mirrors.cloud.tencent.com/debian" ;;  # 腾讯云, 2Gbps
-        sjtu)     mirror="http://ftp.sjtu.edu.cn/debian" ;;            # 上海交通大学, 1Gbps
-        bjtu)     mirror="http://mirror.bjtu.edu.cn/debian" ;;         # 北京交通大学, 1Gbps
-        dlut)     mirror="http://mirror.dlut.edu.cn/debian" ;;         # 大连理工大学, 1Gbps
-        hit)      mirror="http://mirrors.hit.edu.cn/debian" ;;         # 哈尔滨工业大学, 1Gbps
-        huawei)   mirror="http://repo.huaweicloud.com/debian" ;;       # 华为云, 1Gbps
-        njupt)    mirror="http://mirrors.njupt.edu.cn/debian" ;;       # 南京邮电大学, 1Gbps
-        sohu)     mirror="http://mirrors.sohu.com/debian" ;;           # 搜狐, 1Gbps
-        xjtu)     mirror="http://mirrors.xjtu.edu.cn/debian" ;;        # 西安交通大学, 1Gbps
-        skyshe)   mirror="http://mirrors.skyshe.cn/debian" ;;          # xTom open source software, 1Gbps
-        lzu)      mirror="http://mirror.lzu.edu.cn/debian" ;;          # 兰州大学, 100Mbps
-        cqu)      mirror="http://mirrors.cqu.edu.cn/debian" ;;         # 重庆大学, 100Mbps
-        dgut)     mirror="http://mirrors.dgut.edu.cn/debian" ;;        # 东莞理工学院, 100Mbps
-        tsinghua) mirror="http://mirrors.tuna.tsinghua.edu.cn/debian" ;; # 清华大学
-        bfsu)     mirror="http://mirrors.bfsu.edu.cn/debian" ;;        # 北京外国语大学
-        163)      mirror="http://mirrors.163.com/debian" ;;            # 网易
-        *)        mirror="ftp.cn.debian.org/debian" ;;
+        nju)      mirror="http://mirror.nju.edu.cn"; isDockerMirror=1 ;;        # 南京大学, 10Gbps
+        bupt)     mirror="http://mirrors.bupt.edu.cn" isDockerMirror=1 ;;       # 北京邮电大学, 10Gbps
+        ustc)     mirror="http://mirrors.ustc.edu.cn"; isDockerMirror=1 ;;      # 中国科技技术大学, 10Gbps
+        aliyun)   mirror="http://mirrors.aliyun.com"; isDockerMirror=1 ;;       # 阿里云, 2Gbps
+        tencent)  mirror="http://mirrors.cloud.tencent.com"; isDockerMirror=1 ;; # 腾讯云, 2Gbps
+        sjtu)     mirror="http://ftp.sjtu.edu.cn" ;;                            # 上海交通大学, 1Gbps
+        bjtu)     mirror="http://mirror.bjtu.edu.cn" ;;                         # 北京交通大学, 1Gbps
+        dlut)     mirror="http://mirror.dlut.edu.cn" ;;                         # 大连理工大学, 1Gbps
+        hit)      mirror="http://mirrors.hit.edu.cn"; isDockerMirror=1 ;;       # 哈尔滨工业大学, 1Gbps
+        huawei)   mirror="http://repo.huaweicloud.com"; isDockerMirror=1 ;;     # 华为云, 1Gbps
+        njupt)    mirror="http://mirrors.njupt.edu.cn"; isDockerMirror=1 ;;     # 南京邮电大学, 1Gbps
+        sohu)     mirror="http://mirrors.sohu.com" ;;                           # 搜狐, 1Gbps
+        xjtu)     mirror="http://mirrors.xjtu.edu.cn"; isDockerMirror=1 ;;      # 西安交通大学, 1Gbps
+        skyshe)   mirror="http://mirrors.skyshe.cn"; isDockerMirror=1 ;;        # xTom open source software, 1Gbps
+        lzu)      mirror="http://mirror.lzu.edu.cn"; ;;                         # 兰州大学, 100Mbps
+        cqu)      mirror="http://mirrors.cqu.edu.cn" ;;                         # 重庆大学, 100Mbps
+        dgut)     mirror="http://mirrors.dgut.edu.cn" ;;                        # 东莞理工学院, 100Mbps
+        tsinghua) mirror="http://mirrors.tuna.tsinghua.edu.cn"; isDockerMirror=1 ;; # 清华大学
+        bfsu)     mirror="http://mirrors.bfsu.edu.cn"; isDockerMirror=1 ;;      # 北京外国语大学
+        163)      mirror="http://mirrors.163.com" ;;                            # 网易
+        *)        mirror="http://mirror.nju.edu.cn" ;;                          # 南京大学, 10Gbps
         esac
+        docker_mirror=$mirror
+        [ $isDockerMirror ] || docker_mirror="http://mirror.nju.edu.cn"
+
+        # generate debian repository
         source_list=(
-            "deb $mirror $linuxCodeName main non-free contrib"
-            "deb $mirror $linuxCodeName-updates main non-free contrib"
-            "deb $mirror-security $linuxCodeName-security main non-free contrib"
-            "deb-src $mirror $linuxCodeName main non-free contrib"
-            "deb-src $mirror $linuxCodeName-updates main non-free contrib"
-            "deb-src $mirror-security $linuxCodeName-security main non-free contrib")
+            "deb $mirror/$linuxID $linuxCodeName main non-free contrib"
+            "deb $mirror/$linuxID $linuxCodeName-updates main non-free contrib"
+            "deb $mirror/$linuxID-security $linuxCodeName-security main non-free contrib"
+            "#deb-src $mirror/$linuxID $linuxCodeName main non-free contrib"
+            "#deb-src $mirror/$linuxID $linuxCodeName-updates main non-free contrib"
+            "#deb-src $mirror/$linuxID-security $linuxCodeName-security main non-free contrib")
         cp -f /etc/apt/sources.list /etc/apt/sources.list.$(date +%Y%m%d%H%M)
         printf "%s\n" "${source_list[@]}" > /etc/apt/sources.list
+
+        # generate docker repository
+        _apt_wait && apt-get update -y
+        _apt_wait && apt-get install -y apt-transport-https ca-certificates curl gnupg software-properties-common
+        while true; do
+            if curl -fsSL $docker_mirror/docker-ce/linux/$linuxID/gpg | gpg --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg; then
+                break; fi
+            sleep 1
+        done
+        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] $docker_mirror/docker-ce/linux/$linuxID $linuxCodeName stable" | \
+            tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    else
+        mirror="https://download.docker.com"
+        # generate docker repository
+        _apt_wait && apt-get update -y
+        _apt_wait && apt-get install -y apt-transport-https ca-certificates curl gnupg software-properties-common
+        while true; do
+            if curl -fsSL $mirror/linux/$linuxID/gpg | gpg --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg; then
+                break; fi
+            sleep 1
+        done
+        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] $mirror/linux/$linuxID $linuxCodeName stable" | \
+            tee /etc/apt/sources.list.d/docker.list > /dev/null
     fi
 
     export DEBIAN_FRONTEND=noninteractive
@@ -53,7 +86,7 @@ function 1_upgrade_system {
 }
 
 
-function 2_install_necessary_package {
+2_install_necessary_package() {
     echo "2. [`hostname`] Install necessary package"
 
     _apt_wait && apt-get install -y coreutils apt-file apt-transport-https software-properties-common \
@@ -63,14 +96,14 @@ function 2_install_necessary_package {
 }
 
 
-function 3_disable_firewald_and_selinux {
+3_disable_firewald_and_selinux() {
     echo "3. [`hostname`] Disable firewalld and selinux"
 
     :
 }
 
 
-function 4_set_timezone_and_ntp_client {
+4_set_timezone_and_ntp_client() {
     echo "4. [`hostname`] Set timezone and ntp"
 
     echo "timezone: $TIMEZONE"
@@ -82,7 +115,7 @@ function 4_set_timezone_and_ntp_client {
 }
 
 
-function 5_configure_sshd {
+5_configure_sshd() {
     echo "5. [`hostname`] Configure ssh"
     local SSH_CONF_PATH="/etc/ssh/sshd_config"
 
@@ -112,7 +145,7 @@ function 5_configure_sshd {
 }
 
 
-function 6_configure_ulimit {
+6_configure_ulimit() {
     echo "6. [`hostname`] Configure ulimit"
     local ULIMITS_CONF_PATH="/etc/security/limits.conf"
 
@@ -133,7 +166,7 @@ function 6_configure_ulimit {
 
 
 
-function main {
+main() {
     1_upgrade_system
     2_install_necessary_package
     3_disable_firewald_and_selinux
