@@ -60,7 +60,7 @@ prepare_software_mirror() {
                 "#deb-src $mirror/$linuxID-security $linuxCodeName-security main contrib non-free")
             yes | cp /etc/apt/sources.list /etc/apt/sources.list.$(date +%Y%m%d%H%M)
             printf "%s\n" "${source_list[@]}" > /etc/apt/sources.list
-            [ $linuxMajorVersion == "10" ] && \
+            [[ $linuxMajorVersion == "9" || $linuxMajorVersion == "10" ]] && \
                 sed -i "s|$linuxCodeName-security|$linuxCodeName/updates|g" /etc/apt/sources.list
             ;;
         ubuntu)
