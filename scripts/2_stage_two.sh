@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-function stage_two {
+stage_two() {
     MSG1 "====================== Stage 2: Prepare for Kubernetes ========================";
 
     mkdir -p "$K8S_DEPLOY_LOG_PATH/logs/stage-two"
