@@ -30,6 +30,7 @@
 | Rocky                   | 8          |
 | AlmaLinux (is planning) |            |
 | FreeBSD (is planning)   |            |
+| CoreOS (is planning)    |            |
 | VzLinux (is planning)   |            |
 | CentOS                  | 7          |
 
