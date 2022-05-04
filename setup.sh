@@ -28,7 +28,7 @@ K8S_DEPLOY_LOG_PATH="/root/k8s-deploy-log"              # k8s install log dir pa
 INSTALL_MANAGER=""                                      # like apt-get yum, set by script, not set here
 ENV_FILE=""                                             # default k8s environment file is k8s.env
 
-source scripts/function.sh                              # base function script
+source scripts/functions                                # small utils collections
 source scripts/0_stage_prepare.sh                       # deploy k8s cluster stage prepare script
 source scripts/1_stage_one.sh                           # deploy k8s cluster stage one script
 source scripts/2_stage_two.sh                           # deploy k8s cluster stage two script
