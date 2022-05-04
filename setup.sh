@@ -35,6 +35,8 @@ source scripts/2_stage_two.sh                           # deploy k8s cluster sta
 source scripts/3_stage_three.sh                         # deploy k8s cluster stage three script
 source scripts/4_stage_four.sh                          # deploy k8s cluster stage four script
 source scripts/5_stage_five.sh                          # deploy k8s cluster stage five script
+source scripts/6_stage_six.sh                           # deploy k8s cluster stage six script
+source scripts/7_stage_seven.sh                         # deploy k8s cluster stage seven script
 source scripts/add-k8s-node.sh                          # add k8s worker node script
 source scripts/del-k8s-node.sh                          # del k8s worker node script
 
@@ -69,6 +71,8 @@ main() {
     stage_three
     stage_four
     stage_five
-    MSG1 "NOT Forget Restart All Kubernetes Node !!!"
+    stage_six
+    stage_seven
+    MSG1 "NOT Forget Restart All Kubernetes Node!!!"
 }
 main
