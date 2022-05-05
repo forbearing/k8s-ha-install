@@ -59,13 +59,13 @@
         "vm.overcommit_memory = 1"
         "vm.panic_on_oom = 0"
         "net.ipv4.tcp_tw_recycle = 0"
+        "net.ipv4.tcp_tw_reuse = 1"
         "net.ipv6.conf.all.disable_ipv6 = 1"
         "net.netfilter.nf_conntrack_max = 2310720"
         "net.ipv4.tcp_keepalive_time = 600"
-        "net.ipv4.tcp_keepalivve_probes = 3"
+        "net.ipv4.tcp_keepalive_probes = 3"
         "net.ipv4.tcp_keepalive_intvl = 15"
         "net.ipv4.tcp_max_tw_buckets = 36000"
-        "net.tcp_tw_reuse = 1"
         "net.ipv4.tcp_max_orphans = 327680"
         "net.ipv4.tcp_orphan_retries = 3"
         "net.ipv4.tcp_syncookies = 1"
@@ -76,7 +76,9 @@
         "net.core.somaxconn = 16384"
         "net.ipv4.neigh.default.gc_thresh1 = 1024"
         "net.ipv4.neigh.default.gc_thresh2 = 2048"
-        "net.ipv4.neigh.default.gc_thresh3 = 4096" )
+        "net.ipv4.neigh.default.gc_thresh3 = 4096"
+        "net.ipv4.conf.all.route_localnet = 1"
+    )
     printf '%s\n' "${k8s_sysctl[@]}" > /etc/sysctl.d/98-k8s.conf
     sysctl --system
 }
