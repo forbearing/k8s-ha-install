@@ -23,16 +23,16 @@
 
 ---
 
-| Operating System        | Version    |
-| ----------------------- | ---------- |
-| Debian (Recommanded OS) | 11, 10, 9  |
-| Ubuntu                  | 22, 20, 18 |
-| Rocky                   | 8          |
-| AlmaLinux (is planning) |            |
-| FreeBSD (is planning)   |            |
-| CoreOS (is planning)    |            |
-| VzLinux (is planning)   |            |
-| CentOS                  | 7          |
+| Operating System        | Version  |
+| ----------------------- | -------- |
+| Debian (Recommanded OS) | 11 10 9  |
+| Ubuntu                  | 22 20 18 |
+| Rocky                   | 8        |
+| AlmaLinux (is planning) |          |
+| FreeBSD (is planning)   |          |
+| CoreOS (is planning)    |          |
+| VzLinux (is planning)   |          |
+| CentOS                  | 7        |
 
 #### Supported Kubernetes Version:
 
