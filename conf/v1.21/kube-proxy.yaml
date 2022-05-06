@@ -34,7 +34,7 @@ ipvs:
   tcpTimeout: 0s
   udpTimeout: 0s
 metricsBindAddress: ""
-mode: "#K8S_PROXY_MODE#"
+mode: "#KUBE_PROXY_MODE#"
 nodePortAddresses: null
 oomScoreAdj: null
 portRange: ""
