@@ -96,6 +96,7 @@
         sed -r -e "s|^metalink=|#metalink=|g" \
             -e "s|^#baseurl=http|baseurl=http|g" \
             -e "s|baseurl=(.*)releasever|baseurl=$epelMirror/epel/\$releasever|g" \
+            -e "s|baseurl=(.*)7|baseurl=$epelMirror/epel/7|g" \
             -i.$(date +%Y%m%d%H%M) \
             /etc/yum.repos.d/epel*.repo
         # copy and replace docker repository file
