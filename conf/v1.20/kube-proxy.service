@@ -5,7 +5,7 @@ After=network.target
 
 [Service]
 ExecStart=/usr/local/bin/kube-proxy \
-  --config=#K8S_PATH#/kube-proxy.yaml \
+  --config=#KUBE_PATH#/kube-proxy.yaml \
   --v=2
 
 Restart=always

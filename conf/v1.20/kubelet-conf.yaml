@@ -64,7 +64,7 @@ resolvConf: #resolvConf#
 rotateCertificates: true
 runtimeRequestTimeout: 2m0s
 serializeImagePulls: true
-staticPodPath: #K8S_PATH#/manifests
+staticPodPath: #KUBE_PATH#/manifests
 streamingConnectionIdleTimeout: 4h0m0s
 syncFrequency: 1m0s
 volumeStatsAggPeriod: 1m0s
