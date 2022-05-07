@@ -17,7 +17,7 @@
 stage_three() {
     MSG1 "========================= Stage 3: Install Docker =============================";
 
-    mkdir -p "$K8S_DEPLOY_LOG_PATH/logs/stage-three"
+    mkdir -p "$KUBE_DEPLOY_LOG_PATH/logs/stage-three"
     case $linuxID in
     centos)
         # Linux: centos
@@ -25,13 +25,17 @@ stage_three() {
         for node in "${ALL_NODE[@]}"; do
             MSG3 "*** $node *** is Installing Docker"
             ssh root@$node \
-                "$(typeset -f 1_install_docker)
+                "export TIMEZONE=$TIMEZONE
+                 export KUBE_VERSION=$KUBE_VERSION
+                 $(typeset -f 1_install_docker)
                  $(typeset -f 2_configure_docker)
+                 $(typeset -f 3_configure_containerd)
                  1_install_docker
-                 2_configure_docker" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs/stage-three/$node.log" &
+                 2_configure_docker
+                 3_configure_containerd" \
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs/stage-three/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 3 -f $K8S_DEPLOY_LOG_PATH/logs/stage-three/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f $KUBE_DEPLOY_LOG_PATH/logs/stage-three/*.log)"
         wait
         ;;
     rocky)
@@ -40,13 +44,17 @@ stage_three() {
         for node in "${ALL_NODE[@]}"; do
             MSG3 "*** $node *** is Installing Docker"
             ssh root@$node \
-                "$(typeset -f 1_install_docker)
+                "export TIMEZONE=$TIMEZONE
+                 export KUBE_VERSION=$KUBE_VERSION
+                 $(typeset -f 1_install_docker)
                  $(typeset -f 2_configure_docker)
+                 $(typeset -f 3_configure_containerd)
                  1_install_docker
-                 2_configure_docker" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs/stage-three/$node.log" &
+                 2_configure_docker
+                 3_configure_containerd" \
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs/stage-three/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 3 -f $K8S_DEPLOY_LOG_PATH/logs/stage-three/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f $KUBE_DEPLOY_LOG_PATH/logs/stage-three/*.log)"
         wait
         ;;
     ubuntu)
@@ -55,17 +63,19 @@ stage_three() {
         for node in "${ALL_NODE[@]}"; do
             MSG3 "*** $node *** is Installing Docker"
             ssh root@$node \
-                "$(typeset -f _apt_wait)
+                "export TIMEZONE=$TIMEZONE
+                 export KUBE_VERSION=$KUBE_VERSION
+                 $(typeset -f _apt_wait)
                  $(typeset -f 1_install_docker)
                  $(typeset -f 2_configure_docker)
-                 $(typeset -f 3_audit_for_docker)
+                 $(typeset -f 3_configure_containerd)
                  _apt_wait
                  1_install_docker
                  2_configure_docker
-                 3_audit_for_docker" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs/stage-three/$node.log" &
+                 3_configure_containerd" \
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs/stage-three/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 3 -f $K8S_DEPLOY_LOG_PATH/logs/stage-three/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f $KUBE_DEPLOY_LOG_PATH/logs/stage-three/*.log)"
         wait
         ;;
     debian)
@@ -74,17 +84,19 @@ stage_three() {
         for node in "${ALL_NODE[@]}"; do
             MSG3 "*** $node *** is Installing Docker"
             ssh root@$node \
-                "$(typeset -f _apt_wait)
+                "export TIMEZONE=$TIMEZONE
+                 export KUBE_VERSION=$KUBE_VERSION
+                 $(typeset -f _apt_wait)
                  $(typeset -f 1_install_docker)
                  $(typeset -f 2_configure_docker)
-                 $(typeset -f 3_audit_for_docker)
+                 $(typeset -f 3_configure_containerd)
                  _apt_wait
                  1_install_docker
                  2_configure_docker
-                 3_audit_for_docker" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs/stage-three/$node.log" &
+                 3_configure_containerd" \
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs/stage-three/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 3 -f $K8S_DEPLOY_LOG_PATH/logs/stage-three/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f $KUBE_DEPLOY_LOG_PATH/logs/stage-three/*.log)"
         wait
         ;;
     *)

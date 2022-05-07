@@ -17,7 +17,7 @@
 stage_two() {
     MSG1 "====================== Stage 2: Prepare for Kubernetes ========================";
 
-    mkdir -p "$K8S_DEPLOY_LOG_PATH/logs/stage-two"
+    mkdir -p "$KUBE_DEPLOY_LOG_PATH/logs/stage-two"
     case $linuxID in
     centos)
         # Linux: centos
@@ -35,9 +35,9 @@ stage_two() {
                  3_upgrade_kernel
                  4_load_kernel_module
                  5_configure_kernel_parameter" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs/stage-two/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs/stage-two/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 3 -f $K8S_DEPLOY_LOG_PATH/logs/stage-two/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f $KUBE_DEPLOY_LOG_PATH/logs/stage-two/*.log)"
         wait
         ;;
     rocky)
@@ -55,9 +55,9 @@ stage_two() {
                  2_disable_swap
                  4_load_kernel_module
                  5_configure_kernel_parameter" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs/stage-two/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs/stage-two/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 3 -f $K8S_DEPLOY_LOG_PATH/logs/stage-two/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f $KUBE_DEPLOY_LOG_PATH/logs/stage-two/*.log)"
         wait
         ;;
     ubuntu)
@@ -74,9 +74,9 @@ stage_two() {
                  1_disable_swap
                  2_load_kernel_module
                  3_configure_kernel_parameter" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs/stage-two/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs/stage-two/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 3 -f $K8S_DEPLOY_LOG_PATH/logs/stage-two/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f $KUBE_DEPLOY_LOG_PATH/logs/stage-two/*.log)"
         wait
         ;;
     debian)
@@ -93,9 +93,9 @@ stage_two() {
                  1_disable_swap
                  2_load_kernel_module
                  3_configure_kernel_parameter" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs/stage-two/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs/stage-two/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 3 -f $K8S_DEPLOY_LOG_PATH/logs/stage-two/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f $KUBE_DEPLOY_LOG_PATH/logs/stage-two/*.log)"
         wait
         ;;
     *)

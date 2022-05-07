@@ -17,7 +17,7 @@
 stage_one() {
     MSG1 "=================== Stage 1: Prepare for Linux Server =========================";
 
-    mkdir -p "$K8S_DEPLOY_LOG_PATH/logs/stage-one"
+    mkdir -p "$KUBE_DEPLOY_LOG_PATH/logs/stage-one"
     case $linuxID in
     centos)
         # Linux: centos
@@ -41,9 +41,9 @@ stage_one() {
                  5_set_timezone_and_ntp_client
                  6_configure_sshd
                  7_configure_ulimit" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs/stage-one/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs/stage-one/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 3 -f $K8S_DEPLOY_LOG_PATH/logs/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f $KUBE_DEPLOY_LOG_PATH/logs/stage-one/*.log)"
         wait
         ;;
     rocky)
@@ -68,9 +68,9 @@ stage_one() {
                  5_set_timezone_and_ntp_client
                  6_configure_sshd
                  7_configure_ulimit" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs/stage-one/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs/stage-one/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 3 -f $K8S_DEPLOY_LOG_PATH/logs/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f $KUBE_DEPLOY_LOG_PATH/logs/stage-one/*.log)"
         wait
         ;;
     ubuntu)
@@ -95,9 +95,9 @@ stage_one() {
                  4_set_timezone_and_ntp_client
                  5_configure_sshd
                  6_configure_ulimit" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs/stage-one/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs/stage-one/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 3 -f $K8S_DEPLOY_LOG_PATH/logs/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f $KUBE_DEPLOY_LOG_PATH/logs/stage-one/*.log)"
         wait
         ;;
     debian)
@@ -122,9 +122,9 @@ stage_one() {
                  4_set_timezone_and_ntp_client
                  5_configure_sshd
                  6_configure_ulimit" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs/stage-one/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs/stage-one/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 3 -f $K8S_DEPLOY_LOG_PATH/logs/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 3 -f $KUBE_DEPLOY_LOG_PATH/logs/stage-one/*.log)"
         wait
         ;;
     *)
