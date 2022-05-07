@@ -14,6 +14,72 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+EXIT_SUCCESS=0
+EXIT_FAILURE=1
+
+ERR(){ echo -e "\033[31m\033[01m$1\033[0m"; }
+MSG1(){ echo -e "\n\n\033[32m\033[01m$1\033[0m\n"; }
+MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
+MSG3(){ echo -e "\033[33m\033[01m$1\033[0m"; }
+
+
+_exportOSInfo() {
+    source /etc/os-release
+    linuxID=$ID
+    linuxMajorVersion=$( echo $VERSION | awk -F'[.| ]' '{print $1}' )
+    linuxCodeName=$VERSION_CODENAME
+    [ -f /etc/lsb-release ] &&  \
+        linuxMinorVersion=$(cat /etc/lsb-release  | awk -F'=' '/DISTRIB_RELEASE/ {print $2}' | awk -F'.'  '{print $2}')
+    [ -f /etc/system-release ] && \
+        linuxMinorVersion=$(cat /etc/system-release | awk '{print $4}' | awk -F'.' '{print $2}')
+    export linuxID linuxMajorVersion linuxMinorVersion linuxCodeName
+}
+
+_single_handler() {
+    for SIG in "$@"; do
+        case $SIG in
+        "INT")      # ctrl-c to stop this script, exit success.
+            trap "echo Interrupt by User, exit...; exit 0" $SIG ;;
+        "TERM")     # kill command to stop this script, exit failure.
+            trap "echo Killed by User, exit...; exit 1" $SIG ;;
+        "QUIT")     # systemd send single to stop this script, exit success.
+            trap "echo Finished...; exit 0" $SIG ;;
+        esac
+    done
+}
+
+prepare_software_version() {
+    export KUBE_PATH="/etc/kubernetes"                              # k8s config path
+    export KUBE_CERT_PATH="/etc/kubernetes/pki"                     # k8s cert path
+    export ETCD_CERT_PATH="/etc/etcd/ssl"                           # etcd cert path
+    export KUBE_DEPLOY_LOG_PATH="/root/k8s-deploy-log"              # k8s install log dir path
+
+    export KUBE_VERSION         # kubernetes version
+    export KUBE_PROXY_MODE      # kube-proxy proxy mode
+    export ETCD_VERSION         # etcd version
+    export HELM_VERSION         # helm version
+    export CFSSL_VERSION        # cfssl utils version
+
+    # setting the default kubernetes version
+    [ $KUBE_VERSION ] || KUBE_VERSION="v1.23"
+    # setting the default kube-proxy proxy mode
+    [ $KUBE_PROXY_MODE ] || KUBE_PROXY_MODE="ipvs"
+    # setting the default helm  version
+    [ $HELM_VERSION ] ||  HELM_VERSION="v3.7.1"
+    # setting the default cfssl utils version
+    [ $CFSSL_VERSION ] || CFSSL_VERSION="v1.6.1"
+
+    # choose the etcd version for kubernetes cluster
+    case $KUBE_VERSION in
+    v1.24)
+        ETCD_VERSION="v3.5.4"
+        ;;
+    *)
+        ETCD_VERSION="v3.4.13"
+        ;;
+    esac
+}
+
 prepare_software_mirror() {
     if [[ $TIMEZONE == "Asia/Shanghai" || $TIMEZONE == "Asia/Chongqing" ]]; then
         local mirror
@@ -96,6 +162,7 @@ prepare_software_mirror() {
         esac
     fi
 }
+
 _stage_prepare() {
     # 将 k8s 节点的主机名与 IP 对应关系写入 /etc/hosts 文件
     for HOST in "${!MASTER[@]}"; do
@@ -106,7 +173,6 @@ _stage_prepare() {
         local IP=${WORKER[$HOST]}
         sed -r -i "/(.*)$IP(.*)$HOST(.*)/d" /etc/hosts
         echo "$IP $HOST" >> /etc/hosts; done
-
 
     # 安装 sshpass ssh-keyscan multitail
     case $linuxID in 
@@ -125,7 +191,7 @@ _stage_prepare() {
         exit $EXIT_FAILURE
     esac
     # 生成 ssh 密钥对
-    [[ ! -d $K8S_PATH ]] && rm -rf "$K8S_PATH"; mkdir -p "$K8S_PATH"
+    [[ ! -d $KUBE_PATH ]] && rm -rf "$KUBE_PATH"; mkdir -p "$KUBE_PATH"
     [[ ! -d $KUBE_CERT_PATH ]] && rm -rf "$KUBE_CERT_PATH"; mkdir -p "$KUBE_CERT_PATH"
     [[ ! -d $ETCD_CERT_PATH ]] && rm -rf "$ETCD_CERT_PATH"; mkdir -p "$ETCD_CERT_PATH"
     if [[ ! -d "/root/.ssh" ]]; then rm -rf /root/.ssh; mkdir /root/.ssh; chmod 0700 /root/.ssh; fi
@@ -133,7 +199,6 @@ _stage_prepare() {
     if [[ ! -s "/root/.ssh/id_ecdsa" ]]; then ssh-keygen -t ecdsa -N '' -f /root/.ssh/id_ecdsa; fi
     if [[ ! -s "/root/.ssh/id_ed25519" ]]; then ssh-keygen -t ed25519 -N '' -f /root/.ssh/id_ed25519; fi
     #if [[ ! -s "/root/.ssh/id_xmss" ]]; then ssh-keygen -t xmss -N '' -f /root/.ssh/id_xmss; fi
-
 
     # 收集 master 节点和 worker 节点的主机指纹
     # 在当前 master 节点上配置好 ssh 公钥认证
@@ -144,11 +209,10 @@ _stage_prepare() {
     for node in "${WORKER[@]}"; do
         ssh-keyscan "$node" >> /root/.ssh/known_hosts; done
     for node in "${ALL_NODE[@]}"; do
-        sshpass -p "$K8S_ROOT_PASS" ssh-copy-id -f -i /root/.ssh/id_rsa.pub root@"$node" > /dev/null
-        sshpass -p "$K8S_ROOT_PASS" ssh-copy-id -f -i /root/.ssh/id_ecdsa.pub root@"$node" > /dev/null
-        sshpass -p "$K8S_ROOT_PASS" ssh-copy-id -f -i /root/.ssh/id_ed25519.pub root@"$node" > /dev/null ; done
-        #sshpass -p "$K8S_ROOT_PASS" ssh-copy-id -f -i /root/.ssh/id_xmss.pub root@"$node"
-
+        sshpass -p "$KUBE_ROOT_PASS" ssh-copy-id -f -i /root/.ssh/id_rsa.pub root@"$node" > /dev/null
+        sshpass -p "$KUBE_ROOT_PASS" ssh-copy-id -f -i /root/.ssh/id_ecdsa.pub root@"$node" > /dev/null
+        sshpass -p "$KUBE_ROOT_PASS" ssh-copy-id -f -i /root/.ssh/id_ed25519.pub root@"$node" > /dev/null ; done
+        #sshpass -p "$KUBE_ROOT_PASS" ssh-copy-id -f -i /root/.ssh/id_xmss.pub root@"$node"
 
     # 设置 hostname
     # 将 /etc/hosts 文件复制到所有节点
@@ -157,12 +221,10 @@ _stage_prepare() {
         scp /etc/hosts $node:/etc/hosts &
     done; wait
 
-
     # 所有节点设置默认 shell 为 bash
     for node in "${ALL_NODE[@]}"; do
         chsh -s "$(which bash)" &> /dev/null
     done
-
 
     # 如果操作系统为 CentOS/Rocky，则将 yum.repos.d 复制到所有的 k8s 节点的 /tmp 目录下
     case $linuxID in
@@ -187,8 +249,12 @@ _stage_prepare() {
 stage_prepare(){
     MSG1 "=============  Stage Prepare: Setup SSH Public Key Authentication ============="
 
+    _exportOSInfo
+    _single_handler
     prepare_software_mirror
-    mkdir -p "$K8S_DEPLOY_LOG_PATH/logs/stage-prepare"
-    local LOG_FILE="$K8S_DEPLOY_LOG_PATH/logs/stage-prepare/prepare.log"
+    prepare_software_version
+
+    mkdir -p "$KUBE_DEPLOY_LOG_PATH/logs/stage-prepare"
+    local LOG_FILE="$KUBE_DEPLOY_LOG_PATH/logs/stage-prepare/prepare.log"
     _stage_prepare 2>&1 | tee -ai "$LOG_FILE"
 }
