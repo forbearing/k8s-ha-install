@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-function usage {
+usage() {
     echo -e "Options: "
     echo -e "    -e      environment file"
     echo -e "    -a      delete k8s node"
@@ -28,9 +28,7 @@ function usage {
     echo -e "    ./setup.sh -d worker4          删除 k8s worker 节点"
 }
 
-
-function usage2 {
-
+usage2() {
 env_des="-e          指定变量文件(非必选), 如果不指定, 默认从当前路径下的 k8s.env 文件中读取变量. (需要参数)\n"
 add_des="-a          添加 k8s worker 节点, 要添加的 k8s worker 节点列表是从环境变量中读取的. (不需要参数)\n"
 del_des="-d          删除 k8s worker 节点, 需要提供你想删除的 worker 节点的名字, 这个 worker 节点\n
@@ -38,7 +36,7 @@ del_des="-d          删除 k8s worker 节点, 需要提供你想删除的 worke
     printf "%s" ${del_des}
 }
 
-function print_environment {
+print_environment() {
     MSG1 "=================================== Environment ==================================="
     MSG2 "master node"
     for host in "${!MASTER[@]}"; do
@@ -70,29 +68,30 @@ function print_environment {
     echo "SRV_NETWORK_IP:           $SRV_NETWORK_IP"
     echo "SRV_NETWORK_DNS_IP:       $SRV_NETWORK_DNS_IP"
     echo "POD_NETWORK_CIDR:         $POD_NETWORK_CIDR"
-    echo "K8S_PATH                  $K8S_PATH"
+    echo "KUBE_PATH                 $KUBE_PATH"
     echo "K8S_VERSION:              $K8S_VERSION"
     echo "K8S_PROXY_MODE:           $K8S_PROXY_MODE"
     echo "KUBE_CERT_PATH:           $KUBE_CERT_PATH"
     echo "ETCD_CERT_PATH:           $ETCD_CERT_PATH"
-    echo "K8S_DEPLOY_LOG_PATH:      $K8S_DEPLOY_LOG_PATH"
+    echo "KUBE_DEPLOY_LOG_PATH:     $KUBE_DEPLOY_LOG_PATH"
 }
 
-function check_root_and_os() {
+
+check_root_and_os() {
     # 检测是否为支持的 Linux 版本，否则退出脚本
     # 检测是否为 root 用户，否则推出脚本
     [[ "$(uname)" != "Linux" ]] && ERR "Not Support OS !" && exit $EXIT_FAILURE
     [[ $(id -u) -ne 0 ]] && ERR "Not ROOT !" && exit $EXIT_FAILURE
 
-    case $linuxID in
-    centos|rocky)
-        INSTALL_MANAGER="yum" ;;
-    debian|ubuntu)
-        INSTALL_MANAGER="apt-get" ;;
-    *)
-        ERR "Not Support Linux $linuxID!"
-        EXIT $EXIT_FAILURE
-    esac
+    #case $linuxID in
+    #centos|rocky)
+    #    INSTALL_MANAGER="yum" ;;
+    #debian|ubuntu)
+    #    INSTALL_MANAGER="apt-get" ;;
+    #*)
+    #    ERR "Not Support Linux $linuxID!"
+    #    EXIT $EXIT_FAILURE
+    #esac
 
     # if ! command -v ping &> /dev/null; then
     #     ERR "command ping not found, skip network detect!"
@@ -103,8 +102,9 @@ function check_root_and_os() {
     # fi
 }
 
+
 # refer: https://gist.github.com/tedivm/e11ebfdc25dc1d7935a3d5640a1f1c90
-function _apt_wait() {
+_apt_wait() {
     while true; do
         if lsof /var/lib/dpkg/lock &> /dev/null; then
             sleep 1
@@ -126,8 +126,9 @@ function _apt_wait() {
     done
 }
 
+
 # refer: https://gist.github.com/tedivm/e11ebfdc25dc1d7935a3d5640a1f1c90
-function _apt_wait2() {
+_apt_wait2() {
     while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
         sleep 1
     done
@@ -143,16 +144,3 @@ function _apt_wait2() {
         done
     fi
 }
-
-_exportOSInfo() {
-    source /etc/os-release
-    linuxID=$ID
-    linuxMajorVersion=$( echo $VERSION | awk -F'[.| ]' '{print $1}' )
-    linuxCodeName=$VERSION_CODENAME
-    [ -f /etc/lsb-release ] &&  \
-        linuxMinorVersion=$(cat /etc/lsb-release  | awk -F'=' '/DISTRIB_RELEASE/ {print $2}' | awk -F'.'  '{print $2}')
-    [ -f /etc/system-release ] && \
-        linuxMinorVersion=$(cat /etc/system-release | awk '{print $4}' | awk -F'.' '{print $2}')
-    export linuxID linuxMajorVersion linuxMinorVersion linuxCodeName
-}
-_exportOSInfo
