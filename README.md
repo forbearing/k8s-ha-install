@@ -36,6 +36,7 @@
 
 #### Supported Kubernetes Version:
 
+- v1.24+
 - v1.23+
 - v1.22+
 - v1.21+
