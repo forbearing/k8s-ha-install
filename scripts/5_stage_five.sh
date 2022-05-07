@@ -14,26 +14,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-function deploy_dashboard {
+deploy_dashboard() {
     MSG2 "Deploy kubernetes dashboard"
     kubectl apply -f addons-3rd/dashboard/dashboard.yaml
     #kubectl apply -f dashboard/dashboard-user.yaml
 }
 
 
-function deploy_kuboard {
+deploy_kuboard() {
     MSG2 "Deploy Kuboard"
     kubectl apply -f addons-3rd/kuboard/kuboard-v2.yaml                         # v2
     #kubectl apply -f https://addons.kuboard.cn/kuboard/kuboard-v3.yaml          # v3
 }
 
 
-function deploy_ingress {
+deploy_ingress() {
     MSG2 "Deploy Ingress-nginx"
     while true; do
         ALL_RUNNING_NODE=($(kubectl get node | sed -n '2,$p' | awk '{print $2}'))
         if [[ "${ALL_RUNNING_NODE[*]}" =~ NotReady ]]; then
-            echo "Waiting All Node Ready ..."
+            echo "Waiting All Node Ready..."
             sleep 5; 
         else
             echo "All Node is Ready, Start Installing Ingress-nginx ..."
@@ -58,13 +58,13 @@ function deploy_ingress {
 }
 
 
-function deploy_traefik {
+deploy_traefik() {
     MSG2 "Deploy Traefik"
     helm install --create-namespace -n traefik traefik addons-3rd/traefik/traefik
 }
 
 
-function deploy_cephcsi {
+deploy_cephcsi() {
     MSG2 "Deploy ceph csi"
 
     local CEPH_MON_IP=(10.250.20.11
@@ -78,7 +78,6 @@ function deploy_cephcsi {
     local CEPH_NAMESPACE="ceph"
     local CEPH_STORAGECLASS="ceph-rbd"
 
-
     # Setup SSH Public Key Authentication
     for NODE in "${CEPH_MON_IP[@]}"; do 
         ssh-keyscan "${NODE}" >> /root/.ssh/known_hosts 2> /dev/null; done
@@ -87,7 +86,6 @@ function deploy_cephcsi {
         sshpass -p "${CEPH_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ecdsa.pub root@"${NODE}"
         sshpass -p "${CEPH_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_ed25519.pub root@"${NODE}"; done
         #sshpass -p "${K8S_ROOT_PASS}" ssh-copy-id -f -i /root/.ssh/id_xmss.pub root@"${NODE}"
-
 
     # get ceph cluster id
     CEPH_CLUSTER_ID=`ssh ${CEPH_MON_IP[0]} "ceph -s" | grep 'id:' | awk '{print $2}'`
@@ -99,7 +97,6 @@ function deploy_cephcsi {
     CEPH_USER_KEY=`ssh ${CEPH_MON_IP[0]} "ceph auth print-key client.${CEPH_USER}"`
     # create namesapce for ceph
     kubectl create namespace ${CEPH_NAMESPACE}
-
 
     rm -rf /tmp/csi-ceph && cp -r addons-3rd/csi-ceph/v2.0.1/ /tmp/csi-ceph
     for FILE in \
@@ -121,13 +118,12 @@ function deploy_cephcsi {
     sed -i "s%#CEPH_POOL#%${CEPH_POOL}%g" /tmp/csi-ceph/8_csi-rbd-storageclass.yaml
     sed -i "s%#CEPH_STORAGECLASS#%${CEPH_STORAGECLASS}%g" /tmp/csi-ceph/8_csi-rbd-storageclass.yaml
 
-
     # deploy ceph csi for kubernetes
     kubectl apply -f /tmp/csi-ceph/
 }
 
 
-function deploy_longhorn {
+deploy_longhorn() {
     MSG2 "Deploy longhorn"
     # service
     service_ui_type="NodePort"
@@ -176,7 +172,7 @@ function deploy_longhorn {
         --set longhornDriver.priorityClass=${priorityClass}
 }
 
-function deploy_nfsclient {
+deploy_nfsclient() {
     local NFS_SERVER="10.250.11.11"
     local NFS_STORAGE_PATH="/nfs-storage"
     local NFS_STORAGECLASS="nfs-client"
@@ -189,14 +185,14 @@ function deploy_nfsclient {
         --set nfs.storageClass.name=${NFS_STORAGECLASS}
 }
 
-function deploy_metallb {
+deploy_metallb() {
     MSG2 "Deploy MetalLb"
     kubectl apply -f addons-3rd/metalLB/1_namespace.yaml
     bash addons-3rd/metalLB/2_create_secret.sh 
     kubectl apply -f addons-3rd/metalLB/3_metallb.yaml
 }
 
-function deploy_kong {
+deploy_kong() {
     MSG2 "Deploy Kong ApiGateway"
 
     namespace=kong
@@ -255,11 +251,10 @@ function deploy_kong {
         #--set clustertelemetry.enabled=false
 }
 
-function deploy_harbor { :; }
+deploy_harbor() { :; }
 
 
-function stage_five {
-    MSG1 "==================== Stage 5: Deployment Kubernetes Addon =====================";
+_stage_five() {
     [ ${INSTALL_KUBOARD} ]   && deploy_kuboard
     [ ${INSTALL_INGRESS} ]   && deploy_ingress
     [ ${INSTALL_TRAEFIK} ]   && deploy_traefik
@@ -270,4 +265,11 @@ function stage_five {
     [ ${INSTALL_HARBOR} ]    && deploy_harbor
     [ ${INSTALL_KONG} ]      && deploy_kong
     [ ${INSTALL_NFSCLIENT} ] && deploy_nfsclient
+}
+
+stage_five() {
+    MSG1 "==================== Stage 5: Deployment Kubernetes Addon =====================";
+    mkdir -p "$KUBE_DEPLOY_LOG_PATH/logs/stage-five"
+    local LOG_FILE="$KUBE_DEPLOY_LOG_PATH/logs/stage-five/addons-3rd.log"
+    _stage_five 2>&1 | tee -ai "$LOG_FILE"
 }
