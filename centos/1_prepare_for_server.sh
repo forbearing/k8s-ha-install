@@ -101,7 +101,10 @@
             /etc/yum.repos.d/epel*.repo
         # copy and replace docker repository file
         yes | cp /tmp/yum.repos.d/docker-ce.repo /etc/yum.repos.d/
-        sed -r -e "s|baseurl=(.*)releasever|baseurl=$dockerMirror/docker-ce/linux/centos/\$releasever|g" -i.$(date +%Y%m%d%H%M) /etc/yum.repos.d/docker-ce.repo
+        sed -r -e "s|baseurl=(.*)releasever|baseurl=$dockerMirror/docker-ce/linux/centos/\$releasever|g" \
+            -e "s|gpgcheck=1|gpgcheck=0|g" \
+            -i.$(date +%Y%m%d%H%M) \
+            /etc/yum.repos.d/docker-ce.repo
 
     # if TIMEZONE isn't Asia/Shanghai or Asia/Chongqing
     else
