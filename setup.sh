@@ -14,20 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-EXIT_SUCCESS=0
-EXIT_FAILURE=1
-ERR(){ echo -e "\033[31m\033[01m$1\033[0m"; }
-MSG1(){ echo -e "\n\n\033[32m\033[01m$1\033[0m\n"; }
-MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
-MSG3(){ echo -e "\033[33m\033[01m$1\033[0m"; }
-
-K8S_PATH="/etc/kubernetes"                              # k8s config path
-KUBE_CERT_PATH="/etc/kubernetes/pki"                    # k8s cert path
-ETCD_CERT_PATH="/etc/etcd/ssl"                          # etcd cert path
-K8S_DEPLOY_LOG_PATH="/root/k8s-deploy-log"              # k8s install log dir path
-INSTALL_MANAGER=""                                      # like apt-get yum, set by script, not set here
-ENV_FILE=""                                             # default k8s environment file is k8s.env
-
 source scripts/functions                                # small utils collections
 source scripts/0_stage_prepare.sh                       # deploy k8s cluster stage prepare script
 source scripts/1_stage_one.sh                           # deploy k8s cluster stage one script
@@ -37,32 +23,33 @@ source scripts/4_stage_four.sh                          # deploy k8s cluster sta
 source scripts/5_stage_five.sh                          # deploy k8s cluster stage five script
 source scripts/6_stage_six.sh                           # deploy k8s cluster stage six script
 source scripts/7_stage_seven.sh                         # deploy k8s cluster stage seven script
-source scripts/add-k8s-node.sh                          # add k8s worker node script
-source scripts/del-k8s-node.sh                          # del k8s worker node script
+source scripts/add_k8s_node.sh                          # add k8s worker node script
+source scripts/del_k8s_node.sh                          # del k8s worker node script
+source scripts/upgrade_k8s_cluster.sh                   # upgrade k8s cluster script
 
-while getopts "e:ad:h" opt; do
-    case "${opt}" in
+ENV_FILE=""                                             # default k8s environment file is k8s.env
+while getopts "e:ad:uh" opt; do
+    case "$opt" in
     e) ENV_FILE="$OPTARG" ;;
-    a) i_want_add_k8s_node="true" ;;
-    d) i_want_del_k8s_node="true";
+    a) add_k8s_node="true" ;;
+    d) del_k8s_node="true"
        DEL_WORKER="$OPTARG" ;;
-    h) usage; exit $EXIT_SUCCESS ;;
-    *) usage; exit $EXIT_FAILURE ;;
+    u) upgrade_k8s_cluster="true" ;;
+    h) usage ;;
+    *) usage ;;
     esac
 done
-[[ $ENV_FILE ]] || ENV_FILE="k8s.env"
-source $ENV_FILE
-ALL_NODE=( ${!MASTER[@]} ${!WORKER[@]} )
-
-
-[[ $K8S_VERSION ]]    || K8S_VERSION="v1.23"
-[[ $K8S_PROXY_MODE ]] || K8S_PROXY_MODE="ipvs"
-[[ $i_want_add_k8s_node ]] && add_k8s_node && exit $EXIT_SUCCESS
-[[ $i_want_del_k8s_node ]] && del_k8s_node && exit $EXIT_SUCCESS
-
 
 check_root_and_os
-print_environment
+pre_prepare_environ
+[ $ENV_FILE ] || ENV_FILE="k8s.env"
+source $ENV_FILE
+post_prepare_environ
+print_environ
+
+[ $add_k8s_node ] && add_k8s_node && exit $EXIT_SUCCESS
+[ $del_k8s_node ] && del_k8s_node && exit $EXIT_SUCCESS
+[ $upgrade_k8s_cluster ]  && upgrade_k8s_cluster && exit $EXIT_SUCCESS
 
 main() {
     stage_prepare
