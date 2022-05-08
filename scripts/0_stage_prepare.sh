@@ -14,15 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-EXIT_SUCCESS=0
-EXIT_FAILURE=1
-
-ERR(){ echo -e "\033[31m\033[01m$1\033[0m"; }
-MSG1(){ echo -e "\n\n\033[32m\033[01m$1\033[0m\n"; }
-MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
-MSG3(){ echo -e "\033[33m\033[01m$1\033[0m"; }
-
-
 _exportOSInfo() {
     source /etc/os-release
     linuxID=$ID
@@ -32,10 +23,153 @@ _exportOSInfo() {
         linuxMinorVersion=$(cat /etc/lsb-release  | awk -F'=' '/DISTRIB_RELEASE/ {print $2}' | awk -F'.'  '{print $2}')
     [ -f /etc/system-release ] && \
         linuxMinorVersion=$(cat /etc/system-release | awk '{print $4}' | awk -F'.' '{print $2}')
-    export linuxID linuxMajorVersion linuxMinorVersion linuxCodeName
+    #export linuxID linuxMajorVersion linuxMinorVersion linuxCodeName
 }
 
-_single_handler() {
+pre_prepare_environ() {
+    _exportOSInfo
+
+    #export KUBE_VERSION="v1.24"                         # default kubernetes version
+    #export KUBE_PATH="/etc/kubernetes"                  # default kubernetes config path
+    #export KUBE_CERT_PATH="$KUBE_PATH/pki"              # default kubernetes certs path
+    #export KUBE_PROXY_MODE="ipvs"                       # default kube-proxy proxy mode
+    #export KUBE_DEPLOY_LOG_PATH="/root/k8s-deploy-log"  # default kubernetes dpeloy log path
+
+    #export ETCD_VERSION=""
+    #export ETCD_CERT_PATH="/etc/etcd/ssl"               # default etcd cert path
+
+    #export HELM_VERSION="v3.7.1"                        # default helm version
+    #export CFSSL_VERSION="v1.6.1"                       # default cfssl utils version
+
+    KUBE_VERSION="v1.24"                         # default kubernetes version
+    KUBE_PATH="/etc/kubernetes"                  # default kubernetes config path
+    KUBE_CERT_PATH="$KUBE_PATH/pki"              # default kubernetes certs path
+    KUBE_PROXY_MODE="ipvs"                       # default kube-proxy proxy mode
+    KUBE_DEPLOY_LOG_PATH="/root/k8s-deploy-log"  # default kubernetes dpeloy log path
+
+    ETCD_VERSION=""
+    ETCD_CERT_PATH="/etc/etcd/ssl"               # default etcd cert path
+
+    HELM_VERSION="v3.7.1"                        # default helm version
+    CFSSL_VERSION="v1.6.1"                       # default cfssl utils version
+}
+
+post_prepare_environ() {
+    # choose the etcd version for kubernetes cluster
+    case $KUBE_VERSION in
+    v1.24)
+        ETCD_VERSION="v3.5.4"
+        ;;
+    *)
+        ETCD_VERSION="v3.4.13"
+        ;;
+    esac
+
+    ALL_NODE=( ${!MASTER[@]} ${!WORKER[@]} )
+
+    # choose the calico version for kubernetes cluster and linux distribution
+    case $KUBE_VERSION in 
+    v1.20)
+        if [[ $linuxID == "ubuntu" && $linuxMajorVersion == "22" ]]; then
+            [ $CALICO_VERSION ] || CALICO_VERSION="v3.22"
+            [ $CALICO_TYPE ] || CALICO_TYPE="calico-etcd"
+        fi
+        [ $CALICO_VERSION ] || CALICO_VERSION="v3.21"
+        [ $CALICO_TYPE ] || CALICO_TYPE="calico-etcd"
+        ;;
+    v1.21|v1.22|v1.23)
+        [ $CALICO_VERSION ] || CALICO_VERSION="v3.22"
+        [ $CALICO_TYPE ] || CALICO_TYPE="calico-etcd"
+        ;;
+    v1.24)
+        case $linuxID in
+        debian)
+            if [ $linuxMajorVersion == "11" || \
+                 $linuxMajorVersion == "10" ]; then
+                [ $CALICO_VERSION ] || CALICO_VERSION="v3.22"
+                [ $CALICO_TYPE ] || CALICO_TYPE="calico-typha"
+            fi
+            ;;
+        ubuntu)
+            if [ $linuxMajorVersion == "22" ]; then
+                [ $CALICO_VERSION ] || CALICO_VERSION="v3.22"
+                [ $CALICO_TYPE ] || CALICO_TYPE="calico-typha"
+            fi
+            ;;
+        rocky)
+            if [ $linuxMajorVersion == "8" ]; then
+                [ $CALICO_VERSION ] || CALICO_VERSION="v3.22"
+                [ $CALICO_TYPE ] || CALICO_TYPE="calico-typha"
+            fi
+            ;;
+        centos)
+            if [ $linuxMajorVersion == "7" ]; then
+                [ $CALICO_VERSION ] || CALICO_VERSION="v3.22"
+                [ $CALICO_TYPE ] || CALICO_TYPE="calico-typha"
+            fi
+            ;;
+        esac
+
+        [ $CALICO_VERSION ] ||  CALICO_VERSION="v3.21"
+        [ $CALICO_TYPE ] || CALICO_TYPE="calico-typha"
+        ;;
+    esac
+}
+
+print_environ() {
+    MSG1 "=================================== Environment ==================================="
+
+    MSG2 "master node"
+    for host in "${!MASTER[@]}"; do
+        local ip=${MASTER[$host]}
+        printf "%-20s%s\n" $host $ip; done
+
+    MSG2 "worker node"
+    for host in "${!WORKER[@]}"; do
+        local ip=${WORKER[$host]}
+        printf "%-20s%s\n" $host $ip; done
+
+    MSG2 "extra master node"
+    for host in "${!EXTRA_MASTER[@]}"; do
+        local ip=${EXTRA_MASTER[$host]}
+        printf "%-20s%s\n" $host $ip; done
+
+    MSG2 "add worker node"
+    for host in "${!ADD_WORKER[@]}"; do
+        local ip=${ADD_WORKER[$host]}
+        printf "%-20s%s\n" $host $ip; done
+
+    MSG2 "Linux Informations"
+    echo "linuxID:                  $linuxID"
+    echo "linuxCodeName:            $linuxCodeName"
+    echo "linuxMajorVersion:        $linuxMajorVersion"
+    echo "linuxMinorVersion:        $linuxMinorVersion"
+
+    MSG2 "Kubernetes Informations"
+    echo "KUBE_VERSION:             $KUBE_VERSION"
+    echo "KUBE_PATH:                $KUBE_PATH"
+    echo "KUBE_CERT_PATH:           $KUBE_CERT_PATH"
+    echo "KUBE_PROXY_MODE:          $KUBE_PROXY_MODE"
+    echo "KUBE_DEPLOY_LOG_PATH:     $KUBE_DEPLOY_LOG_PATH"
+    echo "CONTROL_PLANE_ENDPOINT:   $CONTROL_PLANE_ENDPOINT"
+    echo "SRV_NETWORK_CIDR:         $SRV_NETWORK_CIDR"
+    echo "SRV_NETWORK_IP:           $SRV_NETWORK_IP"
+    echo "SRV_NETWORK_DNS_IP:       $SRV_NETWORK_DNS_IP"
+    echo "POD_NETWORK_CIDR:         $POD_NETWORK_CIDR"
+
+    MSG2 "Packages Informations"
+    echo "ETCD_VERSION:             $ETCD_VERSION"
+    echo "ETCD_CERT_PATH:           $ETCD_CERT_PATH"
+    echo "HELM_VERSION:             $HELM_VERSION"
+    echo "CFSSL_VERSION:            $CFSSL_VERSION"
+
+    MSG2 "Kubernetes Addons Informations"
+    echo "CALICO_VERSION:           $CALICO_VERSION"
+    echo "CALICO_TYPE:              $CALICO_TYPE"
+
+}
+
+single_handler() {
     for SIG in "$@"; do
         case $SIG in
         "INT")      # ctrl-c to stop this script, exit success.
@@ -46,38 +180,6 @@ _single_handler() {
             trap "echo Finished...; exit 0" $SIG ;;
         esac
     done
-}
-
-prepare_software_version() {
-    export KUBE_PATH="/etc/kubernetes"                              # k8s config path
-    export KUBE_CERT_PATH="/etc/kubernetes/pki"                     # k8s cert path
-    export ETCD_CERT_PATH="/etc/etcd/ssl"                           # etcd cert path
-    export KUBE_DEPLOY_LOG_PATH="/root/k8s-deploy-log"              # k8s install log dir path
-
-    export KUBE_VERSION         # kubernetes version
-    export KUBE_PROXY_MODE      # kube-proxy proxy mode
-    export ETCD_VERSION         # etcd version
-    export HELM_VERSION         # helm version
-    export CFSSL_VERSION        # cfssl utils version
-
-    # setting the default kubernetes version
-    [ $KUBE_VERSION ] || KUBE_VERSION="v1.23"
-    # setting the default kube-proxy proxy mode
-    [ $KUBE_PROXY_MODE ] || KUBE_PROXY_MODE="ipvs"
-    # setting the default helm  version
-    [ $HELM_VERSION ] ||  HELM_VERSION="v3.7.1"
-    # setting the default cfssl utils version
-    [ $CFSSL_VERSION ] || CFSSL_VERSION="v1.6.1"
-
-    # choose the etcd version for kubernetes cluster
-    case $KUBE_VERSION in
-    v1.24)
-        ETCD_VERSION="v3.5.4"
-        ;;
-    *)
-        ETCD_VERSION="v3.4.13"
-        ;;
-    esac
 }
 
 prepare_software_mirror() {
@@ -247,12 +349,11 @@ _stage_prepare() {
 }
 
 stage_prepare(){
+    source scripts/functions
     MSG1 "=============  Stage Prepare: Setup SSH Public Key Authentication ============="
 
-    _exportOSInfo
-    _single_handler
+    single_handler
     prepare_software_mirror
-    prepare_software_version
 
     mkdir -p "$KUBE_DEPLOY_LOG_PATH/logs/stage-prepare"
     local LOG_FILE="$KUBE_DEPLOY_LOG_PATH/logs/stage-prepare/prepare.log"
