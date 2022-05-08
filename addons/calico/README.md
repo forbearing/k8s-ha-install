@@ -32,22 +32,28 @@
     curl https://projectcalico.docs.tigera.io/v3.7/manifests/calico-etcd.yaml -o calico-etcd-v3.7.yaml
     curl https://projectcalico.docs.tigera.io/v3.7/manifests/calico-typha.yaml -o calico-typha-v3.7.yaml
     
+    # 3.19
+    curl https://docs.projectcalico.org/v3.19/manifests/calico.yaml -o calico-v3.19.yaml
+    curl https://docs.projectcalico.org/v3.19/manifests/calico-etcd.yaml -o calico-etcd-v3.19.yaml
+    curl https://docs.projectcalico.org/v3.19/manifests/calico-typha.yaml -o calico-typha-v3.19.yaml
+    # 3.20
+    curl https://docs.projectcalico.org/v3.20/manifests/calico.yaml -o calico-v3.20.yaml
+    curl https://docs.projectcalico.org/v3.20/manifests/calico-etcd.yaml -o calico-etcd-v3.20.yaml
+    curl https://docs.projectcalico.org/v3.20/manifests/calico-typha.yaml -o calico-typha-v3.20.yaml
     # 3.21
     curl https://docs.projectcalico.org/v3.21/manifests/calico.yaml -o calico-v3.21.yaml
     curl https://docs.projectcalico.org/v3.21/manifests/calico-etcd.yaml -o calico-etcd-v3.21.yaml
     curl https://docs.projectcalico.org/v3.21/manifests/calico-typha.yaml -o calico-typha-v3.21.yaml
-    
     # 3.22
     curl https://projectcalico.docs.tigera.io/v3.22/manifests/calico.yaml -o calico-v3.22.yaml
     curl https://projectcalico.docs.tigera.io/v3.22/manifests/calico-etcd.yaml -o calico-etcd-v3.22.yaml
     curl https://projectcalico.docs.tigera.io/v3.22/manifests/calico-typha.yaml -o calico-typha-v3.22.yaml
-    
     # latest
     curl https://projectcalico.docs.tigera.io/manifests/calico.yaml -o calico-latest.yaml
     curl https://projectcalico.docs.tigera.io/manifests/calico-etcd.yaml -o calico-etcd-latest.yaml
     curl https://projectcalico.docs.tigera.io/manifests/calico-typha.yaml -o calico-typha-latest.yaml
     ```
-
+    
      
 
 
