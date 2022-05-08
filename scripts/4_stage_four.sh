@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-function 1_copy_binary_package_and_create_dir {
+1_copy_binary_package_and_create_dir() {
     # 1. 解压 k8s 二进制文件
     # 2. 将 kubernetes 二进制文件、etcd 二进制文件、cfssl 工具包拷贝到所有的 master 节点
     # 3. 将 Kubernetes 二进制文件拷贝到所有的 worker 节点
@@ -22,35 +22,37 @@ function 1_copy_binary_package_and_create_dir {
     MSG2 "1. Copy Binary Package and Create Dir"
 
     # 1. 解压二进制文件
-    mkdir -p ${K8S_DEPLOY_LOG_PATH}/bin
-    tar -xvf bin/helm/helm.tar.xz                               -C ${K8S_DEPLOY_LOG_PATH}/bin/
-    tar -xvf bin/etcd/etcd.tar.xz                               -C ${K8S_DEPLOY_LOG_PATH}/bin/
-    tar -xvf bin/etcd/etcdctl.tar.xz                            -C ${K8S_DEPLOY_LOG_PATH}/bin/
-    tar -xvf bin/cfssl/cfssl.tar.xz                             -C ${K8S_DEPLOY_LOG_PATH}/bin/
-    tar -xvf bin/cfssl/cfssl-json.tar.xz                        -C ${K8S_DEPLOY_LOG_PATH}/bin/
-    tar -xvf bin/cfssl/cfssl-certinfo.tar.xz                    -C ${K8S_DEPLOY_LOG_PATH}/bin/
-    tar -xvf bin/${K8S_VERSION}/kube-apiserver.tar.xz           -C ${K8S_DEPLOY_LOG_PATH}/bin/
-    tar -xvf bin/${K8S_VERSION}/kube-controller-manager.tar.xz  -C ${K8S_DEPLOY_LOG_PATH}/bin/
-    tar -xvf bin/${K8S_VERSION}/kube-scheduler.tar.xz           -C ${K8S_DEPLOY_LOG_PATH}/bin/
-    tar -xvf bin/${K8S_VERSION}/kube-proxy.tar.xz               -C ${K8S_DEPLOY_LOG_PATH}/bin/
-    tar -xvf bin/${K8S_VERSION}/kubelet.tar.xz                  -C ${K8S_DEPLOY_LOG_PATH}/bin/
-    tar -xvf bin/${K8S_VERSION}/kubectl.tar.xz                  -C ${K8S_DEPLOY_LOG_PATH}/bin/
+    mkdir -p ${KUBE_DEPLOY_LOG_PATH}/bin
+    tar -xvf bin/k8s/${KUBE_VERSION}/kube-apiserver.tar.xz          -C ${KUBE_DEPLOY_LOG_PATH}/bin/
+    tar -xvf bin/k8s/${KUBE_VERSION}/kube-controller-manager.tar.xz -C ${KUBE_DEPLOY_LOG_PATH}/bin/
+    tar -xvf bin/k8s/${KUBE_VERSION}/kube-scheduler.tar.xz          -C ${KUBE_DEPLOY_LOG_PATH}/bin/
+    tar -xvf bin/k8s/${KUBE_VERSION}/kube-proxy.tar.xz              -C ${KUBE_DEPLOY_LOG_PATH}/bin/
+    tar -xvf bin/k8s/${KUBE_VERSION}/kubelet.tar.xz                 -C ${KUBE_DEPLOY_LOG_PATH}/bin/
+    tar -xvf bin/k8s/${KUBE_VERSION}/kubectl.tar.xz                 -C ${KUBE_DEPLOY_LOG_PATH}/bin/
+    tar -xvf bin/etcd/${ETCD_VERSION}/etcd.tar.xz                   -C ${KUBE_DEPLOY_LOG_PATH}/bin/
+    tar -xvf bin/etcd/${ETCD_VERSION}/etcdctl.tar.xz                -C ${KUBE_DEPLOY_LOG_PATH}/bin/
+    [ -f bin/etcd/${ETCD_VERSION}/etcdutl.tar.xz ] && \
+        tar -xvf bin/etcd/${ETCD_VERSION}/etcdutl.tar.xz            -C ${KUBE_DEPLOY_LOG_PATH}/bin/
+    tar -xvf bin/helm/${HELM_VERSION}/helm.tar.xz                   -C ${KUBE_DEPLOY_LOG_PATH}/bin/
+    tar -xvf bin/cfssl/${CFSSL_VERSION}/cfssl.tar.xz                -C ${KUBE_DEPLOY_LOG_PATH}/bin/
+    tar -xvf bin/cfssl/${CFSSL_VERSION}/cfssl-json.tar.xz           -C ${KUBE_DEPLOY_LOG_PATH}/bin/
+    tar -xvf bin/cfssl/${CFSSL_VERSION}/cfssl-certinfo.tar.xz       -C ${KUBE_DEPLOY_LOG_PATH}/bin/
 
     # 2. 将 k8s 二进制文件拷贝到所有 master 节点
     for NODE in "${MASTER[@]}"; do
         for PKG in \
-            ${K8S_DEPLOY_LOG_PATH}/bin/helm \
-            ${K8S_DEPLOY_LOG_PATH}/bin/etcd \
-            ${K8S_DEPLOY_LOG_PATH}/bin/etcdctl \
-            ${K8S_DEPLOY_LOG_PATH}/bin/cfssl \
-            ${K8S_DEPLOY_LOG_PATH}/bin/cfssl-json \
-            ${K8S_DEPLOY_LOG_PATH}/bin/cfssl-certinfo \
-            ${K8S_DEPLOY_LOG_PATH}/bin/kube-apiserver \
-            ${K8S_DEPLOY_LOG_PATH}/bin/kube-controller-manager \
-            ${K8S_DEPLOY_LOG_PATH}/bin/kube-scheduler \
-            ${K8S_DEPLOY_LOG_PATH}/bin/kube-proxy \
-            ${K8S_DEPLOY_LOG_PATH}/bin/kubelet \
-            ${K8S_DEPLOY_LOG_PATH}/bin/kubectl; do
+            ${KUBE_DEPLOY_LOG_PATH}/bin/helm \
+            ${KUBE_DEPLOY_LOG_PATH}/bin/etcd \
+            ${KUBE_DEPLOY_LOG_PATH}/bin/etcdctl \
+            ${KUBE_DEPLOY_LOG_PATH}/bin/cfssl \
+            ${KUBE_DEPLOY_LOG_PATH}/bin/cfssl-json \
+            ${KUBE_DEPLOY_LOG_PATH}/bin/cfssl-certinfo \
+            ${KUBE_DEPLOY_LOG_PATH}/bin/kube-apiserver \
+            ${KUBE_DEPLOY_LOG_PATH}/bin/kube-controller-manager \
+            ${KUBE_DEPLOY_LOG_PATH}/bin/kube-scheduler \
+            ${KUBE_DEPLOY_LOG_PATH}/bin/kube-proxy \
+            ${KUBE_DEPLOY_LOG_PATH}/bin/kubelet \
+            ${KUBE_DEPLOY_LOG_PATH}/bin/kubectl; do
             scp ${PKG} ${NODE}:/usr/local/bin/
         done &
     done
@@ -59,9 +61,9 @@ function 1_copy_binary_package_and_create_dir {
     # 3. 将 k8s 二进制文件拷贝到所有 worker 节点
     for NODE in "${WORKER[@]}"; do
         for PKG in \
-            ${K8S_DEPLOY_LOG_PATH}/bin/kube-proxy \
-            ${K8S_DEPLOY_LOG_PATH}/bin/kubelet \
-            ${K8S_DEPLOY_LOG_PATH}/bin/kubectl; do
+            ${KUBE_DEPLOY_LOG_PATH}/bin/kube-proxy \
+            ${KUBE_DEPLOY_LOG_PATH}/bin/kubelet \
+            ${KUBE_DEPLOY_LOG_PATH}/bin/kubectl; do
             scp ${PKG} ${NODE}:/usr/local/bin/
         done &
     done
@@ -70,7 +72,7 @@ function 1_copy_binary_package_and_create_dir {
     # 4. k8s 所有节点创建所需目录
     for NODE in "${ALL_NODE[@]}"; do
         for DIR_PATH in \
-            ${K8S_PATH} \
+            ${KUBE_PATH} \
             ${KUBE_CERT_PATH} \
             ${ETCD_CERT_PATH} \
             "/etc/kubernetes/manifests" \
@@ -85,8 +87,7 @@ function 1_copy_binary_package_and_create_dir {
 }
 
 
-
-function 2_install_keepalived_and_haproxy {
+2_install_keepalived_and_haproxy() {
     #  master 节点安装 keepalived, haproxy
     MSG2 "2. Installed Keepalived and Haproxy for Master Node"
 
@@ -140,8 +141,7 @@ function 2_install_keepalived_and_haproxy {
 }
 
 
-
-function 3_setup_haproxy {
+3_setup_haproxy() {
     MSG2 "3. Setup haproxy"
 
     local OLD_IFS
@@ -153,20 +153,19 @@ function 3_setup_haproxy {
     CONTROL_PLANE_ENDPOINT_PORT=${temp_arr[1]}
 
     # 为 master 节点生成 haproxy.cfg 配置文件
-    mkdir -p ${K8S_DEPLOY_LOG_PATH}/conf/haproxy
-    local HAPROXY_CONF_PATH="${K8S_DEPLOY_LOG_PATH}/conf/haproxy"
+    mkdir -p ${KUBE_DEPLOY_LOG_PATH}/conf/haproxy
+    local HAPROXY_CONF_PATH="${KUBE_DEPLOY_LOG_PATH}/conf/haproxy"
     local count=0
-    cp conf/haproxy/haproxy.cfg                         ${HAPROXY_CONF_PATH}/haproxy.cfg
-    sed -i "s/#PORT#/${CONTROL_PLANE_ENDPOINT_PORT}/"   ${HAPROXY_CONF_PATH}/haproxy.cfg
+    yes | cp conf/haproxy/haproxy.cfg                 ${HAPROXY_CONF_PATH}/haproxy.cfg
+    sed -i "s/#PORT#/${CONTROL_PLANE_ENDPOINT_PORT}/" ${HAPROXY_CONF_PATH}/haproxy.cfg
     for HOST in "${!MASTER[@]}"; do
         local IP=${MASTER[$HOST]}
-        sed -i "s/#MASTER_HOSTNAME_$count#/${HOST}/"    ${HAPROXY_CONF_PATH}/haproxy.cfg
-        sed -i "s/#MASTER_IP_$count#/${IP}/"            ${HAPROXY_CONF_PATH}/haproxy.cfg
+        sed -i "s/#MASTER_HOSTNAME_$count#/${HOST}/"  ${HAPROXY_CONF_PATH}/haproxy.cfg
+        sed -i "s/#MASTER_IP_$count#/${IP}/"          ${HAPROXY_CONF_PATH}/haproxy.cfg
         (( count++ ))
     done
 
     # 将生成好的配置文件 haproxy.cfg 复制到所有 master 节点
-    #for (( i=0; i<${#MASTER[@]}; i++ )); do
     for NODE in "${MASTER[@]}"; do
         scp ${HAPROXY_CONF_PATH}/haproxy.cfg ${NODE}:/etc/haproxy/haproxy.cfg
         ssh ${NODE} "systemctl enable haproxy
@@ -175,8 +174,7 @@ function 3_setup_haproxy {
 }
 
 
-
-function 4_setup_keepalived {
+4_setup_keepalived() {
     MSG2 "4. Setup Keepalived"
 
     local OLD_IFS
@@ -197,8 +195,8 @@ function 4_setup_keepalived {
     VIRTUAL_IP=${CONTROL_PLANE_ENDPOINT_IP}
 
     # 为 master 节点生成 keepalived 配置文件
-    mkdir -p ${K8S_DEPLOY_LOG_PATH}/conf/keepalived
-    local KEEPALIVED_CONF_PATH="${K8S_DEPLOY_LOG_PATH}/conf/keepalived"
+    mkdir -p ${KUBE_DEPLOY_LOG_PATH}/conf/keepalived
+    local KEEPALIVED_CONF_PATH="${KUBE_DEPLOY_LOG_PATH}/conf/keepalived"
     local count=0
     for HOST in "${!MASTER[@]}"; do
         local IP=${MASTER[$HOST]}
@@ -208,13 +206,13 @@ function 4_setup_keepalived {
         else
             STATE="BACKUP"
             PRIORITY=100; fi
-        cp conf/keepalived/keepalived.conf              ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
-        sed -i "s/#STATE#/${STATE}/"                    ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
-        sed -i "s/#INTERFACE#/${INTERFACE}/"            ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
-        sed -i "s/#ROUTE_ID#/${ROUTE_ID}/"              ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
-        sed -i "s/#PRIORITY#/${PRIORITY}/"              ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
-        sed -i "s/#MASTER_IP#/${IP}/"                   ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
-        sed -i "s/#VIRTUAL_IPADDRESS#/${VIRTUAL_IP}/"   ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
+        yes | cp conf/keepalived/keepalived.conf      ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
+        sed -i "s/#STATE#/${STATE}/"                  ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
+        sed -i "s/#INTERFACE#/${INTERFACE}/"          ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
+        sed -i "s/#ROUTE_ID#/${ROUTE_ID}/"            ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
+        sed -i "s/#PRIORITY#/${PRIORITY}/"            ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
+        sed -i "s/#MASTER_IP#/${IP}/"                 ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
+        sed -i "s/#VIRTUAL_IPADDRESS#/${VIRTUAL_IP}/" ${KEEPALIVED_CONF_PATH}/keepalived.conf_${HOST}
         (( count++ ))
     done
 
@@ -229,8 +227,7 @@ function 4_setup_keepalived {
 }
 
 
-
-function 5_generate_etcd_certs {
+5_generate_etcd_certs() {
     MSG2 "5. Generate certs for etcd"
 
     # 如果 kubernetees 部署成功，就不重新生成 etcd 证书
@@ -242,9 +239,8 @@ function 5_generate_etcd_certs {
         (( count ++ ))
     done
 
-    [[ ! -d ${K8S_PATH} ]] && rm -rf "${K8S_PATH}"; mkdir -p "${K8S_PATH}"
+    [[ ! -d ${KUBE_PATH} ]] && rm -rf "${KUBE_PATH}"; mkdir -p "${KUBE_PATH}"
     [[ ! -d ${ETCD_CERT_PATH} ]] && rm -rf "${ETCD_CERT_PATH}"; mkdir -p "${ETCD_CERT_PATH}"
-
 
     # 在 EXTRA_MASTER_HOST 和 EXTRA_MASTER_IP 中多预留一些 hostname 和 IP 地址
     local HOSTNAME
@@ -260,7 +256,6 @@ function 5_generate_etcd_certs {
     HOSTNAME=${HOSTNAME/,}
     MSG2 "etcd hostname string: ${HOSTNAME}"
 
-
     # 生成 etcd ca 证书
     # 通过 etcd ca 证书来生成 etcd 客户端证书
     cfssl gencert -initca pki/etcd-ca-csr.json | cfssl-json -bare "${ETCD_CERT_PATH}"/etcd-ca
@@ -270,13 +265,12 @@ function 5_generate_etcd_certs {
         -config=pki/ca-config.json \
         -hostname="${HOSTNAME}" \
         -profile=kubernetes \
-        pki/etcd-csr.json \
-        | cfssl-json -bare "${ETCD_CERT_PATH}"/etcd
+        pki/etcd-csr.json | \
+        cfssl-json -bare "${ETCD_CERT_PATH}"/etcd
 }
 
 
-
-function 6_generate_kubernetes_certs() {
+6_generate_kubernetes_certs() {
     # 1、分别为 apiserver、front-proxy、controller-manager、scheduler、kubernetes-admin 创建证书
     # 2、分别为 controller-manager、scheduler、kubernetes-admin 创建 kubeconfig 文件
     # 3、将 kubernetes 相关的所有证书和 kubeconfig 文件拷贝到所有的 master 节点上
@@ -292,7 +286,7 @@ function 6_generate_kubernetes_certs() {
         (( count++ ))
     done
 
-    [[ ! -d ${K8S_PATH} ]] && rm -rf "${K8S_PATH}"; mkdir -p "${K8S_PATH}"
+    [[ ! -d ${KUBE_PATH} ]] && rm -rf "${KUBE_PATH}"; mkdir -p "${KUBE_PATH}"
     [[ ! -d ${KUBE_CERT_PATH} ]] && rm -rf "${KUBE_CERT_PATH}"; mkdir -p "${KUBE_CERT_PATH}"
 
     # 获取 control plane endpoint ip 地址
@@ -334,16 +328,16 @@ function 6_generate_kubernetes_certs() {
         -config=pki/ca-config.json \
         -hostname="${HOSTNAME}" \
         -profile=kubernetes \
-        pki/apiserver-csr.json \
-        | cfssl-json -bare "${KUBE_CERT_PATH}"/apiserver
+        pki/apiserver-csr.json | \
+        cfssl-json -bare "${KUBE_CERT_PATH}"/apiserver
     # 生成 apiserver 的聚合证书
     cfssl gencert \
         -ca="${KUBE_CERT_PATH}"/front-proxy-ca.pem \
         -ca-key="${KUBE_CERT_PATH}"/front-proxy-ca-key.pem \
         -config=pki/ca-config.json \
         -profile=kubernetes \
-        pki/front-proxy-client-csr.json \
-        | cfssl-json -bare "${KUBE_CERT_PATH}"/front-proxy-client
+        pki/front-proxy-client-csr.json | \
+        cfssl-json -bare "${KUBE_CERT_PATH}"/front-proxy-client
 
 
     # 生成 controller-manager 证书
@@ -367,24 +361,24 @@ function 6_generate_kubernetes_certs() {
         -ca-key="${KUBE_CERT_PATH}"/ca-key.pem \
         -config=pki/ca-config.json \
         -profile=kubernetes \
-        pki/manager-csr.json \
-        | cfssl-json -bare "${KUBE_CERT_PATH}"/controller-manager
+        pki/manager-csr.json | \
+        cfssl-json -bare "${KUBE_CERT_PATH}"/controller-manager
     kubectl config set-cluster kubernetes \
         --certificate-authority="${KUBE_CERT_PATH}"/ca.pem \
         --embed-certs=true \
         --server=https://${CONTROL_PLANE_ENDPOINT} \
-        --kubeconfig="${K8S_PATH}"/controller-manager.kubeconfig
+        --kubeconfig="${KUBE_PATH}"/controller-manager.kubeconfig
     kubectl config set-credentials system:kube-controller-manager \
         --client-certificate=${KUBE_CERT_PATH}/controller-manager.pem \
         --client-key=${KUBE_CERT_PATH}/controller-manager-key.pem \
         --embed-certs=true \
-        --kubeconfig="${K8S_PATH}"/controller-manager.kubeconfig
+        --kubeconfig="${KUBE_PATH}"/controller-manager.kubeconfig
     kubectl config set-context system:kube-controller-manager@kubernetes \
         --cluster=kubernetes \
         --user=system:kube-controller-manager \
-        --kubeconfig="${K8S_PATH}"/controller-manager.kubeconfig
+        --kubeconfig="${KUBE_PATH}"/controller-manager.kubeconfig
     kubectl config use-context system:kube-controller-manager@kubernetes \
-        --kubeconfig="${K8S_PATH}"/controller-manager.kubeconfig
+        --kubeconfig="${KUBE_PATH}"/controller-manager.kubeconfig
 
 
     # 生成 scheduler 证书
@@ -402,19 +396,18 @@ function 6_generate_kubernetes_certs() {
         --certificate-authority="${KUBE_CERT_PATH}"/ca.pem \
         --embed-certs=true \
         --server=https://${CONTROL_PLANE_ENDPOINT} \
-        --kubeconfig="${K8S_PATH}"/scheduler.kubeconfig
+        --kubeconfig="${KUBE_PATH}"/scheduler.kubeconfig
     kubectl config set-credentials system:kube-scheduler \
         --client-certificate="${KUBE_CERT_PATH}"/scheduler.pem \
         --client-key="${KUBE_CERT_PATH}"/scheduler-key.pem \
         --embed-certs=true \
-        --kubeconfig="${K8S_PATH}"/scheduler.kubeconfig
+        --kubeconfig="${KUBE_PATH}"/scheduler.kubeconfig
     kubectl config set-context system:kube-scheduler@kubernetes \
         --cluster=kubernetes \
         --user=system:kube-scheduler \
-        --kubeconfig="${K8S_PATH}"/scheduler.kubeconfig
+        --kubeconfig="${KUBE_PATH}"/scheduler.kubeconfig
     kubectl config use-context system:kube-scheduler@kubernetes \
-        --kubeconfig="${K8S_PATH}"/scheduler.kubeconfig
-
+        --kubeconfig="${KUBE_PATH}"/scheduler.kubeconfig
 
 
     # 生成 kubernetes admin 证书，给 kubernetes 管理员使用
@@ -432,16 +425,16 @@ function 6_generate_kubernetes_certs() {
         --certificate-authority="${KUBE_CERT_PATH}"/ca.pem \
         --embed-certs=true \
         --server=https://${CONTROL_PLANE_ENDPOINT} \
-        --kubeconfig="${K8S_PATH}"/admin.kubeconfig
+        --kubeconfig="${KUBE_PATH}"/admin.kubeconfig
     kubectl config set-credentials kubernetes-admin \
         --client-certificate="${KUBE_CERT_PATH}"/admin.pem \
         --client-key="${KUBE_CERT_PATH}"/admin-key.pem \
         --embed-certs=true \
-        --kubeconfig="${K8S_PATH}"/admin.kubeconfig
+        --kubeconfig="${KUBE_PATH}"/admin.kubeconfig
     kubectl config set-context kubernetes-admin@kubernetes \
         --cluster=kubernetes \
         --user=kubernetes-admin \
-        --kubeconfig="${K8S_PATH}"/admin.kubeconfig
+        --kubeconfig="${KUBE_PATH}"/admin.kubeconfig
     kubectl config use-context kubernetes-admin@kubernetes \
         --kubeconfig=/etc/kubernetes/admin.kubeconfig
 
@@ -456,16 +449,16 @@ function 6_generate_kubernetes_certs() {
         --certificate-authority=${KUBE_CERT_PATH}/ca.pem \
         --embed-certs=true \
         --server=https://${CONTROL_PLANE_ENDPOINT} \
-        --kubeconfig=${K8S_PATH}/bootstrap-kubelet.kubeconfig
+        --kubeconfig=${KUBE_PATH}/bootstrap-kubelet.kubeconfig
     kubectl config set-credentials tls-bootstrap-token-user \
         --token=c8ad9c.2e4d610cf3e7426e \
-        --kubeconfig=${K8S_PATH}/bootstrap-kubelet.kubeconfig
+        --kubeconfig=${KUBE_PATH}/bootstrap-kubelet.kubeconfig
     kubectl config set-context tls-bootstrap-token-user@kubernetes \
         --cluster=kubernetes \
         --user=tls-bootstrap-token-user \
-        --kubeconfig=${K8S_PATH}/bootstrap-kubelet.kubeconfig
+        --kubeconfig=${KUBE_PATH}/bootstrap-kubelet.kubeconfig
     kubectl config use-context tls-bootstrap-token-user@kubernetes \
-        --kubeconfig=${K8S_PATH}/bootstrap-kubelet.kubeconfig
+        --kubeconfig=${KUBE_PATH}/bootstrap-kubelet.kubeconfig
 
 
     # 创建一个 serviceAccount，默认会有一个 secret 绑定了这个 serviceAccount，
@@ -475,8 +468,7 @@ function 6_generate_kubernetes_certs() {
 }
 
 
-
-function 7_copy_etcd_and_k8s_certs {
+7_copy_etcd_and_k8s_certs() {
 
     MSG2 "7. Copy etcd and k8s certs and config file"
     local count=1
@@ -487,7 +479,6 @@ function 7_copy_etcd_and_k8s_certs {
         (( count++ ))
     done
 
-
     # 将 etcd 证书拷贝到所有的 master 节点上
     for NODE in "${MASTER[@]}"; do
         ssh ${NODE} "mkdir -p ${ETCD_CERT_PATH}"
@@ -496,7 +487,6 @@ function 7_copy_etcd_and_k8s_certs {
         done &
     done
     wait
-
 
     # 将生成的 kubernetes 各个组件的证书和 kubeconfig 文件分别拷贝到 master 节点
     for NODE in "${MASTER[@]}"; do
@@ -517,7 +507,7 @@ function 7_copy_etcd_and_k8s_certs {
             scheduler.kubeconfig \
             bootstrap-kubelet.kubeconfig \
             admin.kubeconfig; do
-            scp ${K8S_PATH}/${FILE} ${NODE}:${K8S_PATH}/${FILE} 
+            scp ${KUBE_PATH}/${FILE} ${NODE}:${KUBE_PATH}/${FILE} 
         done &
     done
     wait
@@ -528,14 +518,13 @@ function 7_copy_etcd_and_k8s_certs {
         for FILE in ca.pem front-proxy-ca.pem; do
             scp ${KUBE_CERT_PATH}/${FILE} ${NODE}:${KUBE_CERT_PATH}/${FILE}
         done &
-        scp ${K8S_PATH}/bootstrap-kubelet.kubeconfig ${NODE}:${K8S_PATH}/bootstrap-kubelet.kubeconfig
+        scp ${KUBE_PATH}/bootstrap-kubelet.kubeconfig ${NODE}:${KUBE_PATH}/bootstrap-kubelet.kubeconfig
     done
     wait
 }
 
 
-
-function 8_setup_etcd() {
+8_setup_etcd() {
     # 1、通过 etcd.config.yaml 模版文件，分别为3个 etcd 节点生成 etcd.config.yaml 配置文件
     #   （3个 master 节点分别对应3个 etcd 节点）
     # 2、将配置文件 etcd.config.yaml 和 etcd.service 配置文件拷贝到所有的 etcd 节点上
@@ -558,10 +547,9 @@ function 8_setup_etcd() {
         ssh ${NODE} "mkdir -p ${KUBE_CERT_PATH}/etcd/"
         ssh ${NODE} "ln -sf ${ETCD_CERT_PATH}/* ${KUBE_CERT_PATH}/etcd/"; done
 
-
     # 将生成的 etcd 组件相关配置文件保存到指定位置
-    mkdir -p ${K8S_DEPLOY_LOG_PATH}/conf/etcd
-    local ETCD_CONF_PATH="${K8S_DEPLOY_LOG_PATH}/conf/etcd"
+    mkdir -p ${KUBE_DEPLOY_LOG_PATH}/conf/etcd
+    local ETCD_CONF_PATH="${KUBE_DEPLOY_LOG_PATH}/conf/etcd"
 
     local INITIAL_CLUSTER
     for HOST in "${!MASTER[@]}"; do
@@ -570,18 +558,17 @@ function 8_setup_etcd() {
     INITIAL_CLUSTER=${INITIAL_CLUSTER/,}
     MSG2 "INITIAL_CLUSTER: ${INITIAL_CLUSTER}"
 
-
     # 生成配置文件
     #   /lib/systemd/system/etcd.service
     #   /etc/etcd/etcd.config.yaml
     # 将配置文件 etcd.config.yaml 和 etcd 服务自启动文件 etcd.service 复制到远程服务器上
     for HOST in "${!MASTER[@]}"; do
         local IP=${MASTER[$HOST]}
-        cp conf/etcd/etcd.service                       ${ETCD_CONF_PATH}/etcd.service
-        cp conf/etcd/etcd.config.yaml                   ${ETCD_CONF_PATH}/etcd.config.yaml_${HOST}
-        sed -i "s/#MASTER_HOSTNAME#/${HOST}/"           ${ETCD_CONF_PATH}/etcd.config.yaml_${HOST}
-        sed -i "s/#MASTER_IP#/${IP}/"                   ${ETCD_CONF_PATH}/etcd.config.yaml_${HOST}
-        sed -i "s%#KUBE_CERT_PATH#%${KUBE_CERT_PATH}%"  ${ETCD_CONF_PATH}/etcd.config.yaml_${HOST}
+        yes | cp conf/etcd/etcd.service                ${ETCD_CONF_PATH}/etcd.service
+        yes | cp conf/etcd/etcd.config.yaml            ${ETCD_CONF_PATH}/etcd.config.yaml_${HOST}
+        sed -i "s/#MASTER_HOSTNAME#/${HOST}/"          ${ETCD_CONF_PATH}/etcd.config.yaml_${HOST}
+        sed -i "s/#MASTER_IP#/${IP}/"                  ${ETCD_CONF_PATH}/etcd.config.yaml_${HOST}
+        sed -i "s%#KUBE_CERT_PATH#%${KUBE_CERT_PATH}%" ${ETCD_CONF_PATH}/etcd.config.yaml_${HOST}
         sed -i -r "s%initial-cluster:(.*)%initial-cluster: '${INITIAL_CLUSTER}'%"  ${ETCD_CONF_PATH}/etcd.config.yaml_${HOST}
         scp ${ETCD_CONF_PATH}/etcd.service              ${HOST}:/lib/systemd/system/etcd.service
         scp ${ETCD_CONF_PATH}/etcd.config.yaml_${HOST} ${HOST}:/etc/etcd/etcd.config.yaml
@@ -592,13 +579,12 @@ function 8_setup_etcd() {
 }
 
 
-
-function 9_setup_apiserver() {
+9_setup_apiserver() {
     MSG2 "9. Setup kube-apiserver"
 
     # 将生成的 kube-apiserver 组件相关配置文件保存到指定位置
-    mkdir -p ${K8S_DEPLOY_LOG_PATH}/conf/kube-apiserver
-    local APISERVER_CONF_PATH="${K8S_DEPLOY_LOG_PATH}/conf/kube-apiserver"
+    mkdir -p ${KUBE_DEPLOY_LOG_PATH}/conf/kube-apiserver
+    local APISERVER_CONF_PATH="${KUBE_DEPLOY_LOG_PATH}/conf/kube-apiserver"
 
     # 为 master 节点生成 kube-apiserver.service 文件
     local ETCD_SERVERS
@@ -611,12 +597,12 @@ function 9_setup_apiserver() {
     echo "ETCD_SERVERS: ${ETCD_SERVERS[*]}"
     for HOST in "${!MASTER[@]}"; do
         local IP=${MASTER[$HOST]}
-        cp conf/${K8S_VERSION}/kube-apiserver.service       ${APISERVER_CONF_PATH}/kube-apiserver.service_${HOST}
-        sed -i "s/#MASTER_IP#/${IP}/"                       ${APISERVER_CONF_PATH}/kube-apiserver.service_${HOST}
-        sed -i "s%#KUBE_CERT_PATH#%${KUBE_CERT_PATH}%"      ${APISERVER_CONF_PATH}/kube-apiserver.service_${HOST}
-        sed -i "s%#ETCD_CERT_PATH#%${ETCD_CERT_PATH}%"      ${APISERVER_CONF_PATH}/kube-apiserver.service_${HOST}
-        sed -i "s%#SRV_NETWORK_CIDR#%${SRV_NETWORK_CIDR}%"  ${APISERVER_CONF_PATH}/kube-apiserver.service_${HOST}
-        sed -i "s%#POD_NETWORK_CIDR#%${POD_NETWORK_CIDR}%"  ${APISERVER_CONF_PATH}/kube-apiserver.service_${HOST}
+        yes | cp conf/k8s/${KUBE_VERSION}/kube-apiserver.service ${APISERVER_CONF_PATH}/kube-apiserver.service_${HOST}
+        sed -i "s/#MASTER_IP#/${IP}/"                      ${APISERVER_CONF_PATH}/kube-apiserver.service_${HOST}
+        sed -i "s%#KUBE_CERT_PATH#%${KUBE_CERT_PATH}%"     ${APISERVER_CONF_PATH}/kube-apiserver.service_${HOST}
+        sed -i "s%#ETCD_CERT_PATH#%${ETCD_CERT_PATH}%"     ${APISERVER_CONF_PATH}/kube-apiserver.service_${HOST}
+        sed -i "s%#SRV_NETWORK_CIDR#%${SRV_NETWORK_CIDR}%" ${APISERVER_CONF_PATH}/kube-apiserver.service_${HOST}
+        sed -i "s%#POD_NETWORK_CIDR#%${POD_NETWORK_CIDR}%" ${APISERVER_CONF_PATH}/kube-apiserver.service_${HOST}
         sed -r -i "s%(.*)--etcd-servers(.*)%\1--etcd-servers=${ETCD_SERVERS}\\%" ${APISERVER_CONF_PATH}/kube-apiserver.service_${HOST}
         scp ${APISERVER_CONF_PATH}/kube-apiserver.service_${HOST} ${HOST}:/lib/systemd/system/kube-apiserver.service
         # 将生成好的配置文件 kube-apiserver.service 复制到所有 master 节点
@@ -627,24 +613,21 @@ function 9_setup_apiserver() {
 }
 
 
-
-function 10_setup_controller_manager {
+10_setup_controller_manager() {
     MSG2 "10. Setup kube-controller-manager"
 
     # 将生成的 kube-controller-manager 组件相关配置文件保存到指定位置
-    mkdir -p ${K8S_DEPLOY_LOG_PATH}/conf/kube-controller-manager
-    local CONTROLLER_MANAGER_CONF_PATH="${K8S_DEPLOY_LOG_PATH}/conf/kube-controller-manager"
+    mkdir -p ${KUBE_DEPLOY_LOG_PATH}/conf/kube-controller-manager
+    local CONTROLLER_MANAGER_CONF_PATH="${KUBE_DEPLOY_LOG_PATH}/conf/kube-controller-manager"
 
     # 为 master 节点生成 kube-controller-manager.service 文件
-    cp conf/${K8S_VERSION}/kube-controller-manager.service  ${CONTROLLER_MANAGER_CONF_PATH}/kube-controller-manager.service
-    sed -i "s%#K8S_PATH#%${K8S_PATH}%"                      ${CONTROLLER_MANAGER_CONF_PATH}/kube-controller-manager.service
-    sed -i "s%#KUBE_CERT_PATH#%${KUBE_CERT_PATH}%"          ${CONTROLLER_MANAGER_CONF_PATH}/kube-controller-manager.service
-    sed -i "s%#SRV_NETWORK_CIDR#%${SRV_NETWORK_CIDR}%"      ${CONTROLLER_MANAGER_CONF_PATH}/kube-controller-manager.service
-    sed -i "s%#POD_NETWORK_CIDR#%${POD_NETWORK_CIDR}%"      ${CONTROLLER_MANAGER_CONF_PATH}/kube-controller-manager.service
-
+    yes | cp conf/k8s/${KUBE_VERSION}/kube-controller-manager.service  ${CONTROLLER_MANAGER_CONF_PATH}/kube-controller-manager.service
+    sed -i "s%#KUBE_PATH#%${KUBE_PATH}%"               ${CONTROLLER_MANAGER_CONF_PATH}/kube-controller-manager.service
+    sed -i "s%#KUBE_CERT_PATH#%${KUBE_CERT_PATH}%"     ${CONTROLLER_MANAGER_CONF_PATH}/kube-controller-manager.service
+    sed -i "s%#SRV_NETWORK_CIDR#%${SRV_NETWORK_CIDR}%" ${CONTROLLER_MANAGER_CONF_PATH}/kube-controller-manager.service
+    sed -i "s%#POD_NETWORK_CIDR#%${POD_NETWORK_CIDR}%" ${CONTROLLER_MANAGER_CONF_PATH}/kube-controller-manager.service
 
     # 将生成的配置文件 kube-controller-manager.service 复制到所有 master 节点
-    #for (( i=0; i<${#MASTER[@]}; i++ )); do
     for NODE in "${MASTER[@]}"; do
         scp ${CONTROLLER_MANAGER_CONF_PATH}/kube-controller-manager.service \
             ${NODE}:/lib/systemd/system/kube-controller-manager.service
@@ -655,18 +638,16 @@ function 10_setup_controller_manager {
 }
 
 
-
-function 11_setup_scheduler {
+11_setup_scheduler() {
     MSG2 "11. Setup kube-scheduler"
 
     # 将生成的 kube-scheduler 组件相关配置文件保存到指定位置
-    mkdir -p ${K8S_DEPLOY_LOG_PATH}/conf/kube-scheduler
-    local SCHEDULER_CONF_PATH="${K8S_DEPLOY_LOG_PATH}/conf/kube-scheduler"
+    mkdir -p ${KUBE_DEPLOY_LOG_PATH}/conf/kube-scheduler
+    local SCHEDULER_CONF_PATH="${KUBE_DEPLOY_LOG_PATH}/conf/kube-scheduler"
 
     # 为 master 节点生成 kube-scheduler.service 文件
-    cp conf/${K8S_VERSION}/kube-scheduler.service   ${SCHEDULER_CONF_PATH}/kube-scheduler.service
-    sed -i "s%#K8S_PATH#%${K8S_PATH}%"              ${SCHEDULER_CONF_PATH}/kube-scheduler.service
-
+    yes | cp conf/k8s/${KUBE_VERSION}/kube-scheduler.service  ${SCHEDULER_CONF_PATH}/kube-scheduler.service
+    sed -i "s%#KUBE_PATH#%${KUBE_PATH}%" ${SCHEDULER_CONF_PATH}/kube-scheduler.service
 
     # 将生成的配置文件 kube-scheduler.service 复制到所有 master 节点
     for NODE in "${MASTER[@]}"; do
@@ -679,12 +660,11 @@ function 11_setup_scheduler {
 }
 
 
-
-function 12_setup_k8s_admin {
+12_setup_k8s_admin() {
     MSG2 "12. Setup K8S admin"
 
     [ ! -d /root/.kube ] && rm -rf /root/.kube; mkdir -p /root/.kube
-    cp ${K8S_PATH}/admin.kubeconfig /root/.kube/config
+    yes | cp ${KUBE_PATH}/admin.kubeconfig /root/.kube/config
 
     # 应用 bootstrap/bootstrap.secret.yaml
     while true; do
@@ -698,13 +678,12 @@ function 12_setup_k8s_admin {
 }
 
 
-
-function 13_setup_kubelet {
+13_setup_kubelet() {
     MSG2 "13. Setup kubelet"
 
     # 将生成的 kubelet 组件相关配置文件保存到指定位置
-    mkdir -p ${K8S_DEPLOY_LOG_PATH}/conf/kubelet
-    local KUBELET_CONF_PATH="${K8S_DEPLOY_LOG_PATH}/conf/kubelet"
+    mkdir -p ${KUBE_DEPLOY_LOG_PATH}/conf/kubelet
+    local KUBELET_CONF_PATH="${KUBE_DEPLOY_LOG_PATH}/conf/kubelet"
 
     # 生成 kubelet 组件相关的配置文件
     #   /lib/systemd/system/kubelet.service
@@ -714,13 +693,13 @@ function 13_setup_kubelet {
     #   如果 k8s node 是 Ubuntu 的系统，需要将 kubelet-conf.yaml 的 resolvConf 
     #   选项改成 resolvConf: /run/systemd/resolve/resolv.conf 
     #   参考: https://github.com/coredns/coredns/issues/2790
-    cp conf/${K8S_VERSION}/kubelet.service                  ${KUBELET_CONF_PATH}/kubelet.service
-    cp conf/${K8S_VERSION}/10-kubelet.conf                  ${KUBELET_CONF_PATH}/10-kubelet.conf
-    cp conf/${K8S_VERSION}/kubelet-conf.yaml                ${KUBELET_CONF_PATH}/kubelet-conf.yaml
-    sed -i "s%#K8S_PATH#%${K8S_PATH}%g"                     ${KUBELET_CONF_PATH}/10-kubelet.conf
-    sed -i "s%#K8S_PATH#%${K8S_PATH}%"                      ${KUBELET_CONF_PATH}/kubelet-conf.yaml
-    sed -i "s%#KUBE_CERT_PATH#%${KUBE_CERT_PATH}%"          ${KUBELET_CONF_PATH}/kubelet-conf.yaml
-    sed -i "s%#SRV_NETWORK_DNS_IP#%${SRV_NETWORK_DNS_IP}%"  ${KUBELET_CONF_PATH}/kubelet-conf.yaml
+    yes | cp conf/k8s/${KUBE_VERSION}/kubelet.service      ${KUBELET_CONF_PATH}/kubelet.service
+    yes | cp conf/k8s/${KUBE_VERSION}/10-kubelet.conf      ${KUBELET_CONF_PATH}/10-kubelet.conf
+    yes | cp conf/k8s/${KUBE_VERSION}/kubelet-conf.yaml    ${KUBELET_CONF_PATH}/kubelet-conf.yaml
+    sed -i "s%#KUBE_PATH#%${KUBE_PATH}%g"                  ${KUBELET_CONF_PATH}/10-kubelet.conf
+    sed -i "s%#KUBE_PATH#%${KUBE_PATH}%"                   ${KUBELET_CONF_PATH}/kubelet-conf.yaml
+    sed -i "s%#KUBE_CERT_PATH#%${KUBE_CERT_PATH}%"         ${KUBELET_CONF_PATH}/kubelet-conf.yaml
+    sed -i "s%#SRV_NETWORK_DNS_IP#%${SRV_NETWORK_DNS_IP}%" ${KUBELET_CONF_PATH}/kubelet-conf.yaml
     local resolvConf
     case $linuxID in
     centos | rhel )
@@ -741,7 +720,7 @@ function 13_setup_kubelet {
     for NODE in "${ALL_NODE[@]}"; do
         scp ${KUBELET_CONF_PATH}/kubelet.service    ${NODE}:/lib/systemd/system/kubelet.service
         scp ${KUBELET_CONF_PATH}/10-kubelet.conf    ${NODE}:/etc/systemd/system/kubelet.service.d/10-kubelet.conf
-        scp ${KUBELET_CONF_PATH}/kubelet-conf.yaml  ${NODE}:${K8S_PATH}/kubelet-conf.yaml
+        scp ${KUBELET_CONF_PATH}/kubelet-conf.yaml  ${NODE}:${KUBE_PATH}/kubelet-conf.yaml
         ssh ${NODE} "systemctl daemon-reload
                      systemctl enable kubelet
                      systemctl restart kubelet" &
@@ -749,8 +728,7 @@ function 13_setup_kubelet {
 }
 
 
-
-function 14_setup_kube_proxy {
+14_setup_kube_proxy() {
     MSG2 "14. Setup kube-proxy"
 
     # 为 kube-proxy 创建 serviceaccount: kube-proxy
@@ -769,46 +747,46 @@ function 14_setup_kube_proxy {
         --certificate-authority="${KUBE_CERT_PATH}"/ca.pem \
         --embed-certs=true \
         --server=https://${CONTROL_PLANE_ENDPOINT} \
-        --kubeconfig=${K8S_PATH}/kube-proxy.kubeconfig
+        --kubeconfig=${KUBE_PATH}/kube-proxy.kubeconfig
     kubectl config set-credentials kubernetes \
         --token=${JWT_TOKEN} \
-        --kubeconfig=${K8S_PATH}/kube-proxy.kubeconfig
+        --kubeconfig=${KUBE_PATH}/kube-proxy.kubeconfig
     kubectl config set-context kubernetes \
         --cluster=kubernetes \
         --user=kubernetes \
-        --kubeconfig=${K8S_PATH}/kube-proxy.kubeconfig
+        --kubeconfig=${KUBE_PATH}/kube-proxy.kubeconfig
     kubectl config use-context kubernetes \
-        --kubeconfig=${K8S_PATH}/kube-proxy.kubeconfig
+        --kubeconfig=${KUBE_PATH}/kube-proxy.kubeconfig
 
     # 将生成的 kube-proxy 组件相关配置文件保存到指定位置
-    mkdir -p ${K8S_DEPLOY_LOG_PATH}/conf/kube-proxy
-    local KUBE_PROXY_CONF_PATH="${K8S_DEPLOY_LOG_PATH}/conf/kube-proxy"
+    mkdir -p ${KUBE_DEPLOY_LOG_PATH}/conf/kube-proxy
+    local KUBE_PROXY_CONF_PATH="${KUBE_DEPLOY_LOG_PATH}/conf/kube-proxy"
     # 生成 kube-proxy 组件相关配置文件
     #   /lib/systemd/system/kube-proxy.service
     #   /etc/kubernetes/kube-proxy.yaml
-    cp conf/${K8S_VERSION}/kube-proxy.service           ${KUBE_PROXY_CONF_PATH}/kube-proxy.service
-    cp conf/${K8S_VERSION}/kube-proxy.yaml              ${KUBE_PROXY_CONF_PATH}/kube-proxy.yaml
-    sed -i "s%#K8S_PATH#%${K8S_PATH}%"                  ${KUBE_PROXY_CONF_PATH}/kube-proxy.service
-    sed -i "s%#K8S_PATH#%${K8S_PATH}%"                  ${KUBE_PROXY_CONF_PATH}/kube-proxy.yaml
-    sed -i "s%#POD_NETWORK_CIDR#%${POD_NETWORK_CIDR}%"  ${KUBE_PROXY_CONF_PATH}/kube-proxy.yaml
+    yes | cp conf/k8s/${KUBE_VERSION}/kube-proxy.service ${KUBE_PROXY_CONF_PATH}/kube-proxy.service
+    yes | cp conf/k8s/${KUBE_VERSION}/kube-proxy.yaml    ${KUBE_PROXY_CONF_PATH}/kube-proxy.yaml
+    sed -i "s%#KUBE_PATH#%${KUBE_PATH}%"                 ${KUBE_PROXY_CONF_PATH}/kube-proxy.service
+    sed -i "s%#KUBE_PATH#%${KUBE_PATH}%"                 ${KUBE_PROXY_CONF_PATH}/kube-proxy.yaml
+    sed -i "s%#POD_NETWORK_CIDR#%${POD_NETWORK_CIDR}%"   ${KUBE_PROXY_CONF_PATH}/kube-proxy.yaml
 
     # 设置 kube-proxy mode, 默认设置为 ipvs
-    case ${K8S_PROXY_MODE} in
+    case ${KUBE_PROXY_MODE} in
     ipvs)
-        sed -i "s%#K8S_PROXY_MODE#%${K8S_PROXY_MODE}%"  ${KUBE_PROXY_CONF_PATH}/kube-proxy.yaml ;;
+        sed -i "s%#KUBE_PROXY_MODE#%${KUBE_PROXY_MODE}%"  ${KUBE_PROXY_CONF_PATH}/kube-proxy.yaml ;;
     iptables)
-        K8S_PROXY_MODE=""
-        sed -i "s%#K8S_PROXY_MODE#%${K8S_PROXY_MODE}%"  ${KUBE_PROXY_CONF_PATH}/kube-proxy.yaml ;;
+        KUBE_PROXY_MODE=""
+        sed -i "s%#KUBE_PROXY_MODE#%${KUBE_PROXY_MODE}%"  ${KUBE_PROXY_CONF_PATH}/kube-proxy.yaml ;;
     *)
-        K8S_PROXY_MODE="ipvs"
-        sed -i "s%#K8S_PROXY_MODE#%${K8S_PROXY_MODE}%"  ${KUBE_PROXY_CONF_PATH}/kube-proxy.yaml ;;
+        KUBE_PROXY_MODE="ipvs"
+        sed -i "s%#KUBE_PROXY_MODE#%${KUBE_PROXY_MODE}%"  ${KUBE_PROXY_CONF_PATH}/kube-proxy.yaml ;;
     esac
 
     # 将生成的配置文件 kube-proxy.kubeconfig kube-proxy.yaml kube-proxy.service复制到所有的节点上
     for NODE in "${ALL_NODE[@]}"; do
         scp ${KUBE_PROXY_CONF_PATH}/kube-proxy.service  ${NODE}:/lib/systemd/system/kube-proxy.service
-        scp ${KUBE_PROXY_CONF_PATH}/kube-proxy.yaml     ${NODE}:${K8S_PATH}/kube-proxy.yaml
-        scp ${K8S_PATH}/kube-proxy.kubeconfig           ${NODE}:${K8S_PATH}/kube-proxy.kubeconfig
+        scp ${KUBE_PROXY_CONF_PATH}/kube-proxy.yaml     ${NODE}:${KUBE_PATH}/kube-proxy.yaml
+        scp ${KUBE_PATH}/kube-proxy.kubeconfig          ${NODE}:${KUBE_PATH}/kube-proxy.kubeconfig
         ssh ${NODE} "systemctl daemon-reload
                      systemctl enable kube-proxy
                      systemctl restart kube-proxy" &
@@ -816,15 +794,13 @@ function 14_setup_kube_proxy {
 }
 
 
-
-function 15_deploy_calico {
+15_deploy_calico() {
     MSG2 "15. Deploy calico"
 
     local ETCD_ENDPOINTS
     local ETCD_CA
     local ETCD_CERT
     local ETCD_KEY
-    #for (( i=0; i<${#MASTER_IP[@]}; i++ )); do
     for HOST in "${!MASTER[@]}"; do
         local IP="${MASTER[$HOST]}"
         ETCD_ENDPOINTS="${ETCD_ENDPOINTS},https://${IP}:2379"; done
@@ -833,50 +809,51 @@ function 15_deploy_calico {
     ETCD_CERT=$(cat ${KUBE_CERT_PATH}/etcd/etcd.pem | base64 | tr -d '\n')
     ETCD_KEY=$(cat ${KUBE_CERT_PATH}/etcd/etcd-key.pem | base64 | tr -d '\n')
 
+    mkdir -p "${KUBE_DEPLOY_LOG_PATH}/addons/calico"
+    local CALICO_CONF_PATH="${KUBE_DEPLOY_LOG_PATH}/addons/calico"
 
-    #curl https://docs.projectcalico.org/manifests/calico-etcd.yaml -o calico-etcd.yaml                 # latest version
-    #curl https://docs.projectcalico.org/archive/v3.20/manifests/calico-etcd.yaml -o calico-etcd.yaml   # v3.20
-    mkdir -p "${K8S_DEPLOY_LOG_PATH}/addons/calico"
-    local CALICO_CONF_PATH="${K8S_DEPLOY_LOG_PATH}/addons/calico"
-    case ${K8S_VERSION} in 
-    "v1.20"|"v1.21"|"v1.22")
-        # cp addons/calico/calico-3.20/calico-etcd-v3.20.3.yaml                    ${CALICO_CONF_PATH}/calico-etcd.yaml
-        cp addons/calico/calico-3.21/calico-etcd-v3.21.4.yaml                    ${CALICO_CONF_PATH}/calico-etcd.yaml ;;
-    "v1.23")
-        cp addons/calico/calico-3.22/calico-etcd-v3.22.1.yaml                    ${CALICO_CONF_PATH}/calico-etcd.yaml ;;
+    yes | cp addons/calico/$CALICO_VERSION/$CALICO_TYPE-latest.yaml $CALICO_CONF_PATH/$CALICO_TYPE.yaml
+    case $CALICO_TYPE in
+    calico-typha)
+        sed -i "s%# - name: CALICO_IPV4POOL_CIDR%- name: CALICO_IPV4POOL_CIDR%g"     ${CALICO_CONF_PATH}/$CALICO_TYPE.yaml
+        sed -i "s%#   value: \"192.168.0.0/16\"%  value: \"${POD_NETWORK_CIDR}\"%g"  ${CALICO_CONF_PATH}/$CALICO_TYPE.yaml
+        kubectl apply -f ${CALICO_CONF_PATH}/calico-typha.yaml
+        :;;
+    calico-etcd)
+        sed -i -r "s%(.*)http://<ETCD_IP>:<ETCD_PORT>(.*)%\1${ETCD_ENDPOINTS}\2%"    ${CALICO_CONF_PATH}/$CALICO_TYPE.yaml
+        sed -i "s%# etcd-key: null%etcd-key: ${ETCD_KEY}%g"                          ${CALICO_CONF_PATH}/$CALICO_TYPE.yaml
+        sed -i "s%# etcd-cert: null%etcd-cert: ${ETCD_CERT}%g"                       ${CALICO_CONF_PATH}/$CALICO_TYPE.yaml
+        sed -i "s%# etcd-ca: null%etcd-ca: ${ETCD_CA}%g"                             ${CALICO_CONF_PATH}/$CALICO_TYPE.yaml
+        sed -i -r "s%etcd_ca: \"\"(.*)%etcd_ca: \"/calico-secrets/etcd-ca\"%g"       ${CALICO_CONF_PATH}/$CALICO_TYPE.yaml
+        sed -i -r "s%etcd_cert: \"\"(.*)%etcd_cert: \"/calico-secrets/etcd-cert\"%g" ${CALICO_CONF_PATH}/$CALICO_TYPE.yaml
+        sed -i -r "s%etcd_key: \"\"(.*)%etcd_key: \"/calico-secrets/etcd-key\"%g"    ${CALICO_CONF_PATH}/$CALICO_TYPE.yaml
+        sed -i "s%# - name: CALICO_IPV4POOL_CIDR%- name: CALICO_IPV4POOL_CIDR%g"     ${CALICO_CONF_PATH}/$CALICO_TYPE.yaml
+        sed -i "s%#   value: \"192.168.0.0/16\"%  value: \"${POD_NETWORK_CIDR}\"%g"  ${CALICO_CONF_PATH}/$CALICO_TYPE.yaml
+        sed -i "s%defaultMode: 0400%defaultMode: 0440%g"                             ${CALICO_CONF_PATH}/$CALICO_TYPE.yaml
+        kubectl apply -f ${CALICO_CONF_PATH}/calico-etcd.yaml
+        :;;
+    calico)
+        :;;
     esac
-    sed -i -r "s%(.*)http://<ETCD_IP>:<ETCD_PORT>(.*)%\1${ETCD_ENDPOINTS}\2%"    ${CALICO_CONF_PATH}/calico-etcd.yaml
-    sed -i "s%# etcd-key: null%etcd-key: ${ETCD_KEY}%g"                          ${CALICO_CONF_PATH}/calico-etcd.yaml
-    sed -i "s%# etcd-cert: null%etcd-cert: ${ETCD_CERT}%g"                       ${CALICO_CONF_PATH}/calico-etcd.yaml
-    sed -i "s%# etcd-ca: null%etcd-ca: ${ETCD_CA}%g"                             ${CALICO_CONF_PATH}/calico-etcd.yaml
-    sed -i -r "s%etcd_ca: \"\"(.*)%etcd_ca: \"/calico-secrets/etcd-ca\"%g"       ${CALICO_CONF_PATH}/calico-etcd.yaml
-    sed -i -r "s%etcd_cert: \"\"(.*)%etcd_cert: \"/calico-secrets/etcd-cert\"%g" ${CALICO_CONF_PATH}/calico-etcd.yaml
-    sed -i -r "s%etcd_key: \"\"(.*)%etcd_key: \"/calico-secrets/etcd-key\"%g"    ${CALICO_CONF_PATH}/calico-etcd.yaml
-    sed -i "s%# - name: CALICO_IPV4POOL_CIDR%- name: CALICO_IPV4POOL_CIDR%g"     ${CALICO_CONF_PATH}/calico-etcd.yaml
-    sed -i "s%#   value: \"192.168.0.0/16\"%  value: \"${POD_NETWORK_CIDR}\"%g"  ${CALICO_CONF_PATH}/calico-etcd.yaml
-    sed -i "s%defaultMode: 0400%defaultMode: 0440%g"                             ${CALICO_CONF_PATH}/calico-etcd.yaml
-    kubectl apply -f ${CALICO_CONF_PATH}/calico-etcd.yaml
 }
 
 
-
-function 16_deploy_coredns {
+16_deploy_coredns() {
     MSG2 "16. Deploy coredns"
 
-    mkdir -p ${K8S_DEPLOY_LOG_PATH}/addons/coredns
-    local COREDNS_CONF_PATH="${K8S_DEPLOY_LOG_PATH}/addons/coredns"
-    cp addons/coredns/${K8S_VERSION}/coredns.yaml           ${COREDNS_CONF_PATH}/coredns.yaml
+    mkdir -p ${KUBE_DEPLOY_LOG_PATH}/addons/coredns
+    local COREDNS_CONF_PATH="${KUBE_DEPLOY_LOG_PATH}/addons/coredns"
+    cp addons/coredns/${KUBE_VERSION}/coredns.yaml          ${COREDNS_CONF_PATH}/coredns.yaml
     sed -i "s%#SRV_NETWORK_DNS_IP#%${SRV_NETWORK_DNS_IP}%g" ${COREDNS_CONF_PATH}/coredns.yaml
     kubectl apply -f ${COREDNS_CONF_PATH}/coredns.yaml
 }
 
 
-
-function 17_deploy_metrics_server {
+17_deploy_metrics_server() {
     MSG2 "17. Deploy metrics server"
 
-    mkdir -p ${K8S_DEPLOY_LOG_PATH}/addons/metrics-server
-    local METRICS_CONF_PATH="${K8S_DEPLOY_LOG_PATH}/addons/metrics-server"
+    mkdir -p ${KUBE_DEPLOY_LOG_PATH}/addons/metrics-server
+    local METRICS_CONF_PATH="${KUBE_DEPLOY_LOG_PATH}/addons/metrics-server"
     # cp addons/metrics-server/metrics-server-0.4.x/metrics-server-0.4.3.yaml ${METRICS_CONF_PATH}
     # kubectl apply -f ${METRICS_CONF_PATH}/metrics-server-0.4.3.yaml
     cp addons/metrics-server/metrics-server-0.5.x/metrics-server-0.5.2.yaml ${METRICS_CONF_PATH}
@@ -884,8 +861,7 @@ function 17_deploy_metrics_server {
 }
 
 
-
-function 18_label_and_taint_master_node {
+18_label_and_taint_master_node() {
     # 为 master 节点打上标签
     # 为 master 节点打上污点
     # master 节点的 taint 默认是 NoSchedule，为了充分利用 master 资源可以设置成 PreferNoSchedule
@@ -931,7 +907,7 @@ _stage_four() {
 
 stage_four() {
     MSG1 "============ Stage 4: Deployment Kubernetes Cluster from Binary ===============";
-    mkdir -p "$K8S_DEPLOY_LOG_PATH/logs/stage-four"
-    local LOG_FILE="$K8S_DEPLOY_LOG_PATH/logs/stage-four/kubernetes.log"
+    mkdir -p "$KUBE_DEPLOY_LOG_PATH/logs/stage-four"
+    local LOG_FILE="$KUBE_DEPLOY_LOG_PATH/logs/stage-four/kubernetes.log"
     _stage_four 2>&1 | tee -ai "$LOG_FILE"
 }
