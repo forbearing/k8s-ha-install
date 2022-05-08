@@ -14,6 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+EXIT_SUCCESS=0
+EXIT_FAILURE=1
+
+ERR(){ echo -e "\033[31m\033[01m$1\033[0m"; }
+MSG1(){ echo -e "\n\n\033[32m\033[01m$1\033[0m\n"; }
+MSG2(){ echo -e "\n\033[33m\033[01m$1\033[0m"; }
+MSG3(){ echo -e "\033[33m\033[01m$1\033[0m"; }
+
 usage() {
     echo -e "Options: "
     echo -e "    -e      environment file"
@@ -26,6 +35,7 @@ usage() {
     echo -e "    ./setup.sh -e k8s-t20.env      使用自定义的 k8s-t20.env 变量文件部署 k8s 集群"
     echo -e "    ./setup.sh -e k8s-t20.env -a   使用自定义的 k8s-t20.env 变量文件添加 k8s worker 节点"
     echo -e "    ./setup.sh -d worker4          删除 k8s worker 节点"
+    exit 0
 }
 
 usage2() {
@@ -34,48 +44,8 @@ add_des="-a          添加 k8s worker 节点, 要添加的 k8s worker 节点列
 del_des="-d          删除 k8s worker 节点, 需要提供你想删除的 worker 节点的名字, 这个 worker 节点\n
                     名字可以从 kubectl get node 中查找到. ( 需要参数)"
     printf "%s" ${del_des}
+    exit 0
 }
-
-print_environment() {
-    MSG1 "=================================== Environment ==================================="
-    MSG2 "master node"
-    for host in "${!MASTER[@]}"; do
-        local ip=${MASTER[$host]}
-        printf "%-20s%s\n" $host $ip; done
-
-    MSG2 "worker node"
-    for host in "${!WORKER[@]}"; do
-        local ip=${WORKER[$host]}
-        printf "%-20s%s\n" $host $ip; done
-
-    MSG2 "all k8s node"
-    for HOST in "${ALL_NODE[@]}"; do
-        echo $HOST; done
-
-    MSG2 "extra master node"
-    for host in "${!EXTRA_MASTER[@]}"; do
-        local ip=${EXTRA_MASTER[$host]}
-        printf "%-20s%s\n" $host $ip; done
-
-    MSG2 "add worker node"
-    for host in "${!ADD_WORKER[@]}"; do
-        local ip=${ADD_WORKER[$host]}
-        printf "%-20s%s\n" $host $ip; done
-
-    MSG2 "others environment"
-    echo "CONTROL_PLANE_ENDPOINT:   $CONTROL_PLANE_ENDPOINT"
-    echo "SRV_NETWORK_CIDR:         $SRV_NETWORK_CIDR"
-    echo "SRV_NETWORK_IP:           $SRV_NETWORK_IP"
-    echo "SRV_NETWORK_DNS_IP:       $SRV_NETWORK_DNS_IP"
-    echo "POD_NETWORK_CIDR:         $POD_NETWORK_CIDR"
-    echo "KUBE_PATH                 $KUBE_PATH"
-    echo "K8S_VERSION:              $K8S_VERSION"
-    echo "K8S_PROXY_MODE:           $K8S_PROXY_MODE"
-    echo "KUBE_CERT_PATH:           $KUBE_CERT_PATH"
-    echo "ETCD_CERT_PATH:           $ETCD_CERT_PATH"
-    echo "KUBE_DEPLOY_LOG_PATH:     $KUBE_DEPLOY_LOG_PATH"
-}
-
 
 check_root_and_os() {
     # 检测是否为支持的 Linux 版本，否则退出脚本
@@ -102,7 +72,6 @@ check_root_and_os() {
     # fi
 }
 
-
 # refer: https://gist.github.com/tedivm/e11ebfdc25dc1d7935a3d5640a1f1c90
 _apt_wait() {
     while true; do
@@ -125,7 +94,6 @@ _apt_wait() {
         break
     done
 }
-
 
 # refer: https://gist.github.com/tedivm/e11ebfdc25dc1d7935a3d5640a1f1c90
 _apt_wait2() {
