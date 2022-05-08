@@ -53,9 +53,9 @@ function 1_configure_ssh_public_key_authentication {
         ssh-keyscan "$node" >> /root/.ssh/known_hosts
         ssh-keyscan "$ip" >> /root/.ssh/known_hosts; done
     for node in "${!ADD_WORKER[@]}"; do
-        sshpass -p "$K8S_ROOT_PASS" ssh-copy-id -f -i /root/.ssh/id_rsa.pub root@"$node" > /dev/null
-        sshpass -p "$K8S_ROOT_PASS" ssh-copy-id -f -i /root/.ssh/id_ecdsa.pub root@"$node" > /dev/null
-        sshpass -p "$K8S_ROOT_PASS" ssh-copy-id -f -i /root/.ssh/id_ed25519.pub root@"$node" > /dev/null; done
+        sshpass -p "$KUBE_ROOT_PASS" ssh-copy-id -f -i /root/.ssh/id_rsa.pub root@"$node" > /dev/null
+        sshpass -p "$KUBE_ROOT_PASS" ssh-copy-id -f -i /root/.ssh/id_ecdsa.pub root@"$node" > /dev/null
+        sshpass -p "$KUBE_ROOT_PASS" ssh-copy-id -f -i /root/.ssh/id_ed25519.pub root@"$node" > /dev/null; done
 }
 
 
@@ -119,7 +119,7 @@ function 4_run_stage_one {
     MSG1 "4. run stage one"
 
     source /etc/os-release
-    mkdir -p "$K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-one"
+    mkdir -p "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-one"
     case $ID in
     centos)
         # Linux: centos
@@ -143,9 +143,9 @@ function 4_run_stage_one {
                  5_set_timezone_and_ntp_client
                  6_configure_sshd
                  7_configure_ulimit" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-one/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-one/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-one/*.log)"
         wait
         ;;
     rocky)
@@ -170,9 +170,9 @@ function 4_run_stage_one {
                  5_set_timezone_and_ntp_client
                  6_configure_sshd
                  7_configure_ulimit" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-one/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-one/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-one/*.log)"
         wait
         ;;
     ubuntu)
@@ -197,9 +197,9 @@ function 4_run_stage_one {
                  4_set_timezone_and_ntp_client
                  5_configure_sshd
                  6_configure_ulimit" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-one/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-one/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-one/*.log)"
         wait
         ;;
     debian)
@@ -224,9 +224,9 @@ function 4_run_stage_one {
                  4_set_timezone_and_ntp_client
                  5_configure_sshd
                  6_configure_ulimit" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-one/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-one/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-one/*.log)"
         wait
         ;;
     *)
@@ -240,7 +240,7 @@ function 5_run_stage_two {
     MSG1 "5. run stage two"
 
     source /etc/os-release
-    mkdir -p "$K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-two"
+    mkdir -p "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-two"
     case $ID in
     centos)
         # Linux centos
@@ -258,9 +258,9 @@ function 5_run_stage_two {
                  3_upgrade_kernel
                  4_load_kernel_module
                  5_configure_kernel_parameter" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-two/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-two/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-two/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-two/*.log)"
         wait
         ;;
     rocky)
@@ -278,9 +278,9 @@ function 5_run_stage_two {
                  2_disable_swap
                  4_load_kernel_module
                  5_configure_kernel_parameter" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-two/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-two/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-two/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-two/*.log)"
         wait
         ;;
     ubuntu)
@@ -297,9 +297,9 @@ function 5_run_stage_two {
                  1_disable_swap
                  2_load_kernel_module
                  3_configure_kernel_parameter" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-two/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-two/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-two/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-two/*.log)"
         wait
         ;;
     debian)
@@ -316,9 +316,9 @@ function 5_run_stage_two {
                  1_disable_swap
                  2_load_kernel_module
                  3_configure_kernel_parameter" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-two/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-two/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-two/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-two/*.log)"
         wait
         ;;
     *)
@@ -332,7 +332,7 @@ function 6_run_stage_three {
     MSG1 "6. run stage three"
 
     source /etc/os-release
-    mkdir -p "$K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-three"
+    mkdir -p "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-three"
     case $ID in
     centos)
         # Linux: centos
@@ -346,9 +346,9 @@ function 6_run_stage_three {
                  $(typeset -f 2_configure_docker)
                  1_install_docker
                  2_configure_docker" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-three/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-three/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-three/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-three/*.log)"
         wait
         ;;
     rocky)
@@ -363,9 +363,9 @@ function 6_run_stage_three {
                  $(typeset -f 2_configure_docker)
                  1_install_docker
                  2_configure_docker" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-three/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-three/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-three/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-three/*.log)"
         wait
         ;;
     ubuntu)
@@ -384,9 +384,9 @@ function 6_run_stage_three {
                  1_install_docker
                  2_configure_docker
                  3_audit_for_docker" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-three/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-three/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-three/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-three/*.log)"
         wait
         ;;
     debian)
@@ -405,9 +405,9 @@ function 6_run_stage_three {
                  1_install_docker
                  2_configure_docker
                  3_audit_for_docker" \
-                 &>> "$K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-three/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-three/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $K8S_DEPLOY_LOG_PATH/logs_add-worker/stage-three/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-three/*.log)"
         wait
         ;;
     *)
@@ -421,17 +421,17 @@ function 7_copy_bnary_file_to_new_worker_node {
     MSG1 "7. copy binary file to new worker node"
 
     # 1. 解压二进制文件
-    mkdir -p "$K8S_DEPLOY_LOG_PATH/bin"
-    tar -xvf bin/${K8S_VERSION}/kube-proxy.tar.xz   -C $K8S_DEPLOY_LOG_PATH/bin/
-    tar -xvf bin/${K8S_VERSION}/kubelet.tar.xz      -C $K8S_DEPLOY_LOG_PATH/bin/
-    tar -xvf bin/${K8S_VERSION}/kubectl.tar.xz      -C $K8S_DEPLOY_LOG_PATH/bin/
+    mkdir -p "$KUBE_DEPLOY_LOG_PATH/bin"
+    tar -xvf bin/${K8S_VERSION}/kube-proxy.tar.xz   -C $KUBE_DEPLOY_LOG_PATH/bin/
+    tar -xvf bin/${K8S_VERSION}/kubelet.tar.xz      -C $KUBE_DEPLOY_LOG_PATH/bin/
+    tar -xvf bin/${K8S_VERSION}/kubectl.tar.xz      -C $KUBE_DEPLOY_LOG_PATH/bin/
 
     # 2. 将 k8s 二进制文件拷贝到新添加的 worker 节点上
     for node in "${ADD_WORKER[@]}"; do
         for pkg in \
-            $K8S_DEPLOY_LOG_PATH/bin/kube-proxy \
-            $K8S_DEPLOY_LOG_PATH/bin/kubelet \
-            $K8S_DEPLOY_LOG_PATH/bin/kubectl; do
+            $KUBE_DEPLOY_LOG_PATH/bin/kube-proxy \
+            $KUBE_DEPLOY_LOG_PATH/bin/kubelet \
+            $KUBE_DEPLOY_LOG_PATH/bin/kubectl; do
             scp $pkg $node:/usr/local/bin/
         done
     done
@@ -447,7 +447,7 @@ function 8_copy_certs_config_binary_to_new_worker_node {
     MSG1 "8. copy certs config and binary to new worker node"
     
     local WORKER_IP
-    local ADD_NODE_PATH="$K8S_DEPLOY_LOG_PATH/add-worker"
+    local ADD_NODE_PATH="$KUBE_DEPLOY_LOG_PATH/add-worker"
     mkdir -p "${ADD_NODE_PATH}"
 
     # 获取任何一个 worker 节点的 ip 地址
