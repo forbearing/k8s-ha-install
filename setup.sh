@@ -31,10 +31,10 @@ ENV_FILE=""                                             # default k8s environmen
 while getopts "e:ad:uh" opt; do
     case "$opt" in
     e) ENV_FILE="$OPTARG" ;;
-    a) add_k8s_node="true" ;;
-    d) del_k8s_node="true"
+    a) add_node="true" ;;
+    d) del_node="true"
        DEL_WORKER="$OPTARG" ;;
-    u) upgrade_k8s_cluster="true" ;;
+    u) upgrade_cluster="true" ;;
     h) usage ;;
     *) usage ;;
     esac
@@ -47,9 +47,9 @@ source $ENV_FILE
 post_prepare_environ
 print_environ
 
-[ $add_k8s_node ] && add_k8s_node && exit $EXIT_SUCCESS
-[ $del_k8s_node ] && del_k8s_node && exit $EXIT_SUCCESS
-[ $upgrade_k8s_cluster ]  && upgrade_k8s_cluster && exit $EXIT_SUCCESS
+[ $add_node ] && add_k8s_node && exit $EXIT_SUCCESS
+[ $del_node ] && del_k8s_node && exit $EXIT_SUCCESS
+[ $upgrade_cluster ]  && upgrade_k8s_cluster && exit $EXIT_SUCCESS
 
 main() {
     stage_prepare
