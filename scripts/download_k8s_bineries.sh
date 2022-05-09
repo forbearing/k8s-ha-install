@@ -58,7 +58,7 @@ parseUrl() {
 
     # kubernetes binary files download links
     templateUrl="https://dl.k8s.io/#KUBE_VERSION#/kubernetes-server-linux-#ARCH#.tar.gz"
-    downloadUrl=$(echo $templateUrl | sed -e "s|#KUBE_VERSION#|v$version|" -e "s|#ARCH#|amd64|")
+    downloadUrl=$(echo $templateUrl | sed -e "s|#KUBE_VERSION#|v$version|" -e "s|#ARCH#|$platform|")
 
 }
 
