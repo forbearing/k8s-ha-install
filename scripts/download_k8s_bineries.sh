@@ -53,6 +53,7 @@ parseUrl() {
           $platform != "s390x" ]]; then
         echo "Not support \"$platform\" architecture."
         echo "Try \"`basename $0` -h\" for more information."
+        exit 0
     fi
 
     # kubernetes binary files download links
