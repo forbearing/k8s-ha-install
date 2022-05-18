@@ -3,10 +3,10 @@ package conf
 type K8S struct {
 	Timezone string `mapstructure:"timezone"`
 
-	Master      []KNode `mapstructure:"master"`
-	Worker      []KNode `mapstructure:"worker"`
-	ExtraMaster []KNode `mapstructure:"extraMaster"`
-	AddWorker   []KNode `mapstructure:"addWorker"`
+	Master      []Node `mapstructure:"master"`
+	Worker      []Node `mapstructure:"worker"`
+	ExtraMaster []Node `mapstructure:"extraMaster"`
+	AddWorker   []Node `mapstructure:"addWorker"`
 
 	ControlPlaneendpoint string `mapstructure:"controlPlaneendpoint"`
 	SrvNetworkCidr       string `mapstructure:"srvNetworkCidr"`
@@ -23,7 +23,7 @@ type K8S struct {
 	InstallIngress bool `mapstructure:"installIngress"`
 }
 
-type KNode struct {
+type Node struct {
 	Host string `mapstructure:"host"`
 	IP   string `mapstructure:"ip"`
 }
