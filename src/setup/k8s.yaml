@@ -1,0 +1,42 @@
+timezone: "Asia/Shanghai"
+
+master:
+  - host: master1
+    ip: 10.250.16.11
+  - host: master2
+    ip: 10.250.16.12
+  - host: master3
+    ip: 10.250.16.13
+worker:
+  - host: worker1
+    ip: 10.250.16.21
+  - host: worker2
+    ip: 10.250.16.22
+  - host: worker3
+    ip: 10.250.16.23
+extraMaster:
+  - host: master4
+    ip: 10.250.16.14
+  - host: master4
+    ip: 10.250.16.15
+addWorker:
+  - host: worker4
+    ip: 10.250.16.24
+  - host: worker5
+    ip: 10.250.16.25
+  - host: worker6
+    ip: 10.250.16.26
+
+controlPlaneendpoint: "10.250.16.10:8443"
+srvNetworkCidr: "172.18.0.0/16"
+srvNetworkIp: "172.18.0.1"
+srvNetworkDnsIp: "172.18.0.10"
+podNetworkCidr: "192.169.0.0/16"
+
+kubeRootPass: "toor"
+kubeVersion: "v1.24"
+kubeProxyMode: "ipvs"
+
+linuxSoftwareMirror: "nju"
+
+installIngress: true
