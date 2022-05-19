@@ -14,42 +14,41 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-source scripts/functions                                # small utils collections
-source scripts/0_stage_prepare.sh                       # deploy k8s cluster stage prepare script
-source scripts/1_stage_one.sh                           # deploy k8s cluster stage one script
-source scripts/2_stage_two.sh                           # deploy k8s cluster stage two script
-source scripts/3_stage_three.sh                         # deploy k8s cluster stage three script
-source scripts/4_stage_four.sh                          # deploy k8s cluster stage four script
-source scripts/5_stage_five.sh                          # deploy k8s cluster stage five script
-source scripts/6_stage_six.sh                           # deploy k8s cluster stage six script
-source scripts/7_stage_seven.sh                         # deploy k8s cluster stage seven script
-source scripts/add_k8s_node.sh                          # add k8s worker node script
-source scripts/del_k8s_node.sh                          # del k8s worker node script
-source scripts/upgrade_k8s_cluster.sh                   # upgrade k8s cluster script
+source scripts/functions                        # small utils collections
+source scripts/0_stage_prepare.sh               # deploy k8s cluster stage prepare script
+source scripts/1_stage_one.sh                   # deploy k8s cluster stage one script
+source scripts/2_stage_two.sh                   # deploy k8s cluster stage two script
+source scripts/3_stage_three.sh                 # deploy k8s cluster stage three script
+source scripts/4_stage_four.sh                  # deploy k8s cluster stage four script
+source scripts/5_stage_five.sh                  # deploy k8s cluster stage five script
+source scripts/6_stage_six.sh                   # deploy k8s cluster stage six script
+source scripts/7_stage_seven.sh                 # deploy k8s cluster stage seven script
+source scripts/add_k8s_node.sh                  # add k8s worker node script
+source scripts/del_k8s_node.sh                  # del k8s worker node script
+source scripts/upg_k8s_cluster.sh               # upgrade k8s cluster script
 
-ENV_FILE=""                                             # default k8s environment file is k8s.env
 while getopts "e:ad:uh" opt; do
     case "$opt" in
     e) ENV_FILE="$OPTARG" ;;
-    a) add_node="true" ;;
-    d) del_node="true"
+    a) is_add="true" ;;
+    d) is_del="true"
        DEL_WORKER="$OPTARG" ;;
-    u) upgrade_cluster="true" ;;
+    u) is_upg="true" ;;
     h) usage ;;
     *) usage ;;
     esac
 done
 
 check_root_and_os
-pre_prepare_environ
+prepare_pre_environ
 [ $ENV_FILE ] || ENV_FILE="k8s.env"
 source $ENV_FILE
-post_prepare_environ
+prepare_post_environ
 print_environ
 
-[ $add_node ] && add_k8s_node && exit $EXIT_SUCCESS
-[ $del_node ] && del_k8s_node && exit $EXIT_SUCCESS
-[ $upgrade_cluster ]  && upgrade_k8s_cluster && exit $EXIT_SUCCESS
+[ $is_add ] && add_k8s_node && exit $EXIT_SUCCESS
+[ $is_del ] && del_k8s_node && exit $EXIT_SUCCESS
+[ $is_upg ] && upg_k8s_cluster && exit $EXIT_SUCCESS
 
 main() {
     stage_prepare
