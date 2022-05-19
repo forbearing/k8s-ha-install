@@ -26,7 +26,7 @@ _exportOSInfo() {
     #export linuxID linuxMajorVersion linuxMinorVersion linuxCodeName
 }
 
-pre_prepare_environ() {
+prepare_pre_environ() {
     _exportOSInfo
 
     #export KUBE_VERSION="v1.24"                         # default kubernetes version
@@ -54,7 +54,7 @@ pre_prepare_environ() {
     CFSSL_VERSION="v1.6.1"                       # default cfssl utils version
 }
 
-post_prepare_environ() {
+prepare_post_environ() {
     # choose the etcd version for kubernetes cluster
     case $KUBE_VERSION in
     v1.24)
