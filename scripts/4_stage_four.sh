@@ -817,7 +817,7 @@
     calico-typha)
         sed -i "s%# - name: CALICO_IPV4POOL_CIDR%- name: CALICO_IPV4POOL_CIDR%g"     ${CALICO_CONF_PATH}/$CALICO_TYPE.yaml
         sed -i "s%#   value: \"192.168.0.0/16\"%  value: \"${POD_NETWORK_CIDR}\"%g"  ${CALICO_CONF_PATH}/$CALICO_TYPE.yaml
-        kubectl apply -f ${CALICO_CONF_PATH}/calico-typha.yaml
+        kubectl apply -f ${CALICO_CONF_PATH}/$CALICO_TYPE.yaml
         :;;
     calico-etcd)
         sed -i -r "s%(.*)http://<ETCD_IP>:<ETCD_PORT>(.*)%\1${ETCD_ENDPOINTS}\2%"    ${CALICO_CONF_PATH}/$CALICO_TYPE.yaml
@@ -830,7 +830,7 @@
         sed -i "s%# - name: CALICO_IPV4POOL_CIDR%- name: CALICO_IPV4POOL_CIDR%g"     ${CALICO_CONF_PATH}/$CALICO_TYPE.yaml
         sed -i "s%#   value: \"192.168.0.0/16\"%  value: \"${POD_NETWORK_CIDR}\"%g"  ${CALICO_CONF_PATH}/$CALICO_TYPE.yaml
         sed -i "s%defaultMode: 0400%defaultMode: 0440%g"                             ${CALICO_CONF_PATH}/$CALICO_TYPE.yaml
-        kubectl apply -f ${CALICO_CONF_PATH}/calico-etcd.yaml
+        kubectl apply -f ${CALICO_CONF_PATH}/$CALICO_TYPE.yaml
         :;;
     calico)
         :;;
