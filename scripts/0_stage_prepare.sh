@@ -159,7 +159,7 @@ print_environ() {
 
 }
 
-signle_handler() {
+signal_handler() {
     for SIG in "$@"; do
         case $SIG in
         "INT")      # ctrl-c to stop this script, exit success.
@@ -342,7 +342,7 @@ stage_prepare(){
     source scripts/functions
     MSG1 "=============  Stage Prepare: Setup SSH Public Key Authentication ============="
 
-    signle_handler INT TERM QUIT
+    signal_handler INT TERM QUIT
     prepare_software_mirror
 
     mkdir -p "$KUBE_DEPLOY_LOG_PATH/logs/stage-prepare"
