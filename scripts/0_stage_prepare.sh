@@ -15,6 +15,9 @@
 # limitations under the License.
 
 _exportOSInfo() {
+    # release file "/etc/os-release" exists in debian, ubuntu and centos.
+    # release file "/etc/lsb-release" exists only in ubuntu.
+    # release file "/etc/system-release" exists only in centos.
     source /etc/os-release
     linuxID=$ID
     linuxMajorVersion=$( echo $VERSION | awk -F'[.| ]' '{print $1}' )
@@ -23,23 +26,10 @@ _exportOSInfo() {
         linuxMinorVersion=$(cat /etc/lsb-release  | awk -F'=' '/DISTRIB_RELEASE/ {print $2}' | awk -F'.'  '{print $2}')
     [ -f /etc/system-release ] && \
         linuxMinorVersion=$(cat /etc/system-release | awk '{print $4}' | awk -F'.' '{print $2}')
-    #export linuxID linuxMajorVersion linuxMinorVersion linuxCodeName
 }
 
 prepare_pre_environ() {
     _exportOSInfo
-
-    #export KUBE_VERSION="v1.24"                         # default kubernetes version
-    #export KUBE_PATH="/etc/kubernetes"                  # default kubernetes config path
-    #export KUBE_CERT_PATH="$KUBE_PATH/pki"              # default kubernetes certs path
-    #export KUBE_PROXY_MODE="ipvs"                       # default kube-proxy proxy mode
-    #export KUBE_DEPLOY_LOG_PATH="/root/k8s-deploy-log"  # default kubernetes dpeloy log path
-
-    #export ETCD_VERSION=""
-    #export ETCD_CERT_PATH="/etc/etcd/ssl"               # default etcd cert path
-
-    #export HELM_VERSION="v3.7.1"                        # default helm version
-    #export CFSSL_VERSION="v1.6.1"                       # default cfssl utils version
 
     KUBE_VERSION="v1.24"                         # default kubernetes version
     KUBE_PATH="/etc/kubernetes"                  # default kubernetes config path
@@ -352,7 +342,7 @@ stage_prepare(){
     source scripts/functions
     MSG1 "=============  Stage Prepare: Setup SSH Public Key Authentication ============="
 
-    single_handler
+    single_handler INT TERM QUIT
     prepare_software_mirror
 
     mkdir -p "$KUBE_DEPLOY_LOG_PATH/logs/stage-prepare"
