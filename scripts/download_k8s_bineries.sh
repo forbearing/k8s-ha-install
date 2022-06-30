@@ -39,11 +39,13 @@ while getopts "p:v:h" flag; do
 done
 
 parseUrl() {
+    # if variable of "version" is empty, exit.
     if [ -z $version ]; then
         echo "Requires a k8s version"
         echo "Try \"`basename $0` -h\" for more information."
         exit 0
     fi
+    # remove prefix "v"
     version=$(echo "$version" | sed 's/v//')
     [ $platform ] || platform="amd64"
     if [[ $platform != "amd64" && \
@@ -57,12 +59,15 @@ parseUrl() {
     fi
 
     # kubernetes binary files download links
+    # generate kubernetes download link.
     templateUrl="https://dl.k8s.io/#KUBE_VERSION#/kubernetes-server-linux-#ARCH#.tar.gz"
     downloadUrl=$(echo $templateUrl | sed -e "s|#KUBE_VERSION#|v$version|" -e "s|#ARCH#|$platform|")
 
 }
 
 parseVersion() {
+    # fullVersion includes k8s major and minor version number, like 1.24.2
+    # version includes k8s major version number, like 1.24
     fullVersion=$version
     version=$( echo "$version" | awk -F'.' '{printf "%s.%s", $1,$2}')
     if [[ $version != "1.20" && \
@@ -100,6 +105,7 @@ parseFetchCmd() {
 
 download_and_compress() {
     pkgName=$(echo "$downloadUrl" |awk -F'/' '{print $NF}')
+    pkgName=$pkgName-v$fullVersion
 
     echo "kubernetes version:       $fullVersion"
     echo "kubernetes platform:      $platform"
