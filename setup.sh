@@ -31,8 +31,7 @@ while getopts "e:ad:uh" opt; do
     case "$opt" in
     e) ENV_FILE="$OPTARG" ;;
     a) is_add="true" ;;
-    d) is_del="true"
-       DEL_WORKER="$OPTARG" ;;
+    d) is_del="true"; DEL_WORKER="$OPTARG" ;;
     u) is_upg="true" ;;
     h) usage ;;
     *) usage ;;
