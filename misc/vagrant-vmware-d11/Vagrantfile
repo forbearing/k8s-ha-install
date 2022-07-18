@@ -1,0 +1,89 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# All Vagrant configuration is done below. The "2" in Vagrant.configure
+# configures the configuration version (we support older styles for
+# backwards compatibility). Please don't change it unless you know what
+# you're doing.
+Vagrant.configure("2") do |config|
+  config.vm.box = "generic/debian11"
+  SYNCED_FOLDER_SRC = "/Users/hybfkuf/Downloads/vagrant/"
+  SYNCED_FOLDER_DST = "/vagrant_data"
+  VMWARE_DIRECTORY = "/Volumes/HD/Vmware"
+  config.vm.synced_folder SYNCED_FOLDER_SRC, SYNCED_FOLDER_DST
+  config.vm.box_check_update = false
+  #config.vm.network "public_network", bridge: "en0"
+  #config.vm.network "private_network", type: "dhcp"
+  #config.vm.network "private_network", ip: "192.168.50.4"
+
+  config.vm.provision "shell", path: "../provisioning.sh"
+  #config.vm.provision "file", source: "~/.ssh/id_rsa.pub", destination: "~/.ssh/id_rsa.pub"
+
+  #config.ssh.username = 'root'
+  #config.ssh.password = 'toor'
+  config.ssh.insert_key = true
+  config.ssh.guest_port = 22
+  config.ssh.forward_x11 = true
+
+
+  #===== k8s master
+  config.vm.define "vg-d11-k8s-master1" do |master|
+    master.vm.hostname = "vg-d11-k8s-master1"
+    master.vm.network "private_network", ip: "10.220.2.11"
+    master.vm.provider "vmware_desktop" do |vmware|
+      vmware.gui = false
+      vmware.linked_clone = false
+      vmware.clone_directory = VMWARE_DIRECTORY
+    end
+  end
+  config.vm.define "vg-d11-k8s-master2" do |master|
+    master.vm.hostname = "vg-d11-k8s-master2"
+    master.vm.network "private_network", ip: "10.220.2.12"
+    master.vm.provider "vmware_desktop" do |vmware|
+      vmware.gui = false
+      vmware.linked_clone = false
+      vmware.clone_directory = VMWARE_DIRECTORY
+    end
+  end
+  config.vm.define "vg-d11-k8s-master3" do |master|
+    master.vm.hostname = "vg-d11-k8s-master3"
+    master.vm.network "private_network", ip: "10.220.2.13"
+    master.vm.provider "vmware_desktop" do |vmware|
+      vmware.gui = false
+      vmware.linked_clone = false
+      vmware.clone_directory = VMWARE_DIRECTORY
+    end
+  end
+
+
+  ##===== k8s worker
+  config.vm.define "vg-d11-k8s-worker1" do |worker|
+    worker.vm.hostname = "vg-d11-k8s-worker1"
+    worker.vm.network "private_network", ip: "10.220.2.21"
+    worker.vm.provider "vmware_desktop" do |vmware|
+      vmware.gui = false
+      vmware.linked_clone = false
+      vmware.clone_directory = VMWARE_DIRECTORY
+    end
+  end
+  config.vm.define "vg-d11-k8s-worker2" do |worker|
+    worker.vm.hostname = "vg-d11-k8s-worker2"
+    worker.vm.network "private_network", ip: "10.220.2.22"
+    worker.vm.provider "vmware_desktop" do |vmware|
+      vmware.gui = false
+      vmware.linked_clone = false
+      vmware.clone_directory = VMWARE_DIRECTORY
+    end
+  end
+  config.vm.define "vg-d11-k8s-worker3" do |worker|
+    worker.vm.hostname = "vg-d11-k8s-worker3"
+    worker.vm.network "private_network", ip: "10.220.2.23"
+    worker.vm.provider "vmware_desktop" do |vmware|
+      vmware.gui = false
+      vmware.linked_clone = false
+      vmware.clone_directory = VMWARE_DIRECTORY
+    end
+  end
+
+
+end
