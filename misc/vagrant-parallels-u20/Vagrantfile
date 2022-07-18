@@ -1,0 +1,106 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# All Vagrant configuration is done below. The "2" in Vagrant.configure
+# configures the configuration version (we support older styles for
+# backwards compatibility). Please don't change it unless you know what
+# you're doing.
+Vagrant.configure("2") do |config|
+  config.vm.box = "generic/ubuntu2004"
+  SYNCED_FOLDER_SRC = "/Users/hybfkuf/Downloads/vagrant/"
+  SYNCED_FOLDER_DST = "/vagrant_data"
+  config.vm.synced_folder SYNCED_FOLDER_SRC, SYNCED_FOLDER_DST
+  config.vm.box_check_update = false
+  #config.vm.network "public_network", bridge: "en0"
+  #config.vm.network "private_network", type: "dhcp"
+  #config.vm.network "private_network", ip: "192.168.50.4"
+
+  config.vm.provision "shell", path: "./provisioning.sh"
+  #config.vm.provision "file", source: "~/.ssh/id_rsa.pub", destination: "~/.ssh/id_rsa.pub"
+
+  #config.ssh.username = 'root'
+  #config.ssh.password = 'toor'
+  config.ssh.insert_key = true
+  config.ssh.guest_port = 22
+  config.ssh.forward_x11 = true
+
+
+  #===== k8s master
+  config.vm.define "vg-u20-k8s-master1" do |master1|
+    master1.vm.hostname = "vg-u20-k8s-master1"
+    master1.vm.network "private_network", ip: "10.230.1.11"
+    master1.vm.provider "parallels" do |prl|
+      prl.linked_clone = true
+      prl.name = "vg-u20-k8s-master1"
+      prl.cpus = 2
+      prl.memory = "2048M"
+      prl.check_guest_tools = false
+      prl.update_guest_tools = false
+    end
+  end
+  config.vm.define "vg-u20-k8s-master2" do |master1|
+    master1.vm.hostname = "vg-u20-k8s-master2"
+    master1.vm.network "private_network", ip: "10.230.1.12"
+    master1.vm.provider "parallels" do |prl|
+      prl.linked_clone = true
+      prl.name = "vg-u20-k8s-master2"
+      prl.cpus = 2
+      prl.memory = "2048M"
+      prl.check_guest_tools = false
+      prl.update_guest_tools = false
+    end
+  end
+  config.vm.define "vg-u20-k8s-master3" do |master1|
+    master1.vm.hostname = "vg-u20-k8s-master3"
+    master1.vm.network "private_network", ip: "10.230.1.13"
+    master1.vm.provider "parallels" do |prl|
+      prl.linked_clone = true
+      prl.name = "vg-u20-k8s-master3"
+      prl.cpus = 2
+      prl.memory = "2048M"
+      prl.check_guest_tools = false
+      prl.update_guest_tools = false
+    end
+  end
+
+
+  #===== k8s worker
+  config.vm.define "vg-u20-k8s-worker1" do |master1|
+    master1.vm.hostname = "vg-u20-k8s-worker1"
+    master1.vm.network "private_network", ip: "10.230.1.21"
+    master1.vm.provider "parallels" do |prl|
+      prl.linked_clone = true
+      prl.name = "vg-u20-k8s-worker1"
+      prl.cpus = 2
+      prl.memory = "4096M"
+      prl.check_guest_tools = false
+      prl.update_guest_tools = false
+    end
+  end
+  config.vm.define "vg-u20-k8s-worker2" do |master1|
+    master1.vm.hostname = "vg-u20-k8s-worker2"
+    master1.vm.network "private_network", ip: "10.230.1.22"
+    master1.vm.provider "parallels" do |prl|
+      prl.linked_clone = true
+      prl.name = "vg-u20-k8s-worker2"
+      prl.cpus = 2
+      prl.memory = "4096M"
+      prl.check_guest_tools = false
+      prl.update_guest_tools = false
+    end
+  end
+  config.vm.define "vg-u20-k8s-worker3" do |master1|
+    master1.vm.hostname = "vg-u20-k8s-worker3"
+    master1.vm.network "private_network", ip: "10.230.1.23"
+    master1.vm.provider "parallels" do |prl|
+      prl.linked_clone = true
+      prl.name = "vg-u20-k8s-worker3"
+      prl.cpus = 2
+      prl.memory = "4096M"
+      prl.check_guest_tools = false
+      prl.update_guest_tools = false
+    end
+  end
+
+
+end
