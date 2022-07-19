@@ -15,6 +15,7 @@
     echo "2. [`hostname`] Disable swap"
 
     sed -i -r "/(.*)swap(.*)swap(.*)/d" /etc/fstab
+    sed -i -r "/(.*)UUID(.*)swap(.*)/d" /etc/fstab
     swapoff -a
 }
 
