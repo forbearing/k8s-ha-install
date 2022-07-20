@@ -29,6 +29,7 @@ _exportOSInfo() {
 }
 
 prepare_pre_environ() {
+    LC_ALL=C
     _exportOSInfo
 
     KUBE_VERSION="v1.24"                         # default kubernetes version
@@ -175,7 +176,7 @@ signal_handler() {
 prepare_software_mirror() {
     if [[ $TIMEZONE == "Asia/Shanghai" || $TIMEZONE == "Asia/Chongqing" ]]; then
         local mirror
-        local defaultMirror="http://mirror.nju.edu.cn"
+        local defaultMirror="http://mirror.ustc.edu.cn"
         local isRockyMirror
         # Official Archive Mirrors for Ubuntu
         # https://launchpad.net/ubuntu/+archivemirrors
