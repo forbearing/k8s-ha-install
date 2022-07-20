@@ -3,3 +3,6 @@
 *.swp
 *.vagrant
 *rsync.sh
+*.nosync
+*.nopush
+*.nogit
