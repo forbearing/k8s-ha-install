@@ -78,9 +78,9 @@
 | SRV_NETWORK_IP         | kubernetes 集群的 IP 地址，一般都是 service network 中的第一个 IP 地址，例如 ：`172.18.0.1`。 |
 | SRV_NETWORK_DNS_IP     | kubernetes 集群的 coredns IP 地址，一般是第十个 IP，例如： `172.18.0.10。` |
 | POD_NETWORK_CIDR       | k8s pod network 的网段，例如：`192.168.0.0/16`。             |
-| K8S_ROOT_PASS          | root 用户口令，默认是 `toor`。                               |
-| K8S_VERSION            | 你要部署的 k8s 版本，支持 `v1.23` `v1.22` `v1.21` `v1.20`，默认是最新版本。 |
-| K8S_PROXY_MODE         | `kube-proxy` 使用的 proxy mode，支持 `iptables`  `ipvs`，默认是 `ipvs`。 |
+| KUBE_ROOT_PASS         | root 用户口令，默认是 `toor`。                               |
+| KUBE_VERSION           | 你要部署的 k8s 版本，支持 `v1.23` `v1.22` `v1.21` `v1.20`，默认是最新版本。 |
+| KUBE_PROXY_MODE        | `kube-proxy` 使用的 proxy mode，支持 `iptables`  `ipvs`，默认是 `ipvs`。 |
 | INSTALL_XXX            | 是否需要安装指定的插件，不安装变量留空，安装设置任意变量值。 |
 
 ![avatar](doc/pics/k8s.env.png)
