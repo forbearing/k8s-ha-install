@@ -46,6 +46,7 @@
     curl https://docs.projectcalico.org/v3.21/manifests/calico-typha.yaml -o calico-typha-v3.21.yaml
     # 3.22
     curl https://projectcalico.docs.tigera.io/v3.22/manifests/calico.yaml -o calico-v3.22.yaml
+    curl https://projectcalico.docs.tigera.io/v3.22/manifests/calico.yaml
     curl https://projectcalico.docs.tigera.io/v3.22/manifests/calico-etcd.yaml -o calico-etcd-v3.22.yaml
     curl https://projectcalico.docs.tigera.io/v3.22/manifests/calico-typha.yaml -o calico-typha-v3.22.yaml
     # latest
