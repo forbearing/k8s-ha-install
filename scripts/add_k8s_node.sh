@@ -111,6 +111,25 @@ function 3_deduplicate_add_worker {
         echo "Nothing need to do !!!"
         exit 0
     fi
+
+    # 如果操作系统为 CentOS/Rocky，则将 yum.repos.d 复制到所有的 k8s 节点的 /tmp 目录下
+    case $linuxID in
+    centos)
+        for node in "${ADD_WORKER[@]}"; do
+            scp -q -r centos/pkgs centos/yum.repos.d $node:/tmp/ &
+        done
+        wait; ;;
+    rocky)
+        for node in "${ADD_WORKER[@]}"; do
+            scp -q -r rocky/pkgs rocky/yum.repos.d $node:/tmp/ &
+        done
+        wait; ;;
+    ubuntu)
+        for node in "${ADD_WORKER[@]}"; do
+            scp -q -r ubuntu/pkgs $node:/tmp/ &
+        done
+        wait; ;;
+    esac
 }
 
 
@@ -118,8 +137,7 @@ function 3_deduplicate_add_worker {
 function 4_run_stage_one {
     MSG1 "4. run stage one"
 
-    source /etc/os-release
-    mkdir -p "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-one"
+    mkdir -p "$KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-one"
     case $ID in
     centos)
         # Linux: centos
@@ -143,9 +161,9 @@ function 4_run_stage_one {
                  5_set_timezone_and_ntp_client
                  6_configure_sshd
                  7_configure_ulimit" \
-                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-one/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-one/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-one/*.log)"
         wait
         ;;
     rocky)
@@ -170,9 +188,9 @@ function 4_run_stage_one {
                  5_set_timezone_and_ntp_client
                  6_configure_sshd
                  7_configure_ulimit" \
-                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-one/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-one/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-one/*.log)"
         wait
         ;;
     ubuntu)
@@ -197,9 +215,9 @@ function 4_run_stage_one {
                  4_set_timezone_and_ntp_client
                  5_configure_sshd
                  6_configure_ulimit" \
-                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-one/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-one/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-one/*.log)"
         wait
         ;;
     debian)
@@ -224,9 +242,9 @@ function 4_run_stage_one {
                  4_set_timezone_and_ntp_client
                  5_configure_sshd
                  6_configure_ulimit" \
-                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-one/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-one/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-one/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-one/*.log)"
         wait
         ;;
     *)
@@ -239,8 +257,7 @@ function 4_run_stage_one {
 function 5_run_stage_two {
     MSG1 "5. run stage two"
 
-    source /etc/os-release
-    mkdir -p "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-two"
+    mkdir -p "$KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-two"
     case $ID in
     centos)
         # Linux centos
@@ -258,9 +275,9 @@ function 5_run_stage_two {
                  3_upgrade_kernel
                  4_load_kernel_module
                  5_configure_kernel_parameter" \
-                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-two/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-two/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-two/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-two/*.log)"
         wait
         ;;
     rocky)
@@ -278,9 +295,9 @@ function 5_run_stage_two {
                  2_disable_swap
                  4_load_kernel_module
                  5_configure_kernel_parameter" \
-                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-two/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-two/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-two/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-two/*.log)"
         wait
         ;;
     ubuntu)
@@ -297,9 +314,9 @@ function 5_run_stage_two {
                  1_disable_swap
                  2_load_kernel_module
                  3_configure_kernel_parameter" \
-                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-two/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-two/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-two/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-two/*.log)"
         wait
         ;;
     debian)
@@ -316,9 +333,9 @@ function 5_run_stage_two {
                  1_disable_swap
                  2_load_kernel_module
                  3_configure_kernel_parameter" \
-                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-two/$node.log" &
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-two/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-two/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-two/*.log)"
         wait
         ;;
     *)
@@ -331,8 +348,7 @@ function 5_run_stage_two {
 function 6_run_stage_three {
     MSG1 "6. run stage three"
 
-    source /etc/os-release
-    mkdir -p "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-three"
+    mkdir -p "$KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-three"
     case $ID in
     centos)
         # Linux: centos
@@ -341,14 +357,16 @@ function 6_run_stage_three {
             MSG3 "*** $node *** is Installing Docker"
             ssh root@$node \
                 "export TIMEZONE=$TIMEZONE
-                 export DOCKER_SOFTWARE_MIRROR=$DOCKER_SOFTWARE_MIRROR
+                 export KUBE_VERSION=$KUBE_VERSION
                  $(typeset -f 1_install_docker)
                  $(typeset -f 2_configure_docker)
+                 $(typeset -f 3_configure_containerd)
                  1_install_docker
-                 2_configure_docker" \
-                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-three/$node.log" &
+                 2_configure_docker
+                 3_configure_containerd" \
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-three/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-three/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-three/*.log)"
         wait
         ;;
     rocky)
@@ -358,14 +376,16 @@ function 6_run_stage_three {
             MSG3 "*** $node *** is Installing Docker"
             ssh root@$node \
                 "export TIMEZONE=$TIMEZONE
-                 export DOCKER_SOFTWARE_MIRROR=$DOCKER_SOFTWARE_MIRROR
+                 export KUBE_VERSION=$KUBE_VERSION
                  $(typeset -f 1_install_docker)
                  $(typeset -f 2_configure_docker)
+                 $(typeset -f 3_configure_containerd)
                  1_install_docker
-                 2_configure_docker" \
-                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-three/$node.log" &
+                 2_configure_docker 
+                 3_configure_containerd" \
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-three/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-three/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-three/*.log)"
         wait
         ;;
     ubuntu)
@@ -375,18 +395,18 @@ function 6_run_stage_three {
             MSG3 "*** $node *** is Installing Docker"
             ssh root@$node \
                 "export TIMEZONE=$TIMEZONE
-                 export DOCKER_SOFTWARE_MIRROR=$DOCKER_SOFTWARE_MIRROR
+                 export KUBE_VERSION=$KUBE_VERSION
                  $(typeset -f _apt_wait)
                  $(typeset -f 1_install_docker)
                  $(typeset -f 2_configure_docker)
-                 $(typeset -f 3_audit_for_docker)
+                 $(typeset -f 3_configure_containerd)
                  _apt_wait
                  1_install_docker
                  2_configure_docker
-                 3_audit_for_docker" \
-                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-three/$node.log" &
+                 3_configure_containerd" \
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-three/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-three/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-three/*.log)"
         wait
         ;;
     debian)
@@ -396,18 +416,18 @@ function 6_run_stage_three {
             MSG3 "*** $node *** is Installing Docker"
             ssh root@$node \
                 "export TIMEZONE=$TIMEZONE
-                 export DOCKER_SOFTWARE_MIRROR=$DOCKER_SOFTWARE_MIRROR
+                 export KUBE_VERSION=$KUBE_VERSION
                  $(typeset -f _apt_wait)
                  $(typeset -f 1_install_docker)
                  $(typeset -f 2_configure_docker)
-                 $(typeset -f 3_audit_for_docker)
+                 $(typeset -f 3_configure_containerd)
                  _apt_wait
                  1_install_docker
                  2_configure_docker
-                 3_audit_for_docker" \
-                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-three/$node.log" &
+                 3_configure_containerd" \
+                 &>> "$KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-three/$node.log" &
         done
-        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add-worker/stage-three/*.log)"
+        MSG3 "please wait... (multitail -s 2 -f $KUBE_DEPLOY_LOG_PATH/logs_add_worker/stage-three/*.log)"
         wait
         ;;
     *)
@@ -447,7 +467,7 @@ function 8_copy_certs_config_binary_to_new_worker_node {
     MSG1 "8. copy certs config and binary to new worker node"
     
     local WORKER_IP
-    local ADD_NODE_PATH="$KUBE_DEPLOY_LOG_PATH/add-worker"
+    local ADD_NODE_PATH="$KUBE_DEPLOY_LOG_PATH/add_worker"
     mkdir -p "${ADD_NODE_PATH}"
 
     # 获取任何一个 worker 节点的 ip 地址
